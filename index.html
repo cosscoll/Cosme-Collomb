@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cosme Collomb — Design & développement d'expériences numériques</title>
+<meta name="description" content="Cosme Collomb — designer & développeur d'expériences numériques pour institutions culturelles.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="grain" aria-hidden="true"></div>
+<div class="cursor-dot" aria-hidden="true"></div>
+<div class="cursor-ring" aria-hidden="true"><span class="cursor-label"></span></div>
+
+<a class="skip-link" href="#main">Aller au contenu</a>
+
+<header class="topbar">
+  <a href="index.html" class="mono monogram">CC</a>
+  <nav class="topnav" aria-label="Navigation principale">
+    <a href="about.html" class="mono">À propos</a>
+    <a href="projects.html" class="mono">Projets</a>
+    <a href="contact.html" class="mono cta-link" data-magnetic>Contact →</a>
+  </nav>
+</header>
+
+<main id="main">
+
+  <section class="hero" id="hero">
+    <canvas id="field" aria-hidden="true"></canvas>
+    <div class="hero-inner">
+      <p class="eyebrow mono reveal">DESIGN & DÉVELOPPEMENT — EXPÉRIENCES NUMÉRIQUES</p>
+      <h1 class="hero-title" data-magnetic-text>
+        <span class="line" data-line>COSME</span>
+        <span class="line" data-line>COLLOMB</span>
+      </h1>
+      <p class="hero-sub reveal">
+        Je conçois et développe des interfaces pour institutions culturelles —
+        du prototype interactif à l'architecture full-stack.
+      </p>
+      <div class="hero-cta reveal">
+        <a href="projects.html" class="hero-btn mono" data-magnetic>Voir mes projets →</a>
+        <a href="about.html" class="hero-btn hero-btn--ghost mono" data-magnetic>À propos</a>
+      </div>
+      <div class="hero-meta mono reveal">
+        <span>SCROLL</span>
+        <span class="hero-line"></span>
+        <span class="hero-hint">GLISSER POUR TOURNER · GLISSER UNE PIÈCE POUR LA DÉPLACER</span>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer mono">
+  <span>© 2026 Cosme Collomb</span>
+  <span>43.6047° N, 1.4442° E</span>
+</footer>
+
+<script type="module" src="hero3d.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

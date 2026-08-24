@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>À propos — Cosme Collomb</title>
+<meta name="description" content="Cosme Collomb — designer & développeur d'expériences numériques pour institutions culturelles, fondateur de DevMate.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600;800;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="grain" aria-hidden="true"></div>
+<div class="cursor-dot" aria-hidden="true"></div>
+<div class="cursor-ring" aria-hidden="true"><span class="cursor-label"></span></div>
+
+<a class="skip-link" href="#main">Aller au contenu</a>
+
+<header class="topbar">
+  <a href="index.html" class="mono monogram">CC</a>
+  <nav class="topnav" aria-label="Navigation principale">
+    <a href="about.html" class="mono is-active">À propos</a>
+    <a href="projects.html" class="mono">Projets</a>
+    <a href="contact.html" class="mono cta-link" data-magnetic>Contact →</a>
+  </nav>
+</header>
+
+<main id="main" class="page-main">
+
+  <section class="about about--page">
+    <div class="about-grid">
+      <div class="about-text reveal">
+        <p class="eyebrow mono">01 — À PROPOS</p>
+        <p class="about-lede">
+          Une pratique à cheval entre design et code, où chaque interaction
+          est pensée comme une pièce à part entière — pas un habillage
+          posé après coup.
+        </p>
+        <p>
+          Le travail commence souvent par une maquette interactive,
+          jouable au clic, avant de devenir une architecture full-stack
+          en production. Deux métiers, une seule main sur le clavier.
+        </p>
+        <p>
+          Fondateur de <strong>DevMate</strong>, studio de services
+          numériques — sites web, identité graphique, communication et
+          automatisation par l'IA. En parallèle, une pratique poussée de
+          l'IA appliquée : intégration de l'API Claude en production,
+          matching intelligent, automatisation de workflows.
+        </p>
+        <p>
+          La grille de compétences ci-contre résume le cadre général —
+          le détail concret de chaque projet est dans la section
+          <a href="projects.html" class="inline-link" data-magnetic>Projets</a>.
+        </p>
+      </div>
+      <dl class="specs mono reveal">
+        <div class="spec-row">
+          <dt>Focus</dt>
+          <dd>Institutions culturelles</dd>
+        </div>
+        <div class="spec-row">
+          <dt>Stack</dt>
+          <dd>Next.js · Supabase · Tailwind</dd>
+        </div>
+        <div class="spec-row">
+          <dt>IA</dt>
+          <dd>API Claude · automatisation · matching</dd>
+        </div>
+        <div class="spec-row">
+          <dt>Langues</dt>
+          <dd>FR / EN</dd>
+        </div>
+        <div class="spec-row">
+          <dt>Statut</dt>
+          <dd><span class="dot-live"></span> Ouvert aux opportunités</dd>
+        </div>
+      </dl>
+    </div>
+  </section>
+
+</main>
+
+<footer class="footer mono">
+  <span>© 2026 Cosme Collomb</span>
+  <span>43.6047° N, 1.4442° E</span>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
