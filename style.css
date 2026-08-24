@@ -222,6 +222,54 @@ section {
   letter-spacing: 0.12em;
   color: var(--paper-dim);
 }
+
+.hero-cta {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+  flex-wrap: wrap;
+}
+.hero-btn {
+  display: inline-block;
+  padding: 0.85rem 1.6rem;
+  border-radius: 2px;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  background: var(--paper);
+  color: var(--ink);
+  transition: transform 0.2s var(--ease), background 0.2s var(--ease);
+}
+.hero-btn:hover { transform: translateY(-2px); }
+.hero-btn--ghost {
+  background: transparent;
+  color: var(--paper);
+  border: 1px solid var(--line-strong);
+}
+.hero-btn--ghost:hover { border-color: var(--cobalt); }
+
+/* Nav active state */
+.topnav a.is-active {
+  color: var(--cobalt);
+  border-bottom: 1px solid var(--cobalt);
+  padding-bottom: 2px;
+}
+
+/* Standalone pages (about/projects/contact): no hero above them,
+   so give the first section room to breathe under the fixed topbar */
+.page-main { padding-top: 5rem; }
+.page-main--center {
+  min-height: 100svh;
+  display: flex;
+  align-items: center;
+}
+.about--page,
+.work--page { border-top: none; }
+.contact--page { border-top: none; width: 100%; }
+
+.inline-link {
+  color: var(--cobalt);
+  border-bottom: 1px solid currentColor;
+}
 .hero-line {
   width: 3rem;
   height: 1px;
@@ -235,6 +283,16 @@ section {
   inset: 0;
   background: var(--cobalt);
   animation: scrollpulse 1.8s ease-in-out infinite;
+}
+.hero-hint {
+  margin-left: 0.5rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  color: var(--paper-dim);
+  opacity: 0.7;
+}
+@media (max-width: 700px) {
+  .hero-hint { display: none; }
 }
 @keyframes scrollpulse {
   0% { transform: translateX(-100%); }
