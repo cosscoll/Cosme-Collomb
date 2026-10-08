@@ -53,7 +53,7 @@ function Shell({path,branch=false,transit=null,arrival=false}) {
     // transparency overdraw here looked like broken walls / clipping.
     // Switch at the actual common junction while the building branch persists.
     if(root.current)root.current.visible=!transit||
-      (arrival?p>=.52:p<.52)
+      (arrival?p>=.90:p<.52)
     surface.current.opacity=1
     seamMaterials.current.forEach((material,i)=>{
       if(material)material.opacity=i%2===0?.46:.24
@@ -391,7 +391,7 @@ function BuildingBranch({transit,flightPosition}) {
       flightPosition.current.t:.35)
     const arrival=arrivalT(to,from)
     const reverse=arrival<hub.toT
-    const margin=.022
+    const margin=0
     let start,end
     if(reverse){
       start=Math.max(.005,arrival-.09)
@@ -438,7 +438,7 @@ function BuildingBranch({transit,flightPosition}) {
   useFrame((_,dt)=>{
     const p=transit.progress??0
     const built=bridgeBuild(p)
-    const visibility=1-smooth((p-.76)/.22)
+    const visibility=1-smooth((p-.90)/.095)
     if(bridgeMaterial.current){
       bridgeMaterial.current.opacity=visibility
       // Depth-test the fully constructed wall normally. Otherwise several
