@@ -547,30 +547,53 @@ function Shell() {
   const nextId=useRef(0)
 
   useEffect(()=>{setHovered('');setMenuOpen(false)},[pathname])
+  const commitMidpoint=useCallback((journey)=>{
+    if(transitRef.current?.id!==journey.id || journey.midpointDone)return
+    journey.midpointDone=true
+    navigate(journey.to,{state:{
+      fromJourney:journey.from.startsWith('/projets/') && journey.to==='/projets',
+      fromTransit:true
+    }})
+  },[navigate])
+  const finishTrip=useCallback((journey)=>{
+    if(transitRef.current?.id!==journey.id || journey.finished)return
+    commitMidpoint(journey)
+    journey.finished=true
+    transitRef.current=null
+    setTransit(null)
+  },[commitMidpoint])
   const beginTrip=useCallback((next)=>{
     if(next===pathname || transitRef.current)return false
-    // Both the header links and the automatic journey completion use the same
-    // continuous 3D route animation: no plain Router jumps.
     const journey={
       id:++nextId.current,from:pathname,to:next,startedAt:performance.now(),
-      duration:TRANSIT_MS,sourceScroll:window.scrollY
+      duration:TRANSIT_MS,sourceScroll:window.scrollY,progress:0,
+      midpointDone:false,finished:false
     }
     transitRef.current=journey
     setMenuOpen(false)
     setTransit(journey)
     window.history.scrollRestoration='manual'
-    timers.current.push(window.setTimeout(()=>{
-      navigate(next,{state:{
-        fromJourney:pathname.startsWith('/projets/') && next==='/projets',
-        fromTransit:true
-      }})
-    },TRANSIT_MIDPOINT))
-    timers.current.push(window.setTimeout(()=>{
-      transitRef.current=null
-      setTransit(null)
-    },TRANSIT_MS))
+    // With WebGL the router follows the real animated camera, not wall-clock
+    // timers. This is essential when an expensive GPU frame stalls rendering:
+    // a delayed frame may not skip 20 metres down the corridor.
+    const has3D=Boolean(document.querySelector('.scene-backdrop canvas'))
+    const halfwayDelay=has3D?35000:TRANSIT_MIDPOINT
+    const finishDelay=has3D?42000:TRANSIT_MS
+    timers.current.push(window.setTimeout(()=>commitMidpoint(journey),halfwayDelay))
+    timers.current.push(window.setTimeout(()=>finishTrip(journey),finishDelay))
     return true
-  },[pathname,navigate])
+  },[pathname,commitMidpoint,finishTrip])
+
+  useEffect(()=>{
+    const onMilestone=(event)=>{
+      const journey=transitRef.current
+      if(!journey || journey.id!==event.detail?.id)return
+      if(event.detail.stage==='midpoint')commitMidpoint(journey)
+      if(event.detail.stage==='complete')finishTrip(journey)
+    }
+    window.addEventListener('portfolio:flight-milestone',onMilestone)
+    return ()=>window.removeEventListener('portfolio:flight-milestone',onMilestone)
+  },[commitMidpoint,finishTrip])
 
   useEffect(()=>{
     const capture=(event)=>{
