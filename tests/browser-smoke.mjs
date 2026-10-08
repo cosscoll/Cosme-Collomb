@@ -22,8 +22,11 @@ async function waitForServer(){
 }
 
 async function verifyPage(page,name,expected){
-  await page.locator('main h1').first().waitFor({state:'visible',timeout:25000})
-  const heading=(await page.locator('main h1').first().innerText()).trim()
+  // Router navigation includes a 2.5-second cinematic hand-off.
+  // Await the EXPECTED page, rather than immediately reading the departing H1.
+  const target=page.locator('main h1').filter({hasText:expected}).first()
+  await target.waitFor({state:'visible',timeout:25000})
+  const heading=(await target.innerText()).trim()
   assert.match(heading,expected,name+': unexpected heading '+heading)
   assert.ok(await page.locator('.header-menu-toggle').isVisible(),name+': header missing')
   assert.ok(await page.locator('.brand-mark').isVisible(),name+': home link missing')
