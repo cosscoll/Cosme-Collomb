@@ -629,3 +629,30 @@ a:focus-visible,button:focus-visible{outline:2px solid #ffedce;outline-offset:5p
   .navigation-projects>.micro-label{margin-bottom:9px}
   .navigation-projects>a{padding:11px 0}
 }
+
+/* The tunnel itself is the transition. Never hide it with an opaque screen. */
+.bridge-wayfinding{
+  position:fixed;z-index:60;bottom:clamp(30px,6vh,80px);
+  left:clamp(22px,6vw,100px);pointer-events:none;
+  display:flex;flex-direction:column;gap:12px;
+  min-width:min(330px,72vw);padding:17px 20px;
+  border:1px solid rgba(234,223,245,.3);
+  background:rgba(10,9,21,.42);
+  backdrop-filter:blur(10px);
+  box-shadow:0 12px 50px rgba(4,2,14,.16)
+}
+.bridge-wayfinding-kicker{font-size:9px;letter-spacing:.18em;color:#cfc4db}
+.bridge-wayfinding strong{font-size:clamp(20px,2.6vw,36px);letter-spacing:-.045em;font-weight:500}
+.bridge-wayfinding-track{display:block;height:2px;background:rgba(235,224,245,.32)}
+.bridge-wayfinding-track i{
+ display:block;width:100%;height:100%;background:#d1c6db;transform-origin:left;
+ animation:bridge-assemble-progress 4.2s linear both
+}
+@keyframes bridge-assemble-progress{
+ from{transform:scaleX(0)}to{transform:scaleX(1)}
+}
+.content-in-transit{pointer-events:none;opacity:.055;transition:opacity .48s ease}
+#content{transition:opacity .48s ease}
+@media(prefers-reduced-motion:reduce){
+ .bridge-wayfinding-track i{animation:none}
+}
