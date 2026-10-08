@@ -1,6 +1,6 @@
 import { CARDS, RARITIES } from "./data/cards.js";
 import { simulateBooster } from "./game/booster.js";
-import { createMatch, applyAction, legalActions, chooseAiAction, validateDeck, cardStats, DECK_SIZE, WIN_KOS, AI_DIFFICULTIES } from "./game/engine.js";
+import { createMatch, applyAction, legalActions, chooseAiAction, validateDeck, cardStats, DECK_SIZE, WIN_KOS, AI_DIFFICULTIES, suggestBalancedDeck } from "./game/engine.js";
 import { emptySoloProgress, normalizeSoloProgress, SOLO_BADGES, earnedSoloBadges, recordSoloResult } from "./game/progress.js";
 
 const byId = id => document.getElementById(id);
@@ -206,6 +206,11 @@ byId("toggleDeckCard").addEventListener("click", () => {
     currentDeck = [...currentDeck, selected.id];
   } else return;
   saveDeck(); renderDeck();
+});
+byId("balancedDeck").addEventListener("click", () => {
+  currentDeck = suggestBalancedDeck();
+  saveDeck();
+  renderDeck();
 });
 byId("resetDeck").addEventListener("click", () => {
   currentDeck = [...DEFAULT_PLAYER_DECK];
