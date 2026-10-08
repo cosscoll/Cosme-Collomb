@@ -140,7 +140,7 @@ export const PROJECT_BRANCH_COLORS = [
 export const PROJECT_FORK_OPEN = .5
 export const PROJECT_FORK_CLOSE = .94
 export function projectOutboundT(index) {
-  return PROJECT_HUBS[index]+.014
+  return Math.min(.95,PROJECT_HUBS[index]+.135)
 }
 export function detailTravelT(index,progress) {
   // Outbound while discovering the story; return on the same seamless shell.

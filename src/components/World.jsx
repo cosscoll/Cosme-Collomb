@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { routeInfo, scrollT, arrivalT } from '../scene/transit.js'
-import { createBridgeCurve, bridgeGrowth, bridgeTravel, bridgeDrawCount } from '../scene/bridge.js'
+import { routeInfo, scrollT, arrivalT, sampleTransit, junctions, transitBuild } from '../scene/transit.js'
 import {
   PATHS, PROJECT_BRANCH_COLORS, PROJECT_FORK_OPEN, PROJECT_FORK_CLOSE,
   createSkin, createSeam, detailReturning
@@ -149,7 +148,7 @@ function Sparkles() {
   </points>
 }
 
-function CameraFlight({route,hovered,transit}) {
+function CameraFlight({route,hovered,transit,flightPosition}) {
   const {camera}=useThree()
   const current=useRef(null)
   const wasTransiting=useRef(false)
@@ -185,8 +184,8 @@ function CameraFlight({route,hovered,transit}) {
     if(work)scrollPositions.current.works=work.offsetTop
     if(projectFork)scrollPositions.current.fork=projectFork.offsetTop+projectFork.offsetHeight*.35
 
-    // Camera ownership moves to BridgeFlight for the ENTIRE transfer.
-    // Leaving the ordinary scroll rig active caused the old teleportation.
+    // The ordinary scroll camera relinquishes control for the whole graph
+    // transition. Its exact last spline parameter is preserved externally.
     if(transit){wasTransiting.current=true;return}
     const nextT=scrollT(route,{
       scrollY:y,total,junction:scrollPositions.current.junction,
@@ -199,6 +198,7 @@ function CameraFlight({route,hovered,transit}) {
       current.current=current.current===null?nextT:
         THREE.MathUtils.damp(current.current,nextT,3.4,dt)
     }
+    if(flightPosition)flightPosition.current={t:current.current,pathname:route.pathName}
     const sample={path:route.path,t:current.current,
       reverse:route.mode==='detail'&&detailReturning(y/total),
       mode:route.mode,index:route.index}
@@ -244,122 +244,117 @@ function CameraFlight({route,hovered,transit}) {
 }
 
 
-function BridgeFlight({transit}) {
+function JunctionTransit({transit,flightPosition}) {
   const {camera}=useThree()
-  const bridge=useMemo(()=>{
-    const origin=camera.position.clone()
-    const heading=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).normalize()
-    const from=routeInfo(transit.from)
-    const to=routeInfo(transit.to)
-    const t=arrivalT(to,from)
-    const destination=to.path.getPointAt(t)
-    const endHeading=to.path.getTangentAt(t).normalize()
-    const path=createBridgeCurve(origin,heading,destination,endHeading)
-    const radius=3.22
-    const segments=180
-    const radial=44
-    const openStart=.038 // entry begins ahead of the camera, not across its face
-    const geometry=createSkin(path,{
-      radius,lengthSegments:segments,radialSegments:radial,start:openStart
+  const journey=useMemo(()=>{
+    const source=routeInfo(transit.from)
+    const destination=routeInfo(transit.to)
+    // Prefer the parameter recorded by the scroll camera. The fallback is
+    // the source scroll progress if a click happened on the first frame.
+    const startingT=flightPosition.current?.pathname===transit.from
+      ?flightPosition.current.t
+      :scrollT(source,{
+        scrollY:transit.sourceScroll,
+        total:Math.max(1,document.documentElement.scrollHeight-window.innerHeight)
+      })
+    const shared=junctions(source,destination,startingT)
+    const endT=arrivalT(destination,source)
+    const reverse=endT<shared.target
+    const span=Math.abs(endT-shared.target)
+    const padding=.032
+    // Revealed skin follows the exact existing target spline. For very short
+    // returns to the projects hub, reveal a substantial tunnel approach.
+    const extra=span<.075?.13:.065
+    let start,end
+    if(reverse){
+      start=Math.max(0,endT-extra)
+      end=Math.max(start+.006,shared.target-padding)
+    }else{
+      start=Math.min(.985,shared.target+padding)
+      end=Math.min(.998,Math.max(start+.065,endT+extra))
+    }
+    const radial=48,segments=200,radius=4.17
+    const geometry=createSkin(destination.path,{
+      radius,lengthSegments:segments,radialSegments:radial,start,end
     })
     geometry.setDrawRange(0,0)
-    const rails=Array.from({length:5},(_,i)=>{
-      const seam=createSeam(path,i*Math.PI*2/5,{radius,segments:150,start:openStart})
-      const tube=new THREE.TubeGeometry(seam,segments,i%2===0?.017:.011,6,false)
-      tube.setDrawRange(0,0)
-      return tube
-    })
-    const ribs=Array.from({length:13},(_,i)=>{
-      const at=.10+i*.063
-      const location=path.getPointAt(at)
-      const tangent=path.getTangentAt(at).normalize()
-      const rotation=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1),tangent)
-      return {at,location,rotation}
-    })
-    return {path,geometry,rails,ribs,radial,segments,openStart}
-  },[transit.id,camera])
-  const cameraLook=useMemo(()=>new THREE.Vector3(),[])
-  const cameraPoint=useMemo(()=>new THREE.Vector3(),[])
-  const rotationMatrix=useMemo(()=>new THREE.Matrix4(),[])
-  const desiredRotation=useMemo(()=>new THREE.Quaternion(),[])
-  const tipDirection=useMemo(()=>new THREE.Vector3(0,0,1),[])
-  const tipRotation=useMemo(()=>new THREE.Quaternion(),[])
-  const tip=useRef()
-  const ribMeshes=useRef([])
-  const ribsGeometry=useMemo(()=>new THREE.TorusGeometry(3.12,.021,8,80),[])
-  const tipGeometry=useMemo(()=>new THREE.TorusGeometry(3.13,.041,8,92),[])
-
-  useEffect(()=>()=>{
-    bridge.geometry.dispose()
-    bridge.rails.forEach(geometry=>geometry.dispose())
-    ribsGeometry.dispose()
-    tipGeometry.dispose()
-  },[bridge,ribsGeometry,tipGeometry])
-  useFrame((_,delta)=>{
-    const dt=Math.min(delta,.05)
-    const p=Math.max(0,Math.min(1,(performance.now()-transit.startedAt)/transit.duration))
-    const built=bridgeGrowth(p)
-    bridge.geometry.setDrawRange(0,bridgeDrawCount(bridge.geometry,p,bridge.radial))
-    bridge.rails.forEach(rail=>{
-      const n=rail.index?.count||0
-      rail.setDrawRange(0,Math.floor(n*built/36)*36)
-    })
-    bridge.ribs.forEach((rib,i)=>{
-      const mesh=ribMeshes.current[i]
-      if(!mesh)return
-      const alpha=Math.min(.55,Math.max(0,(built-rib.at)*3))
-      mesh.visible=alpha>.015
-      mesh.material.opacity=alpha
-    })
-    if(tip.current){
-      tip.current.visible=p<.96
-      bridge.path.getPointAt(Math.max(bridge.openStart,built),tip.current.position)
-      bridge.path.getTangentAt(Math.max(bridge.openStart,built),tipDirection)
-      tipRotation.setFromUnitVectors(new THREE.Vector3(0,0,1),tipDirection.normalize())
-      tip.current.quaternion.copy(tipRotation)
-      tip.current.material.opacity=Math.max(0,.52-smooth(Math.max(0,(p-.82)/.15))*.52)
+    const hoops=[]
+    for(let i=0;i<14;i++){
+      const p=(i+.55)/14
+      const t=reverse?end+(start-end)*p:start+(end-start)*p
+      const position=destination.path.getPointAt(t)
+      const tangent=destination.path.getTangentAt(t)
+      const orientation=new THREE.Quaternion().setFromUnitVectors(
+        new THREE.Vector3(0,0,1),tangent.normalize()
+      )
+      hoops.push({p,position,orientation})
     }
-    // The same spline produces the tunnel skin AND the movement.
-    // Keep the camera inside the shell and do not cross an overlapping wall.
-    const t=Math.min(.999,bridgeTravel(p))
-    bridge.path.getPointAt(t,cameraPoint)
-    bridge.path.getPointAt(Math.min(.999,t+.027),cameraLook)
-    camera.position.copy(cameraPoint)
-    rotationMatrix.lookAt(camera.position,cameraLook,UP)
-    desiredRotation.setFromRotationMatrix(rotationMatrix)
-    camera.quaternion.slerp(desiredRotation,1-Math.exp(-dt*5.5))
-    camera.fov=THREE.MathUtils.damp(camera.fov,45+1.2*Math.sin(p*Math.PI),4,dt)
+    return {source,destination,startingT,shared,endT,start,end,
+      reverse,geometry,radial,segments,hoops}
+  },[transit.id])
+  const forward=useMemo(()=>new THREE.Vector3(),[])
+  const position=useMemo(()=>new THREE.Vector3(),[])
+  const destinationRotation=useMemo(()=>new THREE.Quaternion(),[])
+  const lookMatrix=useMemo(()=>new THREE.Matrix4(),[])
+  const hoops=useRef([])
+  const hoopGeometry=useMemo(()=>new THREE.TorusGeometry(4.07,.023,6,76),[])
+  useEffect(()=>()=>{
+    journey.geometry.dispose()
+    hoopGeometry.dispose()
+  },[journey,hoopGeometry])
+
+  useFrame((_,delta)=>{
+    const p=Math.max(0,Math.min(1,(performance.now()-transit.startedAt)/transit.duration))
+    const built=transitBuild(p)
+    const total=journey.geometry.index.count
+    const triangles=Math.floor(total/(journey.radial*6))
+    const count=Math.floor(triangles*built)*journey.radial*6
+    if(journey.reverse) journey.geometry.setDrawRange(Math.max(0,total-count),count)
+    else journey.geometry.setDrawRange(0,count)
+    journey.hoops.forEach((hoop,i)=>{
+      const mesh=hoops.current[i]
+      if(!mesh)return
+      const appeared=Math.max(0,Math.min(1,(built-hoop.p)*10))
+      mesh.visible=appeared>.01
+      mesh.material.opacity=appeared*.37
+    })
+
+    // EVERY frame samples the physical graph. Both legs meet at one world
+    // coordinate; no separate Bézier bridge can cut across a tunnel wall.
+    const sample=sampleTransit(journey.source,journey.destination,journey.startingT,p)
+    const t=Math.max(.001,Math.min(.998,sample.t))
+    sample.path.getPointAt(t,position)
+    sample.path.getPointAt(sample.reverse?Math.max(.001,t-.03):Math.min(.999,t+.03),forward)
+    camera.position.copy(position)
+    lookMatrix.lookAt(camera.position,forward,UP)
+    destinationRotation.setFromRotationMatrix(lookMatrix)
+    camera.quaternion.slerp(destinationRotation,
+      1-Math.exp(-Math.min(delta,.05)*4.5))
+    camera.fov=THREE.MathUtils.damp(camera.fov,45,4,Math.min(delta,.05))
     camera.updateProjectionMatrix()
   })
   return <group>
-    <mesh geometry={bridge.geometry} renderOrder={7}>
-      <meshStandardMaterial vertexColors side={THREE.BackSide}
-        metalness={.13} roughness={.78}
-        emissive="#171321" emissiveIntensity={.06}
+    <mesh geometry={journey.geometry} renderOrder={7}>
+      <meshStandardMaterial side={THREE.BackSide} vertexColors
+        metalness={.18} roughness={.76}
+        emissive="#20192b" emissiveIntensity={.12}
         depthTest depthWrite/>
     </mesh>
-    {bridge.rails.map((rail,i)=><mesh key={i} geometry={rail} renderOrder={8}>
-      <meshBasicMaterial color={i%2===0?'#a99cbd':'#9cb8c3'}
-        transparent opacity={i%2===0?.48:.24}
-        depthWrite={false} toneMapped/>
-    </mesh>)}
-    {bridge.ribs.map((rib,i)=><mesh key={'rib'+i}
-      ref={node=>{ribMeshes.current[i]=node}}
-      position={rib.location} quaternion={rib.rotation} geometry={ribsGeometry}
-      renderOrder={9} visible={false}>
-      <meshBasicMaterial color={i%3===0?'#d1bdc5':'#9e9dbb'}
+    {journey.hoops.map((hoop,i)=><mesh key={i}
+      geometry={hoopGeometry}
+      ref={el=>{hoops.current[i]=el}}
+      position={hoop.position} quaternion={hoop.orientation}
+      visible={false}>
+      <meshBasicMaterial color={i%2===0?'#b6abce':'#a9c6c9'}
         transparent opacity={0} depthWrite={false} toneMapped/>
     </mesh>)}
-    <mesh ref={tip} geometry={tipGeometry} renderOrder={10}>
-      <meshBasicMaterial color="#dcc9dc" transparent opacity={.5}
-        depthWrite={false} toneMapped/>
-    </mesh>
   </group>
 }
 
 function Scene({pathname,hovered,transit}) {
-  const route=routeInfo(pathname)
+  const route=routeInfo(transit?.from||pathname)
   const {mode,index,path}=route
+  const flightPosition=useRef(null)
   return <>
     <color attach="background" args={['#08080f']}/>
     <fog attach="fog" args={['#08080f',22,115]}/>
@@ -380,8 +375,10 @@ function Scene({pathname,hovered,transit}) {
     ))}
     {!transit && <RouteMarkers mode={mode} hovered={hovered}/>} 
     {!transit && <Sparkles/>}
-    <CameraFlight route={route} hovered={hovered} transit={transit}/>
-    {transit&&<BridgeFlight key={transit.id} transit={transit}/>}
+    <CameraFlight route={route} hovered={hovered} transit={transit}
+      flightPosition={flightPosition}/>
+    {transit&&<JunctionTransit key={transit.id}
+      transit={transit} flightPosition={flightPosition}/>}
   </>
 }
 

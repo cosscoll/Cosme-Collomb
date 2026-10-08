@@ -525,8 +525,8 @@ function RouteView({ pathname, setHovered }) {
 }
 
 // Navigation is intercepted before React Router replaces the page.
-const TRANSIT_MS=3000
-const TRANSIT_MIDPOINT=1500
+const TRANSIT_MS=5000
+const TRANSIT_MIDPOINT=3100
 function TransitionCurtain({ transit }) {
   if(!transit)return null
   const project=PROJECTS.find(p=>transit.to==='/projets/'+p.slug)

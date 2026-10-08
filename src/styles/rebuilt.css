@@ -737,7 +737,7 @@ a:focus-visible,button:focus-visible{outline:2px solid #ffedce;outline-offset:5p
 .bridge-transition-track span{
   display:block;height:100%;width:100%;
   background:linear-gradient(90deg,#b9b3d9,#eee2da);
-  transform-origin:left;animation:bridge-progress 3s linear both
+  transform-origin:left;animation:bridge-progress 5s linear both
 }
 .bridge-transition-note{
   position:absolute;bottom:clamp(42px,6vh,79px);
