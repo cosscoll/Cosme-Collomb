@@ -20,6 +20,8 @@ jobs:
           echo "HTML title exists."
           asset=$(grep -o '/Cosme-Collomb/assets/index.source-[^"]*js' /tmp/public-index.html | head -1)
           echo "Found script $asset"
+          test "$asset" = '/Cosme-Collomb/assets/index.source-DZvgRTon.js'
+          echo "Latest deployed bundle matches compiled main."
           curl --max-time 30 -fsSL -w 'Script HTTP %{http_code} / bytes %{size_download}\\n' -o /tmp/public-script.js "https://cosscoll.github.io$asset"
           test -s /tmp/public-script.js
           echo "CHECK PASSED, use $base or ${base}#/projets"
