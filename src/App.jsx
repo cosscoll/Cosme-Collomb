@@ -1,4 +1,4 @@
-import { Component, Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
+import { Component, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { HashRouter, Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import { PROJECTS_WITH_SLUGS as PROJECTS } from './data/projects.js'
@@ -367,6 +367,15 @@ function PageIntro({ kicker, title, italic, text }) {
 }
 
 function ProjectIndex({ setHovered }) {
+  const {state}=useLocation()
+  // Restore only AFTER this exact five-way crossroads has mounted. An earlier
+  // global scroll reset can run before Framer Motion swaps the detail DOM,
+  // which left the camera twenty metres back in a closed-looking corridor.
+  useLayoutEffect(()=>{
+    if(!state?.fromJourney)return
+    const target=document.getElementById('project-crossroads')
+    if(target)window.scrollTo({top:target.offsetTop,behavior:'instant'})
+  },[state])
   return <>
     <PageIntro kicker="LE CARREFOUR / CINQ DIRECTIONS" title="Cinq projets." italic="Cinq chemins."
       text="À chaque embranchement, un projet. Choisissez votre direction, avancez dans son univers puis revenez ici en poursuivant votre exploration." />
