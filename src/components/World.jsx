@@ -264,6 +264,12 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       visualProgress=nextP
       sample=sampleTransit(from,to,departure.current,visualProgress)
       current.current=sample.t
+      // Keep the bridge and camera on the SAME navigation graph even if a
+      // header click is queued before the preceding flight has fully ended.
+      if(flightPosition)flightPosition.current={
+        t:sample.t,
+        pathName:sample.path===to.path?transit.to:transit.from
+      }
     }else{
       transitId.current=null
       const nextT=scrollT(route,{
