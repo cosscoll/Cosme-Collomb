@@ -129,8 +129,13 @@ async function run(){
   await page.evaluate(()=>window.scrollTo({
     top:document.getElementById('project-crossroads').offsetTop,behavior:'instant'
   }))
-  await page.waitForTimeout(1100)
+  await page.waitForFunction(()=>{
+    const f=window.__portfolioFlight
+    return f?.mode==='projects' && !f.transiting &&
+      Math.abs(f.t-f.forkTarget)<.004
+  },null,{timeout:60000})
   const originalFork=await page.evaluate(()=>window.__portfolioFlight?.position)
+  console.log('INITIAL FIVE-WAY 3D CAMERA',await page.evaluate(()=>window.__portfolioFlight))
   assert.ok(originalFork?.length===3,'Original 3D fork viewpoint not available')
   await beginFlightTrace(page)
   await page.locator('.fork-choice').first().click()
@@ -154,8 +159,17 @@ async function run(){
   await page.locator('[data-bridge-transition="active"]').waitFor({timeout:60000})
   await verifyPage(page,'back to projects',/Cinq projets/i)
   await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:60000})
-  await page.waitForTimeout(1400)
+  await page.waitForFunction(()=>{
+    const f=window.__portfolioFlight
+    return f?.mode==='projects' && !f.transiting &&
+      Math.abs(f.t-f.forkTarget)<.004
+  },null,{timeout:60000})
   await assertFlightContinuous(page,'automatic project return')
+  console.log('RESTORED FIVE-WAY 3D CAMERA',await page.evaluate(()=>({
+    flight:window.__portfolioFlight,
+    scrollY:window.scrollY,
+    forkTop:document.querySelector('#project-crossroads')?.offsetTop
+  })))
   const restoredFork=await page.evaluate(()=>window.__portfolioFlight?.position)
   const forkDrift=Math.hypot(...originalFork.map((v,i)=>v-restoredFork[i]))
   assert.ok(forkDrift<.7,
