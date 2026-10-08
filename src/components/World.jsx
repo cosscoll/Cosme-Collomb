@@ -388,7 +388,7 @@ function BuildingBranch({transit,flightPosition}) {
     ringGeometry.dispose()
   },[journey,ringGeometry])
   useFrame((_,dt)=>{
-    const p=Math.max(0,Math.min(1,(performance.now()-transit.startedAt)/transit.duration))
+    const p=transit.progress??0
     const built=bridgeBuild(p)
     const visibility=1-smooth((p-.76)/.22)
     if(bridgeMaterial.current){
