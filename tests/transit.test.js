@@ -66,3 +66,14 @@ test('The 3D transition stays on its spline from departure to arrival',()=>{
     assert.ok(Math.abs(final.t-arrivalT(to,from))<.0001)
   }
 })
+
+test('Home selections made deep in the projects wing use the nearby fork',()=>{
+  const from=routeInfo('/')
+  const to=routeInfo('/projets/'+PROJECTS[2].slug)
+  const initial=PROJECT_INDEX_HUB-.06
+  const before=sampleTransit(from,to,initial,.499999)
+  const after=sampleTransit(from,to,initial,.5)
+  assert.ok(before.t>.8,'The camera unnecessarily retraced the whole entrance')
+  assert.ok(before.path.getPointAt(before.t).distanceTo(
+    after.path.getPointAt(after.t))<.65)
+})

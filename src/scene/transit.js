@@ -59,8 +59,13 @@ export function scrollT(info,{scrollY=0,total=1,junction=1,works=2,projectFork=2
 }
 export function sampleTransit(from,to,initialT,progress){
   const p=clamp(progress)
-  const fromHub=transitionAnchor(from,from,to)
-  const toHub=transitionAnchor(to,from,to)
+  // A project selected from the lower home page is already past the first fork.
+  // Use the nearby projects junction, instead of racing backwards through the
+  // entire entrance and forwards again.
+  const nearProjects=from.mode==='home' && to.mode==='detail' &&
+    initialT>(from.mainHub+PROJECT_INDEX_HUB)*.5
+  const fromHub=nearProjects?from.projectHub:transitionAnchor(from,from,to)
+  const toHub=nearProjects?to.projectHub:transitionAnchor(to,from,to)
   if(p<TRANSIT_MID){
     const f=ease(p/TRANSIT_MID)
     const t=initialT+(fromHub-initialT)*f
