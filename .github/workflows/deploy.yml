@@ -18,6 +18,22 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
+      - name: Verify actual public Pages URL before claiming a working link
+        shell: bash
+        run: |
+          set -o pipefail
+          echo "Official GitHub Pages hostname:"
+          getent ahostsv4 cosscoll.github.io | head -3 || true
+          echo "HTTP status and response headers:"
+          curl -L -sS --connect-timeout 12 --max-time 30 -D /tmp/pages-headers -o /tmp/pages-body -w 'HTTP %{http_code} | final %{url_effective} | bytes %{size_download}\\n' https://cosscoll.github.io/Cosme-Collomb/ || true
+          sed -n '1,30p' /tmp/pages-headers || true
+          if test -f /tmp/pages-body; then
+            head -c 600 /tmp/pages-body
+            echo
+            grep -o '/Cosme-Collomb/assets/index.source-[^"]*js' /tmp/pages-body | head -1 || true
+          fi
+          echo "Check expected public JavaScript asset:"
+          curl -IL -sS --connect-timeout 12 --max-time 20 https://cosscoll.github.io/Cosme-Collomb/assets/index.source-D9Wqhsbx.js || true
       - run: npm install
       - run: npm run test:geometry
       - name: Restore Vite HTML entrypoint
