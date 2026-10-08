@@ -30,7 +30,7 @@ function Shell({path}) {
       </mesh>
       {seams.map((seam,index)=>(
         <mesh key={index}>
-          <tubeGeometry args={[seam,250,index%2===0?.018:.009,6,false]}/>
+          <tubeGeometry args={[seam,160,index%2===0?.018:.009,6,false]}/>
           <meshBasicMaterial color={index%3===0?'#f2d9d0':'#d4d8ff'}
             transparent opacity={index%2===0?.58:.28}
             depthWrite={false} toneMapped={false}/>
@@ -121,7 +121,6 @@ function CameraFlight({path,mode,hub,hovered}) {
   const mouse=useRef({x:0,y:0})
   const softMouse=useRef({x:0,y:0})
   const first=useRef(true)
-  const movingLight=useRef(null)
 
   useEffect(()=>{
     const onMouse=e=>{
@@ -176,10 +175,6 @@ function CameraFlight({path,mode,hub,hovered}) {
 
     // Target and mesh are sampled on the same spline. Clearance >= 4 units.
     camera.position.copy(goal)
-    if(movingLight.current){
-      movingLight.current.position.copy(goal)
-      movingLight.current.position.y+=1.25
-    }
     if(mode==='home'&&hovered&&scrollY>window.innerHeight*.8){
       const index=['projects','experience','contact'].indexOf(hovered)
       if(index>=0){
@@ -194,7 +189,7 @@ function CameraFlight({path,mode,hub,hovered}) {
     camera.fov=THREE.MathUtils.damp(camera.fov,45,5,dt)
     camera.updateProjectionMatrix()
   })
-  return <pointLight ref={movingLight} color="#d4c2eb" intensity={12} distance={27} decay={2}/>
+  return null
 }
 
 function Scene({pathname,hovered}) {
@@ -208,16 +203,14 @@ function Scene({pathname,hovered}) {
   const hub=mode==='detail'?PROJECT_HUBS[index]:MAIN_HUBS[selected]
   return <>
     <color attach="background" args={['#08080f']}/>
-    <fog attach="fog" args={['#08080f',25,155]}/>
+    <fog attach="fog" args={['#08080f',22,115]}/>
     <ambientLight intensity={.78} color="#dfd1f1"/>
     <hemisphereLight intensity={.75} color="#fff6e9" groundColor="#29243a"/>
     <directionalLight position={[4,8,12]} color="#ffe9d9" intensity={3.3}/>
     <pointLight position={[-2,-1,-11]} color="#b3a1ef" intensity={38} distance={28} decay={2}/>
     <pointLight position={[3,3,-28]} color="#f1c9bb" intensity={42} distance={30} decay={2}/>
     <pointLight position={[-6,3,-53]} color="#a6cbd9" intensity={45} distance={32} decay={2}/>
-    <pointLight position={[-9,1,-82]} color="#b9aadd" intensity={43} distance={34} decay={2}/>
-    <pointLight position={[7,3,-110]} color="#c9dfec" intensity={36} distance={37} decay={2}/>
-    <pointLight position={[-12,-2,-137]} color="#a9a0d7" intensity={34} distance={36} decay={2}/>
+    <pointLight position={[3,-2,-77]} color="#9996de" intensity={34} distance={27} decay={2}/>
     <Shell key={mode+'-'+index} path={path}/>
     <RouteMarkers mode={mode} hovered={hovered}/>
     <Sparkles/>
@@ -227,7 +220,7 @@ function Scene({pathname,hovered}) {
 
 export default function World({pathname='/',hovered='',onReady}) {
   return <Canvas onCreated={onReady}
-    camera={{position:[0,0,22],fov:45,near:.12,far:230}}
+    camera={{position:[0,0,11],fov:45,near:.12,far:140}}
     dpr={[1,1.65]}
     gl={{alpha:false,antialias:true,powerPreference:'high-performance'}}
     style={{position:'absolute',inset:0}}>
