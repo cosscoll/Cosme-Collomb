@@ -461,6 +461,12 @@ function BuildingBranch({transit,flightPosition}) {
     const rows=Math.min(journey.lengthSegments,
       Math.floor(journey.lengthSegments*built))
     const triangles=rows*rowWidth
+    // Browser regression checks inspect the actual animated index buffer,
+    // not merely the appearance of a “bridge” HTML label.
+    window.__portfolioBridgeMesh={
+      id:transit.id,progress:p,rows,totalRows:journey.lengthSegments,
+      opacity:visibility,triangles
+    }
     if(journey.reverse)journey.skin.setDrawRange(
       journey.skin.index.count-triangles,triangles)
     else journey.skin.setDrawRange(0,triangles)
