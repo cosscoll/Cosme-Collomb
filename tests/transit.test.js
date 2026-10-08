@@ -41,7 +41,7 @@ test('Every page change travels via a junction with no 3D coordinate jump',()=>{
       assert.ok(a.distanceTo(b)<.65,
         'Crossed a wall or jumped position on '+source+' -> '+destination+
         ' (gap '+a.distanceTo(b).toFixed(3)+')')
-      assert.ok(before.reverse===(transitionAnchor(from,from,to)<startT))
+      assert.equal(before.reverse,before.t<startT)
       assert.ok(after.t>=0 && after.t<=1)
     }
   }
