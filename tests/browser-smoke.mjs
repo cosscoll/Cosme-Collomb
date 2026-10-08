@@ -104,6 +104,8 @@ async function assertFlightContinuous(page,label){
   assert.ok(bridgeSamples.some(frame=>frame.bridge.rows>0 &&
       frame.bridge.triangles>0 && frame.bridge.opacity>.75),
     label+': no actual constructed 3D tunnel geometry was visible before the crossing')
+  assert.ok(bridgeSamples.every(frame=>frame.bridge.mouthGap<.12),
+    label+': constructed 3D wall does not meet the preceding corridor')
   const crossing=data.filter(frame=>frame.transiting&&frame.progress>=.52&&frame.progress<.75)
   assert.ok(crossing.some(frame=>frame.bridge &&
       frame.bridge.rows===frame.bridge.totalRows && frame.bridge.opacity>.95),
