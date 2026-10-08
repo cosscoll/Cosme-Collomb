@@ -9,6 +9,7 @@ export const ease=t=>{
   return v*v*(3-2*v)
 }
 const clamp=v=>Math.max(0,Math.min(1,v))
+const renderT=t=>Math.max(.001,Math.min(.998,t))
 export const PROJECT_INDEX_HUB=closestT(PATHS.routes[0],PROJECT_FORK_POSITION)
 // The lookout stays several metres before the open end of the main tunnel.
 // At the previous -.012 stop the camera saw the terminal wall rather than
@@ -107,7 +108,7 @@ export function sampleTransit(from,to,initialT,progress){
   // away gradually *inside* the corridor as the new branch extends.
   const keepOffset=1-ease((p-TRANSIT_MID)/.21)
   const offset=keepOffset>0?
-    from.path.getPointAt(hub.fromT).sub(to.path.getPointAt(hub.toT))
+    from.path.getPointAt(renderT(hub.fromT)).sub(to.path.getPointAt(renderT(hub.toT)))
       .multiplyScalar(keepOffset):null
   return {path:to.path,t:hub.toT+(end-hub.toT)*f,offset,
     reverse:end<hub.toT,mode:to.mode,index:to.index,phase:'cross'}
@@ -115,7 +116,7 @@ export function sampleTransit(from,to,initialT,progress){
 // Use this for all physical transit positions, including look-ahead and
 // regression tests. Reading sample.path directly would ignore hub alignment.
 export function samplePosition(sample,target){
-  const t=Math.max(.001,Math.min(.998,sample.t))
+  const t=renderT(sample.t)
   const point=sample.path.getPointAt(t,target)
   if(sample.offset)point.add(sample.offset)
   return point
