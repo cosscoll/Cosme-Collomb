@@ -76,3 +76,33 @@ test('Homepage ends with a complete contact destination, not a disconnected rout
   assert.ok(!app.includes('className="transition-portal"'))
   assert.ok(app.includes('className="bridge-transition-hud"'))
 })
+
+test('Bridge joins both corridors with matching tangents and no visible entry wall',()=>{
+  const start=new THREE.Vector3(-9,0,-61)
+  const incoming=new THREE.Vector3(0.12,0,-1).normalize()
+  const finish=new THREE.Vector3(3,2,-92)
+  const outgoing=new THREE.Vector3(0,0,-1)
+  const bridge=createBridgeCurve(start,incoming,finish,outgoing)
+  assert.ok(bridge.getTangentAt(0).dot(incoming)>.999,'Bridge takes off in the camera direction')
+  assert.ok(bridge.getTangentAt(1).dot(outgoing)>.999,'Bridge does not join the destination tangent')
+  const geometry=createSkin(bridge,{radius:3.22,lengthSegments:100,radialSegments:44,start:.038})
+  assert.equal(geometry.index.count,100*44*6)
+  for(let row=0;row<=100;row+=10){
+    const a=row*45
+    const first=new THREE.Vector3().fromBufferAttribute(geometry.attributes.position,a)
+    const last=new THREE.Vector3().fromBufferAttribute(geometry.attributes.position,a+44)
+    assert.ok(first.distanceTo(last)<.0001,'Construction introduced a seam')
+    const wallCenter=bridge.getPointAt(.038+row/100*.962)
+    assert.ok(first.distanceTo(wallCenter)>3,'Camera might hit a bridge wall')
+  }
+  geometry.dispose()
+})
+test('Visual transition uses muted material, progressive ribs and never a blinding point light',async()=>{
+  const fs=await import('node:fs/promises')
+  const source=await fs.readFile(new URL('../src/components/World.jsx',import.meta.url),'utf8')
+  assert.ok(source.includes('bridge.ribs.map'),'Bridge segments do not visibly assemble')
+  assert.ok(source.includes('bridgeGrowth(p)'),'Progressive construction is missing')
+  assert.ok(source.includes('roughness={.78}'),'Bridge material is excessively reflective')
+  assert.ok(!source.includes('intensity={55} distance={30}'),'Blinding bridge spotlight returned')
+  assert.ok(source.includes('p<.79?.04'),'Destination wall fades in before arrival')
+})

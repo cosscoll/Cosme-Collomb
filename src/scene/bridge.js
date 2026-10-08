@@ -15,29 +15,22 @@ export function bridgeTravel(progress){
   return smooth((p-.19)/.75)
 }
 export function createBridgeCurve(startPosition,startHeading,endPosition,endHeading){
-  const origin=startPosition.clone()
-  const finish=endPosition.clone()
+  const start=startPosition.clone()
+  const end=endPosition.clone()
   const heading=startHeading.clone().normalize()
   const arrival=endHeading.clone().normalize()
-  const distance=origin.distanceTo(finish)
-  const push=Math.max(5,Math.min(16,distance*.22))
-  const front=origin.clone().addScaledVector(heading,push)
-  const back=finish.clone().addScaledVector(arrival,-push)
-  const center=front.clone().lerp(back,.5)
-  // The two tangents are not connected by a hard corner. Extra points create
-  // a gentle sweep suitable for a tunnel with no holes or teleportation.
-  const curve=new THREE.CatmullRomCurve3([
-    origin,
-    origin.clone().addScaledVector(heading,push*.48),
-    front,
-    center,
-    back,
-    finish.clone().addScaledVector(arrival,-push*.48),
-    finish
-  ],false,'centripetal')
-  curve.arcLengthDivisions=600
-  return curve
+  const distance=start.distanceTo(end)
+  // Cubic Bézier: exact world-space endpoints AND matching entry/exit tangents.
+  // The former multi-point Catmull curve doubled back on some routes and made
+  // its overlapping wall pass through the camera, as shown by the recording.
+  const reach=Math.max(4.5,Math.min(20,distance*.32))
+  const p1=start.clone().addScaledVector(heading,reach)
+  const p2=end.clone().addScaledVector(arrival,-reach)
+  const path=new THREE.CubicBezierCurve3(start,p1,p2,end)
+  path.arcLengthDivisions=700
+  return path
 }
+
 export function bridgeDrawCount(geometry,progress,radialSegments=40){
   const total=geometry.index.count
   const trianglesPerRing=radialSegments*6
