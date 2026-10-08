@@ -133,3 +133,8 @@
 @media(max-width:850px){.solo-progress-section{margin:0 5% 65px;grid-template-columns:1fr;padding:28px 22px}.arena-start{width:100%;min-width:auto}.arena-section>.section-top{align-items:stretch}.badge-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:550px){.solo-progress-counters{grid-template-columns:repeat(2,minmax(0,1fr))}.arena-start{margin-top:14px}.badge-list{grid-template-columns:1fr 1fr}.solo-badge{min-height:100px}}
 @media(max-width:375px){.badge-list{grid-template-columns:1fr}}
+
+.deck-composition{margin:0 0 17px;color:#dbc5ff;background:#a28cff12;border:1px solid #a28cff33;padding:11px 13px;border-radius:10px;font-size:.72rem;line-height:1.6}
+.booster-dialog .booster-result{opacity:0;animation:booster-card-reveal .38s cubic-bezier(.2,.8,.28,1) forwards}
+@keyframes booster-card-reveal{0%{opacity:0;transform:translateY(22px) rotateY(20deg) scale(.92)}100%{opacity:1;transform:translateY(0) rotateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){.booster-dialog .booster-result{opacity:1;animation:none!important}}
