@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { PROJECTS_WITH_SLUGS as PROJECTS } from '../data/projects.js'
+import { routeInfo, scrollT, sampleTransit } from '../scene/transit.js'
 import {
-  PATHS, MAIN_HUBS, PROJECT_HUBS,
-  PROJECT_BRANCH_COLORS, PROJECT_FORK_OPEN, PROJECT_FORK_CLOSE,
-  createSkin, createSeam, detailTravelT, detailReturning
+  PATHS, PROJECT_BRANCH_COLORS, PROJECT_FORK_OPEN, PROJECT_FORK_CLOSE,
+  createSkin, createSeam, detailReturning
 } from '../scene/geometry.js'
 
 const UP=new THREE.Vector3(0,1,0)
@@ -132,107 +131,115 @@ function Sparkles() {
   </points>
 }
 
-function CameraFlight({path,mode,hub,hovered,projectIndex=0}) {
+function CameraFlight({route,hovered,transit}) {
   const {camera}=useThree()
   const current=useRef(null)
-  const target=new THREE.Vector3()
-  const ahead=new THREE.Vector3()
-  const direction=new THREE.Vector3()
-  const right=new THREE.Vector3()
-  const goal=new THREE.Vector3()
-  const matrix=new THREE.Matrix4()
-  const quaternion=new THREE.Quaternion()
-  const mouse=useRef({x:0,y:0})
-  const softMouse=useRef({x:0,y:0})
+  const transitId=useRef(null)
+  const departure=useRef(null)
+  const pointer=useRef({x:0,y:0})
+  const softPointer=useRef({x:0,y:0})
   const first=useRef(true)
+  const position=useMemo(()=>new THREE.Vector3(),[])
+  const ahead=useMemo(()=>new THREE.Vector3(),[])
+  const direction=useMemo(()=>new THREE.Vector3(),[])
+  const right=useMemo(()=>new THREE.Vector3(),[])
+  const matrix=useMemo(()=>new THREE.Matrix4(),[])
+  const rotation=useMemo(()=>new THREE.Quaternion(),[])
+  const goal=useMemo(()=>new THREE.Vector3(),[])
+  const scrollPositions=useRef({junction:1,works:2,fork:2})
 
   useEffect(()=>{
-    const onMouse=e=>{
-      mouse.current.x=e.clientX/window.innerWidth*2-1
-      mouse.current.y=e.clientY/window.innerHeight*2-1
+    const onMove=e=>{
+      pointer.current.x=e.clientX/window.innerWidth*2-1
+      pointer.current.y=e.clientY/window.innerHeight*2-1
     }
-    window.addEventListener('pointermove',onMouse,{passive:true})
-    return ()=>window.removeEventListener('pointermove',onMouse)
+    window.addEventListener('pointermove',onMove,{passive:true})
+    return ()=>window.removeEventListener('pointermove',onMove)
   },[])
 
   useFrame(({clock},delta)=>{
     const dt=Math.min(delta,.05)
     const total=Math.max(1,document.documentElement.scrollHeight-window.innerHeight)
-    const scrollY=window.scrollY
-    let targetT=.025
+    const y=window.scrollY
+    const homeJunction=document.getElementById('junction')
+    const work=document.getElementById('works')
+    const projectFork=document.getElementById('project-crossroads')
+    if(homeJunction)scrollPositions.current.junction=homeJunction.offsetTop+homeJunction.offsetHeight*.38
+    if(work)scrollPositions.current.works=work.offsetTop
+    if(projectFork)scrollPositions.current.fork=projectFork.offsetTop+projectFork.offsetHeight*.35
 
-    if(mode==='home'){
-      const section=document.getElementById('junction')
-      const work=document.getElementById('works')
-      const junction=(section?.offsetTop||window.innerHeight)
-        +(section?.offsetHeight||window.innerHeight)*.38
-      const works=work?.offsetTop||window.innerHeight*2.2
-      if(scrollY<=junction){
-        targetT=.025+smooth(scrollY/Math.max(1,junction))*(hub+.012-.025)
-      }else if(scrollY<works){
-        const phase=smooth((scrollY-junction)/Math.max(1,works-junction))
-        targetT=hub+.012+phase*.025
-      }else{
-        const phase=smooth((scrollY-works)/Math.max(1,total-works))
-        targetT=hub+.037+phase*(.955-hub-.037)
+    let sample
+    if(transit){
+      if(transitId.current!==transit.id){
+        transitId.current=transit.id
+        // Capture the exact position in the existing 3D corridor, BEFORE
+        // React Router exchanges the content, even midway through a scroll.
+        departure.current=current.current===null?
+          scrollT(route,{scrollY:y,total,
+            junction:scrollPositions.current.junction,
+            works:scrollPositions.current.works,
+            projectFork:scrollPositions.current.fork}):
+          current.current
       }
-    }else if(mode==='detail'){
-      targetT=detailTravelT(projectIndex,scrollY/total)
+      const p=Math.min(1,Math.max(0,(performance.now()-transit.startedAt)/transit.duration))
+      sample=sampleTransit(routeInfo(transit.from),routeInfo(transit.to),departure.current,p)
+      current.current=sample.t
     }else{
-      targetT=hub+.008+smooth(scrollY/total)*(.955-hub-.008)
+      transitId.current=null
+      const nextT=scrollT(route,{
+        scrollY:y,total,junction:scrollPositions.current.junction,
+        works:scrollPositions.current.works,projectFork:scrollPositions.current.fork
+      })
+      current.current=current.current===null?nextT:
+        THREE.MathUtils.damp(current.current,nextT,3.4,dt)
+      sample={path:route.path,t:current.current,
+        reverse:route.mode==='detail'&&detailReturning(y/total),
+        mode:route.mode,index:route.index}
     }
 
-    // IMPORTANT: interpolate parameter t, never the world-space position.
-    if(current.current===null)current.current=clamp(targetT)
-    else current.current=THREE.MathUtils.damp(current.current,clamp(targetT),3.4,dt)
-    const t=current.current
-
-    path.getPointAt(t,target)
-    const returning=mode==='detail'&&detailReturning(scrollY/total)
-    // Rotate naturally at the last station, then look towards the intersection.
-    path.getPointAt(returning?Math.max(.001,t-.023):Math.min(.999,t+.023),ahead)
-    path.getTangentAt(t,direction)
+    const t=Math.max(.001,Math.min(.998,sample.t))
+    sample.path.getPointAt(t,position)
+    sample.path.getPointAt(
+      sample.reverse?Math.max(.001,t-.024):Math.min(.999,t+.024),ahead
+    )
+    sample.path.getTangentAt(t,direction)
     right.crossVectors(direction,UP).normalize()
-    softMouse.current.x=THREE.MathUtils.damp(softMouse.current.x,mouse.current.x,3.3,dt)
-    softMouse.current.y=THREE.MathUtils.damp(softMouse.current.y,mouse.current.y,3.3,dt)
-    goal.copy(target)
-      .addScaledVector(right,softMouse.current.x*.10)
-      .addScaledVector(UP,-softMouse.current.y*.06+Math.sin(clock.elapsedTime*.3)*.018)
-
-    // Target and mesh are sampled on the same spline. Clearance >= 4 units.
+    softPointer.current.x=THREE.MathUtils.damp(softPointer.current.x,pointer.current.x,3.2,dt)
+    softPointer.current.y=THREE.MathUtils.damp(softPointer.current.y,pointer.current.y,3.2,dt)
+    // Keep the eye inside the shared radius on both sides of every fork.
+    goal.copy(position)
+      .addScaledVector(right,softPointer.current.x*.095)
+      .addScaledVector(UP,-softPointer.current.y*.06+Math.sin(clock.elapsedTime*.28)*.015)
     camera.position.copy(goal)
-    if(mode==='projects'&&hovered.startsWith('project-')&&scrollY>window.innerHeight*.45){
+
+    if(!transit && route.mode==='projects' && hovered.startsWith('project-') && y>window.innerHeight*.45){
       const idx=Number(hovered.slice(8))
-      if(Number.isInteger(idx)&&idx>=0&&idx<PATHS.children.length){
-        ahead.lerp(PATHS.children[idx].getPointAt(.56),.085)
-      }
+      if(idx>=0&&idx<PATHS.children.length)
+        ahead.lerp(PATHS.children[idx].getPointAt(.55),.06)
     }
-    if(mode==='home'&&hovered&&scrollY>window.innerHeight*.8){
-      const index=['projects','experience','contact'].indexOf(hovered)
-      if(index>=0){
-        const nearby=PATHS.arms[index].getPointAt(.27)
-        ahead.lerp(nearby,.055)
-      }
+    if(!transit && route.mode==='home' && hovered && y>window.innerHeight*.8){
+      const idx=['projects','experience','contact'].indexOf(hovered)
+      if(idx>=0)ahead.lerp(PATHS.arms[idx].getPointAt(.27),.05)
     }
     matrix.lookAt(camera.position,ahead,UP)
-    quaternion.setFromRotationMatrix(matrix)
-    if(first.current){camera.quaternion.copy(quaternion);first.current=false}
-    else camera.quaternion.slerp(quaternion,1-Math.exp(-dt*5))
-    camera.fov=THREE.MathUtils.damp(camera.fov,45,5,dt)
+    rotation.setFromRotationMatrix(matrix)
+    if(first.current){
+      camera.quaternion.copy(rotation)
+      first.current=false
+    }else{
+      camera.quaternion.slerp(rotation,1-Math.exp(-dt*(transit?7:5)))
+    }
+    const boost=transit?2.3*Math.sin(Math.PI*Math.min(1,
+      Math.max(0,(performance.now()-transit.startedAt)/transit.duration))):0
+    camera.fov=THREE.MathUtils.damp(camera.fov,45+boost,4,dt)
     camera.updateProjectionMatrix()
   })
   return null
 }
 
-function Scene({pathname,hovered}) {
-  const mode=pathname.startsWith('/projets/')?'detail':
-    pathname==='/projets'?'projects':
-    pathname==='/parcours'||pathname==='/experience'?'experience':
-    pathname==='/contact'?'contact':'home'
-  const index=Math.max(0,PROJECTS.findIndex(p=>pathname==='/projets/'+p.slug))
-  const selected=mode==='experience'?1:mode==='contact'?2:0
-  const path=mode==='detail'?PATHS.details[index]:PATHS.routes[selected]
-  const hub=mode==='detail'?PROJECT_HUBS[index]:MAIN_HUBS[selected]
+function Scene({pathname,hovered,transit}) {
+  const route=routeInfo(pathname)
+  const {mode,index,path}=route
   return <>
     <color attach="background" args={['#08080f']}/>
     <fog attach="fog" args={['#08080f',22,115]}/>
@@ -253,16 +260,16 @@ function Scene({pathname,hovered}) {
     ))}
     <RouteMarkers mode={mode} hovered={hovered}/>
     <Sparkles/>
-    <CameraFlight key={mode+'-'+index} path={path} mode={mode} hub={hub} hovered={hovered} projectIndex={index}/>
+    <CameraFlight route={route} hovered={hovered} transit={transit}/>
   </>
 }
 
-export default function World({pathname='/',hovered='',onReady}) {
+export default function World({pathname='/',hovered='',transit=null,onReady}) {
   return <Canvas onCreated={onReady}
     camera={{position:[0,0,11],fov:45,near:.12,far:140}}
     dpr={[1,1.65]}
     gl={{alpha:false,antialias:true,powerPreference:'high-performance'}}
     style={{position:'absolute',inset:0}}>
-    <Scene pathname={pathname} hovered={hovered}/>
+    <Scene pathname={pathname} hovered={hovered} transit={transit}/>
   </Canvas>
 }

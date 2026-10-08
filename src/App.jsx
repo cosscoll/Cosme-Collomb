@@ -1,5 +1,5 @@
 import { Component, Suspense, lazy, useEffect, useRef, useState } from 'react'
-import { HashRouter, Link, useLocation } from 'react-router-dom'
+import { HashRouter, Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import { PROJECTS_WITH_SLUGS as PROJECTS } from './data/projects.js'
 import { PROJECT_STORIES } from './data/projectStories.js'
@@ -41,7 +41,7 @@ function ScrollReset() {
   return null
 }
 
-function Background({ pathname, hovered }) {
+function Background({ pathname, hovered, transit }) {
   const bgRef = useRef(null)
   const [ready, setReady] = useState(false)
   const [enabled, setEnabled] = useState(null)
@@ -53,7 +53,6 @@ function Background({ pathname, hovered }) {
     } catch {}
     setEnabled(supported)
   }, [])
-  useEffect(() => setReady(false), [pathname])
   useEffect(() => {
     let frame = 0
     const update = () => {
@@ -94,7 +93,7 @@ function Background({ pathname, hovered }) {
       {enabled && (
         <Boundary>
           <Suspense fallback={null}>
-            <World pathname={pathname} hovered={hovered} onReady={() => setReady(true)} />
+            <World pathname={pathname} hovered={hovered} transit={transit} onReady={() => setReady(true)} />
           </Suspense>
         </Boundary>
       )}
@@ -390,22 +389,102 @@ function RouteView({ pathname, setHovered }) {
   return <Home setHovered={setHovered}/>
 }
 
+// Navigation is intercepted before React Router replaces the page.
+const TRANSIT_MS=2500
+const TRANSIT_MIDPOINT=1250
+function TransitionCurtain({ transit }) {
+  if(!transit) return null
+  const name=(path)=>{
+    const project=PROJECTS.find(p=>path==='/projets/'+p.slug)
+    if(project)return project.title
+    return path==='/projets'?'LES PROJETS':
+      path==='/parcours'||path==='/experience'?'LE PARCOURS':
+      path==='/contact'?'CONTACT':'L’ACCUEIL'
+  }
+  return <div key={transit.id} className="transition-portal" aria-live="polite"
+    aria-label={'Traversée vers '+name(transit.to)}>
+    <div className="portal-inset" aria-hidden="true">
+      <span className="portal-ring portal-ring-one"/>
+      <span className="portal-ring portal-ring-two"/>
+      <span className="portal-ring portal-ring-three"/>
+      <span className="portal-horizon"/>
+    </div>
+    <div className="portal-caption">
+      <span>ESPACE / TRANSITION</span>
+      <strong>{name(transit.to)}</strong>
+      <span className="portal-progress"><i/></span>
+    </div>
+  </div>
+}
+
 function Shell() {
   const {pathname}=useLocation()
+  const navigate=useNavigate()
   const [hovered,setHovered]=useState('')
+  const [transit,setTransit]=useState(null)
+  const transitRef=useRef(null)
+  const timers=useRef([])
+  const nextId=useRef(0)
+
   useEffect(()=>setHovered(''),[pathname])
+  useEffect(()=>{
+    const capture=(event)=>{
+      if(event.defaultPrevented || event.button!==0 || event.metaKey ||
+        event.ctrlKey || event.shiftKey || event.altKey) return
+      const anchor=event.target.closest?.('a[href]')
+      if(!anchor || anchor.target || anchor.hasAttribute('download') ||
+        anchor.dataset.noTransit==='true')return
+      let destination
+      try{destination=new URL(anchor.href,window.location.href)}catch{return}
+      if(destination.origin!==window.location.origin ||
+        destination.pathname!==window.location.pathname ||
+        !destination.hash.startsWith('#/'))return
+      const next=decodeURI(destination.hash.slice(1)).split('?')[0]
+      if(next===pathname || transitRef.current)return
+      event.preventDefault()
+      event.stopPropagation()
+      // Maintain a continuous WebGL scene while pages are exchanged in the
+      // middle of a geometric path, instead of instantly resetting the camera.
+      const journey={
+        id:++nextId.current,from:pathname,to:next,startedAt:performance.now(),
+        duration:TRANSIT_MS,sourceScroll:window.scrollY
+      }
+      transitRef.current=journey
+      setTransit(journey)
+      window.history.scrollRestoration='manual'
+      timers.current.push(window.setTimeout(()=>{
+        navigate(next,{state:{
+          fromJourney:pathname.startsWith('/projets/') && next==='/projets',
+          fromTransit:true
+        }})
+      },TRANSIT_MIDPOINT))
+      timers.current.push(window.setTimeout(()=>{
+        transitRef.current=null
+        setTransit(null)
+      },TRANSIT_MS))
+    }
+    document.addEventListener('click',capture,true)
+    return ()=>document.removeEventListener('click',capture,true)
+  },[pathname,navigate])
+
+  useEffect(()=>()=>timers.current.forEach(window.clearTimeout),[])
   return <>
     <ScrollReset/>
-    <Background pathname={pathname} hovered={hovered}/>
+    <Background pathname={pathname} hovered={hovered} transit={transit}/>
     <Header/>
     <ScrollLabel/>
-    <main id="content">
+    <main id="content" className={transit?'content-in-transit':''}>
       <AnimatePresence mode="wait" initial={false}>
-        <motion.div key={pathname} initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} transition={{duration:.5}}>
+        <motion.div key={pathname}
+          initial={{opacity:0,filter:'blur(15px)',y:28}}
+          animate={{opacity:1,filter:'blur(0px)',y:0}}
+          exit={{opacity:0,filter:'blur(13px)',y:-26}}
+          transition={{duration:.55,ease:[.22,1,.36,1]}}>
           <RouteView pathname={pathname} setHovered={setHovered}/>
         </motion.div>
       </AnimatePresence>
     </main>
+    <TransitionCurtain transit={transit}/>
     <footer className="site-footer"><span>© 2026 COSME COLLOMB</span><span>FAIT POUR ÊTRE EXPLORÉ</span><a href="https://github.com/cosscoll" target="_blank" rel="noopener noreferrer">GITHUB ↗</a></footer>
   </>
 }

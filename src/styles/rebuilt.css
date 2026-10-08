@@ -344,3 +344,108 @@ a:focus-visible,button:focus-visible{outline:2px solid #ffedce;outline-offset:5p
 @media(prefers-reduced-motion:reduce){
   .fork-choice,.return-choices a{transition:none}
 }
+
+/* ONE CONTINUOUS TRANSIT: physical 3D camera flight + editorial page portal */
+.content-in-transit{pointer-events:none}
+.transition-portal{
+  position:fixed;inset:0;z-index:45;overflow:hidden;
+  pointer-events:auto;isolation:isolate;
+  animation:portal-visibility 2.5s ease both;
+  background:radial-gradient(ellipse at 52% 50%,
+    rgba(236,215,217,.08),rgba(11,10,27,.04) 35%,
+    rgba(5,5,14,.22) 75%,rgba(5,5,14,.08));
+}
+.transition-portal::before{
+  content:'';position:absolute;inset:-30%;
+  background:radial-gradient(ellipse at 50% 50%,
+    rgba(249,221,216,.54) 0%,rgba(184,173,212,.42) 5%,
+    rgba(55,47,86,.39) 14%,rgba(7,8,17,.44) 26%,
+    transparent 54%);
+  transform:scale(.3);
+  animation:portal-flash 2.5s cubic-bezier(.25,.1,.15,1) both;
+  mix-blend-mode:screen;
+}
+.transition-portal::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(105deg,transparent 16%,
+    rgba(243,217,214,.08) 32%,transparent 48%,
+    rgba(153,173,231,.09) 67%,transparent 84%);
+  animation:portal-sweep 2.5s ease-in-out both;
+}
+.portal-inset{
+  position:absolute;inset:0;
+  display:grid;place-items:center;perspective:1100px;
+  filter:drop-shadow(0 0 34px rgba(225,204,228,.33));
+}
+.portal-ring{
+  position:absolute;display:block;aspect-ratio:1;border-radius:50%;
+  width:min(92vw,84vh);
+  border:1px solid rgba(240,233,248,.4);
+  box-shadow:inset 0 0 35px rgba(218,204,241,.17),
+    0 0 18px rgba(210,192,227,.17);
+  opacity:0;transform:scale(.3) rotateX(25deg);
+  animation:portal-ring-fly 2.5s cubic-bezier(.2,.65,.15,1) both;
+}
+.portal-ring-two{animation-delay:.12s;border-color:rgba(179,200,240,.45);width:min(78vw,70vh)}
+.portal-ring-three{animation-delay:.24s;border-color:rgba(251,214,207,.48);width:min(63vw,56vh)}
+.portal-horizon{
+  display:block;width:18vw;height:18vw;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,238,221,.54),rgba(181,169,222,.16) 33%,transparent 68%);
+  filter:blur(21px);
+  animation:portal-horizon 2.5s ease-in-out both;
+}
+.portal-caption{
+  position:absolute;z-index:2;bottom:clamp(42px,8vh,95px);
+  left:clamp(25px,8vw,140px);
+  display:flex;flex-direction:column;align-items:flex-start;
+  gap:10px;max-width:calc(100vw - 60px);
+  animation:portal-text 2.5s ease both;
+}
+.portal-caption>span:first-child{
+  font-size:10px;letter-spacing:.24em;color:#eddae4;font-weight:600
+}
+.portal-caption strong{
+  color:#f6e9e4;font-weight:500;font-size:clamp(24px,4.9vw,64px);
+  letter-spacing:-.06em;line-height:1.04
+}
+.portal-progress{
+  display:block;width:min(300px,50vw);height:1px;margin-top:20px;
+  background:rgba(255,255,255,.37);overflow:hidden
+}
+.portal-progress i{
+  display:block;height:2px;background:#fff0df;width:100%;
+  transform-origin:left;animation:portal-progress 2.5s linear both
+}
+@keyframes portal-visibility{
+  0%{opacity:0}13%{opacity:.85}43%{opacity:1}
+  64%{opacity:1}92%{opacity:.67}100%{opacity:0}
+}
+@keyframes portal-flash{
+  0%{transform:scale(.20);opacity:0}
+  31%{opacity:.55}49%{transform:scale(.78);opacity:.98}
+  61%{transform:scale(1.07);opacity:.69}
+  100%{transform:scale(2.3);opacity:0}
+}
+@keyframes portal-ring-fly{
+  0%{transform:scale(.08) rotateX(42deg);opacity:0}
+  19%{opacity:.66}47%{transform:scale(.75) rotateX(9deg);opacity:.84}
+  77%{opacity:.6}100%{transform:scale(2.2) rotateX(-18deg);opacity:0}
+}
+@keyframes portal-horizon{
+  0%{transform:scale(.2);opacity:0}48%{transform:scale(1.15);opacity:.65}
+  100%{transform:scale(3.2);opacity:0}
+}
+@keyframes portal-sweep{
+  0%{opacity:0;transform:translateX(-12%)}48%{opacity:1}
+  100%{opacity:0;transform:translateX(13%)}
+}
+@keyframes portal-text{
+  0%,13%{opacity:0;transform:translateY(17px)}
+  27%,58%{opacity:1;transform:translateY(0)}
+  85%,100%{opacity:0;transform:translateY(-14px)}
+}
+@keyframes portal-progress{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@media(prefers-reduced-motion:reduce){
+  .transition-portal{animation:none;opacity:0;pointer-events:none}
+  .transition-portal *{animation:none!important}
+}
