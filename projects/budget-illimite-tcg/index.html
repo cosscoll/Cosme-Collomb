@@ -42,7 +42,7 @@
         <label for="rarity">Rareté<select id="rarity"><option value="all">Toutes les raretés</option><option value="commune">Commune</option><option value="rare">Rare</option><option value="epique">Épique</option><option value="legendaire">Légendaire</option><option value="secrete">Secrète</option></select></label>
         <label class="marked-filter"><input id="onlyMarked" type="checkbox"> Cartes repérées</label>
       </div>
-      <div id="cardGrid" class="card-grid" aria-live="polite"></div>
+      <div id="cardGrid" class="card-grid"></div>
       <p id="emptyResults" class="empty hidden">Aucune carte ne correspond à ces filtres.</p>
     </section>
     <section id="deckbuilder" class="deck-section" aria-labelledby="deckTitle">
@@ -72,9 +72,9 @@
       <p id="battleResultNotice" class="battle-result hidden" role="status" aria-live="polite"></p>
       <div class="arena-shell">
         <div class="arena-board">
-          <div class="combatant" id="aiPanel" aria-label="Adversaire Billy"><div class="combatant-top"><div><small>ADVERSAIRE</small><h3>Billy</h3></div><strong id="aiScore">0 / 3 KO</strong></div><div id="aiActive" class="arena-active-placeholder">L'adversaire arrive...</div><div class="health-row"><div id="aiHpText">— PV</div><div id="aiEnergy">— énergie</div></div><div class="hp-track"><div id="aiHpBar" class="hp-fill" style="width:0%"></div></div><p id="aiGuard" class="guard-text">Aucune protection</p><div id="aiBench" class="bench-row"></div></div>
+          <div class="combatant" id="aiPanel" aria-label="Adversaire Billy"><div class="combatant-top"><div><small>ADVERSAIRE</small><h3>Billy</h3></div><strong id="aiScore">0 / 3 KO</strong></div><div id="aiActive" class="arena-active-placeholder">L'adversaire arrive...</div><div class="health-row"><div id="aiHpText">— PV</div><div id="aiEnergy">— énergie</div></div><div class="hp-track"><div id="aiHpBar" class="hp-fill" style="width:0%" role="progressbar" aria-label="Points de vie de Billy" aria-valuemin="0" aria-valuenow="0" aria-valuemax="100"></div></div><p id="aiGuard" class="guard-text">Aucune protection</p><div id="aiBench" class="bench-row"></div></div>
           <div class="arena-center"><span id="turnInfo" aria-live="polite">Prêt pour le duel ?</span><span class="vs">VS</span><span id="roundInfo">3 KO pour gagner</span></div>
-          <div class="combatant player-panel" id="playerPanel" aria-label="Ton équipe"><div class="combatant-top"><div><small>TON ÉQUIPE</small><h3>Toi</h3></div><strong id="playerScore">0 / 3 KO</strong></div><div id="playerActive" class="arena-active-placeholder">Prépare ton deck pour jouer.</div><div class="health-row"><div id="playerHpText">— PV</div><div id="playerEnergy">— énergie</div></div><div class="hp-track"><div id="playerHpBar" class="hp-fill" style="width:0%"></div></div><p id="playerGuard" class="guard-text">Aucune protection</p><div id="playerBench" class="bench-row"></div></div>
+          <div class="combatant player-panel" id="playerPanel" aria-label="Ton équipe"><div class="combatant-top"><div><small>TON ÉQUIPE</small><h3>Toi</h3></div><strong id="playerScore">0 / 3 KO</strong></div><div id="playerActive" class="arena-active-placeholder">Prépare ton deck pour jouer.</div><div class="health-row"><div id="playerHpText">— PV</div><div id="playerEnergy">— énergie</div></div><div class="hp-track"><div id="playerHpBar" class="hp-fill" style="width:0%" role="progressbar" aria-label="Tes points de vie" aria-valuemin="0" aria-valuenow="0" aria-valuemax="100"></div></div><p id="playerGuard" class="guard-text">Aucune protection</p><div id="playerBench" class="bench-row"></div></div>
         </div>
         <aside class="arena-sidebar" aria-label="Commandes du combat">
           <div class="action-header"><p class="eyebrow">Ton tour</p><h3>Choisis une action</h3><p id="actionHint">Lance une partie pour activer les actions.</p></div>
