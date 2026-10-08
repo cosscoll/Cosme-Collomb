@@ -286,7 +286,10 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       position:[camera.position.x,camera.position.y,camera.position.z],
       direction:[ahead.x-camera.position.x,ahead.y-camera.position.y,ahead.z-camera.position.z],
       mode:sample.mode,t,transiting:Boolean(transit),
-      phase:sample.phase||'scroll'
+      phase:sample.phase||'scroll',
+      currentRoute:route.pathName,from:transit?.from,to:transit?.to,
+      progress:transit?clamp((performance.now()-transit.startedAt)/transit.duration):null,
+      samplePath:transit?(sample.path===routeInfo(transit.to).path?'destination':'source'):route.pathName
     }
   })
   return null
