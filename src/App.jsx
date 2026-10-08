@@ -28,6 +28,8 @@ function ScrollReset() {
     if(pathname === '/projets' && state?.fromJourney) {
       // Framer Motion waits for the preceding page to exit before mounting.
       // Locate the actual crossroads after that transition.
+      // The 3D camera is positioned at PROJECT_LOOKOUT_T when this section
+      // begins, so scrolling directly to its top must produce the same pose.
       let attempts=0
       let frame=0
       const navigateToFork=()=>{
@@ -458,7 +460,7 @@ function ProjectDetail({slug}) {
             </Link>
           ))}
         </nav>
-        <Link to="/projets" state={{fromJourney:true}} className="underlined-link">Voir les cinq chemins <span>↗</span></Link>
+        <Link to="/projets" state={{fromJourney:true}} className="underlined-link">← Retourner au carrefour des cinq projets <span>↗</span></Link>
       </motion.div>
     </section>
   </>

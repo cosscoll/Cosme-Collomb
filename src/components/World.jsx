@@ -12,40 +12,50 @@ const FORWARD=new THREE.Vector3(0,0,1)
 const clamp=n=>Math.min(1,Math.max(0,n))
 const smooth=n=>{const v=clamp(n);return v*v*(3-2*v)}
 
-function Shell({path,branch=false,transit=null}) {
+function Shell({path,branch=false,transit=null,arrival=false}) {
   // Closed 360° surface, with no overlapping opaque walls inside the hub.
   const start=branch?PROJECT_FORK_OPEN:0
   const end=branch?PROJECT_FORK_CLOSE:1
   const radius=branch?2.85:4.25
-  const divisions=branch?104:300
-  const radial=branch?40:64
-  const seamsCount=branch?3:7
+  // Incoming preview uses a lighter shell; at the end the full-quality
+  // destination replaces it with precisely the same spline and radius.
+  const divisions=arrival?(branch?66:180):(branch?104:300)
+  const radial=arrival?(branch?28:48):(branch?40:64)
+  const seamsCount=arrival?(branch?2:4):(branch?3:7)
   const geometry=useMemo(()=>createSkin(path,{
     radius,lengthSegments:divisions,radialSegments:radial,start,end
-  }),[path,branch])
+  }),[path,branch,arrival])
+  const root=useRef(null)
   const surface=useRef(null)
   const seamMaterials=useRef([])
   useFrame((_,dt)=>{
     if(!surface.current)return
     const p=transit?Math.max(0,Math.min(1,(performance.now()-transit.startedAt)/transit.duration)):0
-    const target=transit?p<.33?1:p>.64?.035:1-.965*smooth((p-.33)/.31):1
-    surface.current.opacity=THREE.MathUtils.damp(surface.current.opacity,target,12,Math.min(.05,dt))
+    // Avoid expensive transparent overdraw of dormant corridors in software
+    // WebGL. Reveal each 3D segment only when its animation has begun.
+    if(root.current)root.current.visible=!transit||
+      (arrival?p>(branch?.78:.65):p<.72)
+    // Incoming corridor reaches full opacity BEFORE the departing corridor
+    // and temporary bridge are removed. This prevents the final-frame pop.
+    const target=!transit?1:arrival?
+      smooth((p-(branch?.78:.66))/(branch?.21:.29)):
+      1-smooth((p-.28)/.40)
+    surface.current.opacity=target
     seamMaterials.current.forEach((material,i)=>{
-      if(material)material.opacity=THREE.MathUtils.damp(material.opacity,
-        target*(i%2===0?.46:.24),12,Math.min(.05,dt))
+      if(material)material.opacity=target*(i%2===0?.46:.24)
     })
   })
   useEffect(()=>()=>geometry.dispose(),[geometry])
   const seams=useMemo(()=>
     Array.from({length:seamsCount},(_,i)=>
       createSeam(path,i*Math.PI*2/seamsCount,{radius,segments:branch?100:140,start,end})),
-    [path,branch]
+    [path,branch,arrival]
   )
   return (
-    <group>
+    <group ref={root}>
       <mesh geometry={geometry}>
         <meshPhysicalMaterial ref={surface} vertexColors side={THREE.BackSide}
-          transparent opacity={1} depthWrite={false}
+          transparent opacity={arrival?0:1} depthWrite={false}
           metalness={.58} roughness={.29}
           clearcoat={.88} clearcoatRoughness={.17}
           emissive="#514962" emissiveIntensity={.2}/>
@@ -55,7 +65,7 @@ function Shell({path,branch=false,transit=null}) {
           <tubeGeometry args={[seam,160,index%2===0?.018:.009,6,false]}/>
           <meshBasicMaterial ref={el=>{seamMaterials.current[index]=el}}
             color={index%3===0?'#f2d9d0':'#d4d8ff'}
-            transparent opacity={index%2===0?.46:.24}
+            transparent opacity={arrival?0:index%2===0?.46:.24}
             depthWrite={false} toneMapped={false}/>
         </mesh>
       ))}
@@ -180,7 +190,7 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
     const projectFork=document.getElementById('project-crossroads')
     if(homeJunction)scrollPositions.current.junction=homeJunction.offsetTop+homeJunction.offsetHeight*.38
     if(work)scrollPositions.current.works=work.offsetTop
-    if(projectFork)scrollPositions.current.fork=projectFork.offsetTop+projectFork.offsetHeight*.35
+    if(projectFork)scrollPositions.current.fork=projectFork.offsetTop
 
     let sample
     if(transit){
@@ -219,14 +229,22 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
     )
     if(transit){
       const p=Math.max(0,Math.min(1,(performance.now()-transit.startedAt)/transit.duration))
+      const from=routeInfo(transit.from),to=routeInfo(transit.to)
       if(p>.29 && p<.56){
-        const from=routeInfo(transit.from),to=routeInfo(transit.to)
         const junction=junctionFor(from,to,departure.current)
         const destT=arrivalT(to,from)
         const lookT=Math.max(.003,Math.min(.997,junction.toT+(destT>=junction.toT?.075:-.075)))
         const destinationLook=to.path.getPointAt(lookT)
         const weight=smooth((p-.29)/.17)*(1-smooth((p-.51)/.05))
         ahead.lerp(destinationLook,weight)
+      }
+      // Look OUT through the open crossroads, not backwards into the trunk.
+      // This turn begins while still approaching the junction, and finishes
+      // before the destination shell replaces the temporary bridge.
+      if(to.mode==='projects'&&from.mode==='detail'){
+        const forkForward=to.path.getPointAt(.999)
+          .addScaledVector(to.path.getTangentAt(.997),12)
+        ahead.lerp(forkForward,smooth((p-.29)/.25))
       }
     }
     sample.path.getTangentAt(t,direction)
@@ -239,6 +257,13 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       .addScaledVector(UP,-softPointer.current.y*.06+Math.sin(clock.elapsedTime*.28)*.015)
     camera.position.copy(goal)
 
+    // The projects page is an open atrium, not the closed mouth of the trunk.
+    // Keep looking through the physical junction toward its five corridors,
+    // including immediately after a completed-project return.
+    if(!transit && route.mode==='projects' && y>=scrollPositions.current.fork*.68){
+      ahead.copy(route.path.getPointAt(.999))
+        .addScaledVector(route.path.getTangentAt(.997),12)
+    }
     if(!transit && route.mode==='projects' && hovered.startsWith('project-') && y>window.innerHeight*.45){
       const idx=Number(hovered.slice(8))
       if(idx>=0&&idx<PATHS.children.length)
@@ -315,6 +340,8 @@ function BuildingBranch({transit,flightPosition}) {
   },[transit.id])
   const ringGeometry=useMemo(()=>new THREE.TorusGeometry(4.10,.028,7,82),[])
   const ringMeshes=useRef([])
+  const bridgeMaterial=useRef(null)
+  const guideMaterials=useRef([])
   const light=useRef(null)
   useEffect(()=>()=>{
     journey.skin.dispose()
@@ -324,6 +351,16 @@ function BuildingBranch({transit,flightPosition}) {
   useFrame((_,dt)=>{
     const p=Math.max(0,Math.min(1,(performance.now()-transit.startedAt)/transit.duration))
     const built=bridgeBuild(p)
+    const visibility=1-smooth((p-.76)/.22)
+    if(bridgeMaterial.current){
+      bridgeMaterial.current.opacity=visibility
+      // Depth-test the fully constructed wall normally. Otherwise several
+      // transparent corridor skins fill the same pixels and overload WebGL.
+      bridgeMaterial.current.depthWrite=visibility>.975
+    }
+    guideMaterials.current.forEach((mat,i)=>{
+      if(mat)mat.opacity=visibility*.5
+    })
     const rowWidth=journey.radialSegments*6
     const rows=Math.min(journey.lengthSegments,
       Math.floor(journey.lengthSegments*built))
@@ -340,19 +377,20 @@ function BuildingBranch({transit,flightPosition}) {
       const mesh=ringMeshes.current[i]
       if(!mesh)return
       const glow=Math.max(0,Math.min(1,(built-r.fraction)*8))
-      mesh.visible=glow>.015
-      mesh.material.opacity=.15+.38*glow
+      mesh.visible=glow>.015&&visibility>.005
+      mesh.material.opacity=(.15+.38*glow)*visibility
     })
     if(light.current)light.current.position.copy(camera.position)
   })
   return <group name="assembling-3d-tunnel">
     <mesh geometry={journey.skin}>
-      <meshStandardMaterial side={THREE.BackSide} vertexColors
-        roughness={.72} metalness={.19} emissive="#262038"
+      <meshStandardMaterial ref={bridgeMaterial} side={THREE.BackSide} vertexColors
+        transparent opacity={1} roughness={.72} metalness={.19} emissive="#262038"
         emissiveIntensity={.15} depthWrite/>
     </mesh>
     {journey.guides.map((geom,i)=><mesh key={i} geometry={geom}>
-      <meshBasicMaterial color={i===1?'#c8b5cf':'#9cafcb'}
+      <meshBasicMaterial ref={el=>{guideMaterials.current[i]=el}}
+        color={i===1?'#c8b5cf':'#9cafcb'}
         transparent opacity={.50} toneMapped depthWrite={false}/>
     </mesh>)}
     {journey.rings.map((ring,i)=><mesh key={i} ref={el=>{ringMeshes.current[i]=el}}
@@ -367,6 +405,7 @@ function BuildingBranch({transit,flightPosition}) {
 
 function Scene({pathname,hovered,transit}) {
   const route=routeInfo(transit?.from||pathname)
+  const incoming=transit?routeInfo(transit.to):null
   const flightPosition=useRef(null)
   const {mode,index,path}=route
   return <>
@@ -383,7 +422,13 @@ function Scene({pathname,hovered,transit}) {
     {mode==='projects' && PATHS.children.map((arm,i)=>(
       <Shell key={'branch-'+i} path={arm} branch transit={transit}/>
     ))}
-    {(mode==='projects'||mode==='detail') && PATHS.children.map((arm,i)=>(
+    {transit&&<Shell key={'incoming-'+transit.id} path={incoming.path}
+      transit={transit} arrival/>}
+    {transit&&incoming.mode==='projects'&&PATHS.children.map((arm,i)=>(
+      <Shell key={'incoming-project-'+i+'-'+transit.id}
+        path={arm} branch transit={transit} arrival/>
+    ))}
+    {(mode==='projects'||mode==='detail'||incoming?.mode==='projects') && PATHS.children.map((arm,i)=>(
       <ForkGuide key={'guide-'+i} path={arm}
         color={PROJECT_BRANCH_COLORS[i]} active={hovered==='project-'+i}/>
     ))}

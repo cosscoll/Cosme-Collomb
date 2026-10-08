@@ -5,7 +5,7 @@ import { PROJECTS_WITH_SLUGS as PROJECTS } from '../src/data/projects.js'
 import { createSkin } from '../src/scene/geometry.js'
 import {
   routeInfo, sampleTransit, junctionFor, arrivalT, scrollT,
-  bridgeBuild, TRANSIT_DURATION, PROJECT_INDEX_HUB, TRANSIT_MID
+  bridgeBuild, TRANSIT_DURATION, PROJECT_INDEX_HUB, PROJECT_LOOKOUT_T, TRANSIT_MID
 } from '../src/scene/transit.js'
 
 const names=['/','/projets','/parcours','/contact',
@@ -39,7 +39,7 @@ test('Project crossroads still reached continuously by scrolling',()=>{
  const route=routeInfo('/projets')
  const start=scrollT(route,{scrollY:0,total:4200,projectFork:1600})
  const hub=scrollT(route,{scrollY:1600,total:4200,projectFork:1600})
- assert.ok(Math.abs(hub-PROJECT_INDEX_HUB)<.022)
+ assert.ok(Math.abs(hub-PROJECT_LOOKOUT_T)<.00001)
  assert.ok(hub>start+.10)
 })
 test('No teleportation at either real tunnel intersection for every navigation pair',()=>{
@@ -111,4 +111,35 @@ test('No full-screen white portal survives and 3D construction is rendered',asyn
  assert.ok(world.includes('BuildingBranch'))
  assert.ok(world.includes('bridgeBuild(p)'))
  assert.ok(world.includes('meshStandardMaterial'))
+})
+
+test('Returning from every finished project lands at the same open five-way lookout',()=>{
+ const fork=routeInfo('/projets')
+ for(const project of PROJECTS){
+  const path='/projets/'+project.slug
+  const from=routeInfo(path)
+  const arrived=sampleTransit(from,fork,Math.min(.965,from.projectHub+.105),1)
+  const expected=scrollT(fork,{scrollY:1600,total:5500,projectFork:1600})
+  assert.equal(arrived.path,fork.path)
+  assert.ok(Math.abs(arrived.t-expected)<1e-9,'Camera snaps after '+project.title)
+  assert.ok(arrived.t<PROJECT_INDEX_HUB-.045,
+    'Camera is parked against the terminal wall instead of viewing all five forks')
+  // A full project must return to the very same point as a fresh project visit.
+  assert.ok(fork.path.getPointAt(arrived.t).distanceTo(
+    fork.path.getPointAt(expected))<1e-7)
+ }
+})
+
+test('All five paths remain accessible when a project visit is complete',async()=>{
+ const fs=await import('node:fs/promises')
+ const app=await fs.readFile(new URL('../src/App.jsx',import.meta.url),'utf8')
+ const world=await fs.readFile(new URL('../src/components/World.jsx',import.meta.url),'utf8')
+ assert.ok(app.includes('Retourner au carrefour des cinq projets'))
+ assert.ok(app.includes('state={{fromJourney:true}}'))
+ assert.ok(world.includes("projectFork.offsetTop"))
+ assert.ok(!world.includes("projectFork.offsetTop+projectFork.offsetHeight*.35"))
+ assert.ok(world.includes("incoming.mode==='projects'&&PATHS.children.map"))
+ assert.ok(world.includes("to.mode==='projects'&&from.mode==='detail'"))
+ assert.ok(world.includes('bridgeMaterial.current.opacity=visibility'))
+ assert.ok(world.includes('arrival?'))
 })

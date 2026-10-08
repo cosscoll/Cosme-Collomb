@@ -10,6 +10,10 @@ export const ease=t=>{
 }
 const clamp=v=>Math.max(0,Math.min(1,v))
 export const PROJECT_INDEX_HUB=closestT(PATHS.routes[0],PROJECT_FORK_POSITION)
+// The lookout stays several metres before the open end of the main tunnel.
+// At the previous -.012 stop the camera saw the terminal wall rather than
+// the five diverging paths.
+export const PROJECT_LOOKOUT_T=PROJECT_INDEX_HUB-.065
 export const PROJECT_ENTRY_OFFSET=.105
 export const MAIN_ENTRY_OFFSET=.105
 const detailMainHubs=PATHS.details.map(p=>closestT(p,[0,0,-30]))
@@ -40,7 +44,7 @@ export function transitionAnchor(info,from,to){
 export function arrivalT(info,from){
   if(info.mode==='detail')return Math.min(.965,info.projectHub+PROJECT_ENTRY_OFFSET)
   if(info.mode==='projects' && ['projects','detail'].includes(from.mode))
-    return PROJECT_INDEX_HUB-.012
+    return PROJECT_LOOKOUT_T
   if(info.mode==='projects') return info.mainHub+MAIN_ENTRY_OFFSET
   if(info.mode==='home')return .035
   return info.mainHub+MAIN_ENTRY_OFFSET
@@ -57,7 +61,7 @@ export function scrollT(info,{scrollY=0,total=1,junction=1,works=2,projectFork=2
   if(info.mode==='projects'){
     // Centre the camera precisely in the five-way atrium when its UI appears.
     const t=ease(scrollY/Math.max(1,projectFork))
-    return info.mainHub+MAIN_ENTRY_OFFSET + t*(PROJECT_INDEX_HUB-.012-info.mainHub-MAIN_ENTRY_OFFSET)
+    return info.mainHub+MAIN_ENTRY_OFFSET + t*(PROJECT_LOOKOUT_T-info.mainHub-MAIN_ENTRY_OFFSET)
   }
   if(info.mode==='home'){
     if(scrollY<=junction)return .025+ease(scrollY/Math.max(1,junction))*(info.mainHub+.012-.025)

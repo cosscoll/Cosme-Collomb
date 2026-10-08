@@ -43,6 +43,13 @@ async function verifyPage(page,name,expected){
   console.log('Browser passed:',name,'—',heading.replace(/\s+/g,' '))
 }
 
+async function captureWhenPossible(page,path){
+  // Software WebGL screenshots occasionally stall on GPU readback even while
+  // navigation works normally. Never confuse that with a broken site.
+  try{await page.screenshot({path,timeout:6500})}
+  catch(error){console.warn('Optional WebGL screenshot unavailable:',path,error.message)}
+}
+
 async function run(){
   await waitForServer()
   await mkdir('test-output',{recursive:true})
@@ -51,19 +58,17 @@ async function run(){
       '--use-angle=swiftshader','--enable-unsafe-swiftshader',
       '--disable-dev-shm-usage','--disable-gpu-sandbox']
   })
-  const page=await browser.newPage({viewport:{width:1365,height:850}})
+  const page=await browser.newPage({viewport:{width:1030,height:690}})
   page.setDefaultTimeout(20000)
   const errors=[]
   page.on('pageerror',error=>errors.push(String(error)))
 
   await page.goto(site,{waitUntil:'domcontentloaded',timeout:25000})
   await verifyPage(page,'home',/Donner forme/i)
-  await page.screenshot({path:'test-output/home.png'})
 
   await page.locator('.header-primary a').filter({hasText:'Projets'}).click()
   await verifyPage(page,'projects',/Cinq projets/i)
   assert.ok(await page.locator('.fork-choice').count()===5,'Missing one of five 3D project choices')
-  await page.screenshot({path:'test-output/projects.png'})
 
   // The WebGL passage must exist and build in visible frames, not a white
   // screen that merely masks an instantaneous URL change.
@@ -76,19 +81,53 @@ async function run(){
   await page.locator('[data-bridge-transition="active"]').waitFor()
   assert.equal(await page.locator('.transition-portal').count(),0,
     'Legacy full-screen portal is still masking the real tunnel')
-  await page.waitForTimeout(550)
-  await page.screenshot({path:'test-output/bridge-building-055.png'})
-  await page.waitForTimeout(750)
-  await page.screenshot({path:'test-output/bridge-building-130.png'})
-  await page.waitForTimeout(950)
-  await page.screenshot({path:'test-output/bridge-building-225.png'})
-  await page.waitForTimeout(1050)
-  await page.screenshot({path:'test-output/bridge-building-330.png'})
+  await page.waitForTimeout(630)
+  await page.waitForTimeout(2250)
   await verifyPage(page,'first project',/Ouvertures d'échecs/i)
-  await page.screenshot({path:'test-output/detail.png'})
 
-  await page.locator('.header-return').click()
+  // Reproduce the reported regression AFTER finishing the entire project
+  // corridor. The camera is then travelling back towards the junction.
+  await page.locator('#return-to-projects').scrollIntoViewIfNeeded()
+  await page.evaluate(()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'}))
+  await page.waitForTimeout(450)
+  // Project return is the previously broken case: inspect the 3D transition
+  // and assert that the actual five-way crossroads and its scroll position
+  // have been restored, with no last-frame camera teleport.
+  console.log('BEFORE RETURN CLICK',await page.evaluate(()=>({
+    location:location.hash,scroll:scrollY,
+    link:document.querySelector('#return-to-projects a[href*="projets"]')?.href
+  })))
+  await page.locator('#return-to-projects a[href*="projets"]').last().click()
+  console.log('RETURN CLICKED',await page.evaluate(()=>({
+    location:location.hash,transit:!!document.querySelector('[data-bridge-transition="active"]')
+  })))
+  await page.locator('[data-bridge-transition="active"]').waitFor()
+  await page.waitForTimeout(2750)
+  console.log('AFTER RETURN MIDPOINT',await page.evaluate(()=>({
+    location:location.hash,scroll:scrollY,heading:document.querySelector('main h1')?.textContent
+  })))
   await verifyPage(page,'back to projects',/Cinq projets/i)
+  await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:12000})
+  await page.waitForTimeout(260)
+  // SwiftShader can stall on GPU readback after disposing the temporary 3D
+  // bridge. The geometric/UI checks below remain mandatory if that happens.
+  const crossroads=await page.evaluate(()=>{
+    const target=document.querySelector('#project-crossroads')
+    return {scrollY:window.scrollY,top:target?.offsetTop,choices:
+      document.querySelectorAll('.fork-choice').length,
+      bridgeGone:!document.querySelector('[data-bridge-transition="active"]')}
+  })
+  assert.equal(crossroads.choices,5,'The five project choices disappeared on return')
+  assert.ok(crossroads.bridgeGone,'Old bridge still overlays the restored crossroads')
+  assert.ok(Math.abs(crossroads.scrollY-crossroads.top)<30,
+    'Return failed to restore the actual 5-project crossroads: '+JSON.stringify(crossroads))
+  await page.locator('.fork-choice').nth(1).click()
+  await verifyPage(page,'second project after returning',/Probabilités Hold'em/i)
+  await page.locator('.header-return').click()
+  await verifyPage(page,'back to projects a second time',/Cinq projets/i)
+  await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:12000})
+  assert.ok(await page.locator('.fork-choice').count()===5)
+
 
   await page.locator('.header-home-link').click()
   await verifyPage(page,'return to homepage',/Donner forme/i)
@@ -115,7 +154,6 @@ async function run(){
   await verifyPage(mobile,'mobile fallback',/Donner forme/i)
   await mobile.locator('.header-menu-toggle').click()
   await mobile.locator('.navigation-drawer').waitFor({state:'visible'})
-  await mobile.screenshot({path:'test-output/mobile-menu.png'})
   assert.deepEqual(mobileErrors,[],'Client-side JavaScript errors on mobile')
   console.log('BROWSER SMOKE TESTS PASSED: home, projects, detail, back, mobile, menu, JavaScript')
 }
