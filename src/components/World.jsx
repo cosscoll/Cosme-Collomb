@@ -19,7 +19,10 @@ function blendHeading(a,b,weight,target){
   const t=smooth(weight)
   const start=Math.atan2(a.x,-a.z)
   const end=Math.atan2(b.x,-b.z)
-  const yawDelta=Math.atan2(Math.sin(end-start),Math.cos(end-start))
+  let yawDelta=Math.atan2(Math.sin(end-start),Math.cos(end-start))
+  // A nearly opposite heading can fluctuate between +π and -π as the
+  // animated camera moves. Always turn around the SAME side of the fork.
+  if(Math.abs(yawDelta)>Math.PI-.14)yawDelta=Math.abs(yawDelta)
   const pitchA=Math.asin(THREE.MathUtils.clamp(a.y,-1,1))
   const pitchB=Math.asin(THREE.MathUtils.clamp(b.y,-1,1))
   const yaw=start+yawDelta*t
@@ -253,7 +256,7 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       for(let attempt=0;attempt<10;attempt++){
         const next=sampleTransit(from,to,departure.current,nextP)
         const point=transitPoint(next)
-        if(lastPoint.distanceTo(point)<=1.4)break
+        if(lastPoint.distanceTo(point)<=.85)break
         nextP=(flight.p+nextP)*.5
       }
       flight.p=nextP
@@ -339,7 +342,12 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       camera.quaternion.copy(rotation)
       first.current=false
     }else{
-      camera.quaternion.slerp(rotation,1-Math.exp(-dt*(transit?7:5)))
+      const angle=camera.quaternion.angleTo(rotation)
+      const smoothing=1-Math.exp(-Math.min(dt,.07)*(transit?7:5))
+      // Only limit angular movement, never damp world position. The older
+      // camera-position filter caused another visible catch-up teleport.
+      camera.quaternion.slerp(rotation,angle>0?
+        Math.min(smoothing,.20/angle):1)
     }
     const boost=transit?2.3*Math.sin(Math.PI*visualProgress):0
     camera.fov=THREE.MathUtils.damp(camera.fov,45+boost,4,dt)
@@ -348,6 +356,7 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
     // tests (DOM-only route tests cannot detect a 3D position teleport).
     window.__portfolioFlight={
       position:[camera.position.x,camera.position.y,camera.position.z],
+      bridgeProgress:transit?bridgeBuild(visualProgress):null,
       quaternion:[camera.quaternion.x,camera.quaternion.y,camera.quaternion.z,camera.quaternion.w],
       direction:[ahead.x-camera.position.x,ahead.y-camera.position.y,ahead.z-camera.position.z],
       mode:sample.mode,t,forkTarget:PROJECT_LOOKOUT_T,transiting:Boolean(transit),
