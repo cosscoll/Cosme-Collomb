@@ -60,7 +60,7 @@ async function beginFlightTrace(page){
     window.__flightTimer=setInterval(()=>{
       const f=window.__portfolioFlight
       if(f)window.__flightTrace.push({
-        at:performance.now(),position:f.position,mode:f.mode,phase:f.phase
+        at:performance.now(),...f
       })
     },40)
   })
@@ -77,6 +77,9 @@ async function assertFlightContinuous(page,label){
     const distance=Math.hypot(...a.position.map((v,j)=>v-b.position[j]))
     const speed=distance/Math.max(1,b.at-a.at)
     worst=Math.max(worst,speed)
+    if(distance>2 && speed>.16)console.error('PHYSICAL CAMERA JUMP',JSON.stringify({
+      label,distance,speed,previous:data[i-2],a,b,next:data[i+1]
+    }))
     assert.ok(!(distance>2 && speed>.16),
       label+': physical camera jump '+distance.toFixed(2)+'m in '+(b.at-a.at).toFixed(0)+'ms')
   }
