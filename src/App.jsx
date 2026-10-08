@@ -1,5 +1,5 @@
 import { Component, Suspense, lazy, useEffect, useRef, useState } from 'react'
-import { HashRouter, Link, useLocation, useParams } from 'react-router-dom'
+import { HashRouter, Link, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import { PROJECTS_WITH_SLUGS as PROJECTS } from './data/projects.js'
 import './styles/rebuilt.css'
@@ -31,6 +31,7 @@ function ScrollReset() {
 }
 
 function Background({ pathname, hovered }) {
+  const bgRef = useRef(null)
   const [ready, setReady] = useState(false)
   const [enabled, setEnabled] = useState(null)
   useEffect(() => {
@@ -42,15 +43,42 @@ function Background({ pathname, hovered }) {
     setEnabled(supported)
   }, [])
   useEffect(() => setReady(false), [pathname])
+  useEffect(() => {
+    let frame = 0
+    const update = () => {
+      cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        if (!bgRef.current) return
+        const fork = document.getElementById('junction')
+        const offset = fork?.offsetTop || window.innerHeight
+        const phase = Math.max(0, Math.min(1,
+          (window.scrollY - offset + window.innerHeight * .38) / (window.innerHeight * .8)))
+        bgRef.current.style.setProperty('--fork', pathname === '/' ? String(phase) : '1')
+        bgRef.current.style.setProperty('--journey', String(
+          window.scrollY / Math.max(1, document.documentElement.scrollHeight - window.innerHeight)))
+      })
+    }
+    update()
+    window.addEventListener('scroll', update, {passive: true})
+    window.addEventListener('resize', update)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', update)
+      window.removeEventListener('resize', update)
+    }
+  }, [pathname])
 
   return (
-    <div className="scene-backdrop" aria-hidden="true">
+    <div ref={bgRef} className="scene-backdrop" aria-hidden="true">
       <div className={'scene-css-art ' + (ready ? 'scene-css-art--hidden' : '')}>
         <span className="fallback-glow" />
         <span className="fallback-fold fallback-fold-one" />
         <span className="fallback-fold fallback-fold-two" />
         <span className="fallback-fold fallback-fold-three" />
         <span className="fallback-edge" />
+        <span className="fallback-branch fallback-branch-left" />
+        <span className="fallback-branch fallback-branch-center" />
+        <span className="fallback-branch fallback-branch-right" />
       </div>
       {enabled && (
         <Boundary>
@@ -232,8 +260,7 @@ function ProjectIndex({ setHovered }) {
   </>
 }
 
-function ProjectDetail() {
-  const {slug}=useParams()
+function ProjectDetail({slug}) {
   const i=PROJECTS.findIndex(p=>p.slug===slug)
   const p=PROJECTS[i]
   if(!p)return <PageIntro kicker="ERREUR" title="Projet" italic="introuvable." />
@@ -284,7 +311,7 @@ function Contact() {
 function RouteView({ pathname, setHovered }) {
   if(pathname === '/')return <Home setHovered={setHovered}/>
   if(pathname === '/projets')return <ProjectIndex setHovered={setHovered}/>
-  if(pathname.startsWith('/projets/'))return <ProjectDetail/>
+  if(pathname.startsWith('/projets/'))return <ProjectDetail slug={pathname.split('/')[2]}/>
   if(pathname === '/parcours' || pathname === '/experience')return <About/>
   if(pathname === '/contact')return <Contact/>
   return <Home setHovered={setHovered}/>
