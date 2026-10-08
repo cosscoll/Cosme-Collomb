@@ -1,17 +1,16 @@
-name: Deploy to GitHub Pages
+name: Build and validate portfolio
 on:
   push:
     branches: [main]
   workflow_dispatch:
 permissions:
   contents: write
-  pages: write
-  id-token: write
 concurrency:
-  group: pages
+  group: portfolio-build
   cancel-in-progress: true
 jobs:
-  build:
+  verify-and-sync:
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,10 +19,12 @@ jobs:
           node-version: 20
       - run: npm install
       - run: npm run test:geometry
+      - name: Restore Vite HTML entrypoint
+        run: cp site/index.source.html index.html
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
-      - name: Publish compiled site to branch root
+      - name: Publish compiled files to branch root
         run: bash scripts/sync-published-root.sh
       - uses: actions/upload-artifact@v4
         if: always()
@@ -31,22 +32,3 @@ jobs:
           name: browser-smoke-screenshots
           path: test-output/
           if-no-files-found: ignore
-      - uses: actions/configure-pages@v4
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./dist
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v4
-      - name: Deploy
-        id: deployment
-        uses: actions/deploy-pages@v4
-      - name: Confirm live public HTML and asset
-        env:
-          PUBLIC_SITE: ${{ steps.deployment.outputs.page_url }}
-        run: node tests/public-http-check.mjs
