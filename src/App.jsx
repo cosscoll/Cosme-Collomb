@@ -3,6 +3,7 @@ import { HashRouter, Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import { PROJECTS_WITH_SLUGS as PROJECTS } from './data/projects.js'
 import { PROJECT_STORIES } from './data/projectStories.js'
+import { NAV_ITEMS, navigationContext } from './navigation/siteNavigation.js'
 import './styles/rebuilt.css'
 
 const World = lazy(() => import('./components/World.jsx'))
@@ -102,20 +103,131 @@ function Background({ pathname, hovered, transit }) {
   )
 }
 
-function Header() {
-  const { pathname } = useLocation()
-  return (
-    <header className="topbar">
-      <Link to="/" className="brand-mark" aria-label="Cosme Collomb, accueil">
-        <span className="brand-monogram">C<span>.</span></span>
-        <span className="brand-sub">COSME<br/>COLLOMB</span>
-      </Link>
-      <span className="topbar-center">PORTFOLIO <span>—</span> 2026</span>
-      <nav className="header-links" aria-label="Navigation principale">
-        {routes.map(r => <Link key={r.key} className={pathname.startsWith(r.path) ? 'current' : ''} to={r.path}>{r.label}</Link>)}
-      </nav>
+function Header({menuOpen,setMenuOpen}) {
+  const {pathname}=useLocation()
+  const context=navigationContext(pathname)
+  const toggleRef=useRef(null)
+  const menuRef=useRef(null)
+
+  useEffect(()=>{
+    if(!menuOpen)return
+    const onKey=(event)=>{
+      if(event.key==='Escape'){
+        event.preventDefault()
+        setMenuOpen(false)
+        toggleRef.current?.focus()
+      }
+      // Keep keyboard focus inside the open navigation, without making
+      // the immersive background difficult to escape.
+      if(event.key==='Tab'&&menuRef.current){
+        const controls=[...menuRef.current.querySelectorAll('a[href],button:not([disabled])')]
+        if(!controls.length)return
+        const first=controls[0],last=controls[controls.length-1]
+        if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus()}
+        else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus()}
+      }
+    }
+    window.addEventListener('keydown',onKey)
+    return ()=>window.removeEventListener('keydown',onKey)
+  },[menuOpen,setMenuOpen])
+  useEffect(()=>{
+    if(menuOpen){
+      // Focus the first usable navigation link when the drawer opens.
+      const frame=requestAnimationFrame(()=>menuRef.current?.querySelector('a[href]')?.focus())
+      return ()=>cancelAnimationFrame(frame)
+    }
+  },[menuOpen])
+
+  return <>
+    <header className={'topbar topbar-v2 '+(menuOpen?'topbar-v2-open':'')}>
+      <div className="topbar-main">
+        <Link to="/" className="brand-mark" aria-label="Retour à l’accueil du portfolio">
+          <span className="brand-monogram">C<span>.</span></span>
+          <span className="brand-sub">COSME<br/>COLLOMB</span>
+        </Link>
+        <nav className="header-primary" aria-label="Navigation rapide">
+          {NAV_ITEMS.map(item=><Link key={item.to} to={item.to}
+            className={context.trail.some(p=>p.to===item.to)&&
+              item.to=== (context.trail.length>1?context.trail[1].to:'/')?'is-current':''}
+            aria-current={pathname===item.to?'page':undefined}>{item.label}</Link>)}
+        </nav>
+        <div className="header-controls">
+          {pathname!=='/'&&<Link to="/" className="header-home-link" aria-label="Aller à l’accueil">
+            <span aria-hidden="true">⌂</span><span>Accueil</span>
+          </Link>}
+          {context.back&&
+            <Link to={context.back.to} state={pathname.startsWith('/projets/')?{fromJourney:true}:undefined}
+              className="header-return" aria-label={context.back.label}>
+              <span className="header-return-arrow" aria-hidden="true">←</span>
+              <span className="header-return-label">{context.back.to==='/projets'?'Projets':'Retour'}</span>
+            </Link>}
+          <button type="button" ref={toggleRef} className={'header-menu-toggle '+(menuOpen?'is-open':'')}
+            aria-expanded={menuOpen} aria-controls="portfolio-navigation-panel"
+            aria-label={menuOpen?'Fermer le menu de navigation':'Ouvrir le menu de navigation'}
+            onClick={()=>setMenuOpen(open=>!open)}>
+            <span className="menu-button-label">{menuOpen?'FERMER':'MENU'}</span>
+            <span className="menu-button-symbol" aria-hidden="true"><i/><i/></span>
+          </button>
+        </div>
+      </div>
+      {pathname!=='/'&&<nav className="header-breadcrumb" aria-label="Vous êtes ici">
+        {context.trail.map((item,i)=>(
+          <span key={item.to+'-'+i} className="header-crumb">
+            {i>0&&<span className="crumb-divider" aria-hidden="true">/</span>}
+            {i===context.trail.length-1?
+              <span aria-current="page" className="crumb-current">{item.label}</span>:
+              <Link to={item.to}>{item.label}</Link>}
+          </span>
+        ))}
+      </nav>}
     </header>
-  )
+    <AnimatePresence>
+      {menuOpen&&<motion.div className="navigation-layer" key="navigation-layer"
+        initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+        transition={{duration:.28}}>
+        <button type="button" className="navigation-scrim"
+          aria-label="Fermer le menu" onClick={()=>setMenuOpen(false)}/>
+        <motion.nav id="portfolio-navigation-panel" ref={menuRef}
+          role="dialog" aria-modal="true" aria-label="Menu de navigation"
+          className="navigation-drawer"
+          initial={{opacity:0,y:-18,scale:.985}}
+          animate={{opacity:1,y:0,scale:1}}
+          exit={{opacity:0,y:-12,scale:.99}}
+          transition={{duration:.46,ease:[.16,1,.3,1]}}>
+          <div className="navigation-drawer-heading">
+            <div><span className="micro-label">LE PORTFOLIO / 2026</span>
+              <p>Choisissez une direction</p></div>
+            <button className="navigation-close" type="button" onClick={()=>setMenuOpen(false)}
+              aria-label="Fermer le menu">✕ <span>Fermer</span></button>
+          </div>
+          <div className="navigation-drawer-columns">
+            <div className="navigation-main-links">
+              {NAV_ITEMS.map(item=><Link key={item.to} to={item.to} onClick={()=>setMenuOpen(false)}
+                aria-current={pathname===item.to?'page':undefined}
+                className={(pathname===item.to?'is-active':'')}>
+                <span className="navigation-link-number">{item.number}</span>
+                <span className="navigation-link-text">
+                  <strong>{item.label}</strong><small>{item.caption}</small>
+                </span>
+                <span className="navigation-link-arrow" aria-hidden="true">↗</span>
+              </Link>)}
+            </div>
+            <div className="navigation-projects">
+              <span className="micro-label">EXPLORER UN PROJET</span>
+              {PROJECTS.map((project,i)=><Link key={project.slug}
+                className={pathname==='/projets/'+project.slug?'is-active':''}
+                to={'/projets/'+project.slug} onClick={()=>setMenuOpen(false)}>
+                <span>{String(i+1).padStart(2,'0')}</span>
+                <strong>{project.title}</strong>
+                <span aria-hidden="true">↗</span>
+              </Link>)}
+              <p>Vous pouvez aussi continuer l’exploration en faisant défiler la page.</p>
+            </div>
+          </div>
+        </motion.nav>
+      </motion.div>}
+    </AnimatePresence>
+  </>
 }
 
 function Chapter({ index, children, className='', id, label }) {
@@ -421,12 +533,13 @@ function Shell() {
   const {pathname}=useLocation()
   const navigate=useNavigate()
   const [hovered,setHovered]=useState('')
+  const [menuOpen,setMenuOpen]=useState(false)
   const [transit,setTransit]=useState(null)
   const transitRef=useRef(null)
   const timers=useRef([])
   const nextId=useRef(0)
 
-  useEffect(()=>setHovered(''),[pathname])
+  useEffect(()=>{setHovered('');setMenuOpen(false)},[pathname])
   useEffect(()=>{
     const capture=(event)=>{
       if(event.defaultPrevented || event.button!==0 || event.metaKey ||
@@ -443,6 +556,7 @@ function Shell() {
       if(next===pathname || transitRef.current)return
       event.preventDefault()
       event.stopPropagation()
+      setMenuOpen(false)
       // Maintain a continuous WebGL scene while pages are exchanged in the
       // middle of a geometric path, instead of instantly resetting the camera.
       const journey={
@@ -471,7 +585,7 @@ function Shell() {
   return <>
     <ScrollReset/>
     <Background pathname={pathname} hovered={hovered} transit={transit}/>
-    <Header/>
+    <Header menuOpen={menuOpen} setMenuOpen={setMenuOpen}/>
     <ScrollLabel/>
     <main id="content" className={transit?'content-in-transit':''}>
       <AnimatePresence mode="wait" initial={false}>
