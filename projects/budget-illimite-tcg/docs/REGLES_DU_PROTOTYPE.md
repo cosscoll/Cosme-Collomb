@@ -1,0 +1,45 @@
+# Règles de Budget Illimité — prototype solo 0.1
+
+> Ces règles sont **expérimentales**, et NON une restitution du moteur d'origine. Celui-ci était absent du ZIP fourni. Elles sont destinées à valider une expérience jouable.
+
+## Préparation
+
+Chaque participant dispose de 8 cartes distinctes sélectionnées dans les 49 IDs du prototype.
+Le joueur personnalise librement son deck ; Billy utilise actuellement une liste fixe.
+Chaque camp mélange son deck avec une graine pseudo-aléatoire de la partie. Une carte est active, deux sont en réserve et cinq restent dans la pioche.
+
+Toutes les cartes sont disponibles en mode de démonstration. Les raretés n'augmentent **pas** artificiellement la puissance des cartes. Il n'existe pas encore de propriété ou d'achat de cartes.
+
+## Objectif
+
+Être le premier à infliger **3 KO** aux cartes adverses. Un KO survient quand les PV de la carte active adverse atteignent zéro. La carte est alors défaussée ; une carte de réserve devient automatiquement active et la réserve est remplie depuis la pioche, si possible.
+
+## Déroulement
+
+Le joueur commence avec **1 point d'énergie** ; Billy aussi. Lorsque son tour commence, chaque camp reçoit +1 énergie, dans la limite de 5 (ce bonus s'applique au passage de tour ; il n'est pas donné une seconde fois à l'initialisation).
+
+À chaque tour, effectuer **une seule action** :
+
+1. **Frappe rapide** : dégâts immédiats correspondant aux statistiques du personnage, sans coût.
+2. **Capacité spéciale** : dégâts supérieurs, consomme 2 énergies. Inaccessible si l'énergie est insuffisante.
+3. **Concentration** : +2 énergie (plafond 5) et +14 points de protection (ou +22 en rôle Rempart), protection cumulée au maximum à 35.
+4. **Échange de carte active** : échange avec une carte de réserve ; les PV respectifs sont conservés, +6 protection (plafond 35).
+
+La protection absorbe les dégâts entrants avant les PV. Une protection restante peut perdurer après l'attaque. Elle disparaît lorsqu'une carte active tombe KO. Chaque action termine le tour et rend la main à l'adversaire.
+
+## Rôles
+
+Les rôles sont dérivés des IDs par une fonction stable afin d'éviter de présenter des statistiques inventées comme des faits sur des vidéos. Les quatre rôles ont des profils similaires en puissance globale :
+
+- **Assaut** : frappe rapide supérieure.
+- **Rempart** : PV élevés et concentration qui donne plus de protection.
+- **Tacticien** : récupère 1 énergie après sa capacité spéciale.
+- **Chaos** : +10 dégâts à sa capacité lorsque ses PV sont au plus à la moitié de son maximum.
+
+Les rares, épiques, légendaires et secrètes ne reçoivent pas de bonus automatique. Cette première version doit être équilibrée avec des simulations et des retours de joueurs.
+
+## Sauvegarde et sécurité
+
+Le deck et les marqueurs de documentation sont conservés **uniquement dans le navigateur**. Ils ne constituent ni un compte, ni une collection de cartes possédées, ni un droit à des récompenses. Les matches solo ne sont pas des rencontres classées.
+
+Le prototype de booster est indépendant de l'économie : aucune monnaie n'est débitée et les cartes affichées ne sont pas ajoutées au compte. Le futur multijoueur devra être arbitré côté serveur avec données cachées et transactions garanties.
