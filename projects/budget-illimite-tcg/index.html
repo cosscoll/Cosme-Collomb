@@ -56,7 +56,11 @@
     </section>
     <section id="arena" class="arena-section" aria-labelledby="arenaTitle">
       <div class="section-top"><div><p class="eyebrow">Mode solo · Billy l'ordinateur</p><h2 id="arenaTitle">L'arène</h2><p>Chaque tour, choisis une seule action. La première équipe à mettre KO 3 cartes remporte la partie. C'est un prototype de règles, indépendant du PvP existant.</p></div>
-      <button type="button" id="startMatch" class="main-cta">Lancer une partie <span aria-hidden="true">↗</span></button></div>
+      <div class="arena-start"><label for="aiDifficulty">Niveau de Billy<select id="aiDifficulty">
+        <option value="decouverte">Découverte — facile</option>
+        <option value="normal" selected>Normal — équilibré</option>
+        <option value="expert">Expert — tactique</option>
+      </select></label><button type="button" id="startMatch" class="main-cta">Lancer une partie <span aria-hidden="true">↗</span></button></div></div>
       <details class="rules-help"><summary>Comment jouer ? <span aria-hidden="true">＋</span></summary>
         <div class="rules-help-grid">
           <p><strong>1. Prépare ton équipe.</strong> Choisis huit cartes différentes dans le catalogue. Une carte démarre active, deux attendent en réserve.</p>
@@ -65,6 +69,7 @@
           <p><strong>4. Exploite les rôles.</strong> Assaut frappe fort, Rempart encaisse, Tacticien récupère de l'énergie et Chaos se renforce à faible santé.</p>
         </div>
       </details>
+      <p id="battleResultNotice" class="battle-result hidden" role="status" aria-live="polite"></p>
       <div class="arena-shell">
         <div class="arena-board">
           <div class="combatant" id="aiPanel" aria-label="Adversaire Billy"><div class="combatant-top"><div><small>ADVERSAIRE</small><h3>Billy</h3></div><strong id="aiScore">0 / 3 KO</strong></div><div id="aiActive" class="arena-active-placeholder">L'adversaire arrive...</div><div class="health-row"><div id="aiHpText">— PV</div><div id="aiEnergy">— énergie</div></div><div class="hp-track"><div id="aiHpBar" class="hp-fill" style="width:0%"></div></div><p id="aiGuard" class="guard-text">Aucune protection</p><div id="aiBench" class="bench-row"></div></div>
@@ -77,6 +82,19 @@
           <div class="battle-log"><h4>Historique du combat</h4><ol id="battleLog" aria-live="polite"></ol></div>
           <p class="prototype-caveat">Règles et statistiques de démonstration. Aucune récompense réelle n'est distribuée.</p>
         </aside>
+      </div>
+    </section>
+    <section id="soloProgress" class="solo-progress-section" aria-labelledby="soloProgressTitle">
+      <div><p class="eyebrow">Dans ton navigateur uniquement</p><h2 id="soloProgressTitle">Ton palmarès solo</h2><p>Ces statistiques et récompenses symboliques sont enregistrées localement. Elles ne donnent ni Budget ni cartes, et ne sont pas liées à un compte en ligne.</p></div>
+      <div class="solo-progress-panel">
+        <div class="solo-progress-counters" aria-label="Statistiques personnelles">
+          <div><strong id="matchesPlayed">0</strong><span>Parties jouées</span></div>
+          <div><strong id="matchesWon">0</strong><span>Victoires</span></div>
+          <div><strong id="matchesLost">0</strong><span>Défaites</span></div>
+          <div><strong id="bestStreak">0</strong><span>Meilleure série</span></div>
+        </div>
+        <h3>Défis de collectionneur</h3>
+        <div id="soloBadgeList" class="badge-list" aria-live="polite"></div>
       </div>
     </section>
     <section id="booster" class="booster-section">
