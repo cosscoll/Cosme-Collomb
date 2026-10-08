@@ -1,4 +1,5 @@
 import { CARDS, RARITIES } from "./data/cards.js";
+import { simulateBooster } from "./game/booster.js";
 
 const byId = id => document.getElementById(id);
 const search = byId("search");
@@ -93,3 +94,25 @@ search.addEventListener("input", render);
 rarity.addEventListener("change", render);
 onlyMarked.addEventListener("change", render);
 render();
+
+const boosterDialog = byId("boosterDialog");
+function previewBooster() {
+  const cards = simulateBooster(CARDS);
+  const result = byId("boosterResults");
+  const content = document.createDocumentFragment();
+  for (const card of cards) {
+    const item = el("article", "booster-result rarity-" + card.rarity);
+    const art = el("div", "booster-result-art", "?");
+    const kind = el("small", "", rarityLabels[card.rarity]);
+    const name = el("strong", "", card.name);
+    item.append(art, kind, name);
+    content.append(item);
+  }
+  result.replaceChildren(content);
+}
+byId("simulateBooster").addEventListener("click", () => {
+  previewBooster();
+  if (typeof boosterDialog.showModal === "function") boosterDialog.showModal();
+  else boosterDialog.setAttribute("open", "");
+});
+byId("rerollBooster").addEventListener("click", previewBooster);
