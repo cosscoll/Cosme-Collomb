@@ -71,20 +71,35 @@ async function assertFlightContinuous(page,label){
     return window.__flightTrace||[]
   })
   assert.ok(data.length>12,label+': insufficient 3D camera samples')
-  let worst=0
+  let worst=0,worstTurn=0
+  let previousProgress=-1
   for(let i=1;i<data.length;i++){
     const a=data[i-1],b=data[i]
     const distance=Math.hypot(...a.position.map((v,j)=>v-b.position[j]))
-    const speed=distance/Math.max(1,b.at-a.at)
+    const elapsed=Math.max(1,b.at-a.at)
+    const speed=distance/elapsed
     worst=Math.max(worst,speed)
-    if(distance>2 && speed>.16)console.error('PHYSICAL CAMERA JUMP',JSON.stringify({
-      label,distance,speed,previous:data[i-2],a,b,next:data[i+1]
-    }))
-    assert.ok(!(distance>2 && speed>.16),
-      label+': physical camera jump '+distance.toFixed(2)+'m in '+(b.at-a.at).toFixed(0)+'ms')
+    // Catch the small but sharp micro-teleports that old broad 2m tests
+    // missed, including transitions from one curve/mesh to another.
+    assert.ok(!(distance>.8 && speed>.085),
+      label+': camera jumped '+distance.toFixed(2)+'m in '+elapsed.toFixed(0)+'ms')
+    if(a.quaternion&&b.quaternion){
+      const dot=Math.min(1,Math.abs(a.quaternion.reduce(
+        (sum,value,index)=>sum+value*b.quaternion[index],0)))
+      const radians=2*Math.acos(dot)
+      worstTurn=Math.max(worstTurn,radians)
+      assert.ok(!(radians>.66 && elapsed<150),
+        label+': visible camera turn '+(radians*180/Math.PI).toFixed(1)+'° in '+elapsed.toFixed(0)+'ms')
+    }
+    if(b.transiting && b.progress!==null){
+      if(previousProgress>=0)assert.ok(b.progress+.00001>=previousProgress,
+        label+': camera moved backwards in animation time')
+      previousProgress=b.progress
+    }
   }
-  console.log('Camera path continuous:',label, 'samples:',data.length,
-    'peak m/ms:',worst.toFixed(3))
+  console.log('Camera path continuous:',label,'samples:',data.length,
+    'peak m/ms:',worst.toFixed(3),
+    'peak camera turn degrees:',(worstTurn*180/Math.PI).toFixed(2))
 }
 
 async function run(){
