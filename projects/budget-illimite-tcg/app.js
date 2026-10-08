@@ -1,6 +1,7 @@
 import { CARDS, RARITIES } from "./data/cards.js";
 import { simulateBooster } from "./game/booster.js";
-import { createMatch, applyAction, legalActions, chooseAiAction, validateDeck, cardStats, DECK_SIZE, WIN_KOS } from "./game/engine.js";
+import { createMatch, applyAction, legalActions, chooseAiAction, validateDeck, cardStats, DECK_SIZE, WIN_KOS, AI_DIFFICULTIES } from "./game/engine.js";
+import { emptySoloProgress, normalizeSoloProgress, SOLO_BADGES, earnedSoloBadges, recordSoloResult } from "./game/progress.js";
 
 const byId = id => document.getElementById(id);
 const search = byId("search");
@@ -133,6 +134,17 @@ const cardById = new Map(CARDS.map(card => [card.id, card]));
 let currentDeck = [...DEFAULT_PLAYER_DECK];
 let match = null;
 let matchEpoch = 0;
+let matchResultRecorded = false;
+let activeDifficulty = "normal";
+const PROGRESS_STORAGE_KEY = "budget-illimite:solo-progress:v1";
+const DIFFICULTY_STORAGE_KEY = "budget-illimite:solo-difficulty:v1";
+let soloProgress = emptySoloProgress();
+
+try {
+  soloProgress = normalizeSoloProgress(JSON.parse(localStorage.getItem(PROGRESS_STORAGE_KEY) || "null"));
+  const savedDifficulty = localStorage.getItem(DIFFICULTY_STORAGE_KEY);
+  if (AI_DIFFICULTIES.includes(savedDifficulty)) byId("aiDifficulty").value = savedDifficulty;
+} catch { /* browser storage is optional */ }
 
 try {
   const savedDeck = JSON.parse(localStorage.getItem(DECK_STORAGE_KEY) || "null");
@@ -257,9 +269,43 @@ function renderSide(key) {
   bench.replaceChildren(benchItems);
 }
 
+function renderSoloProgress() {
+  byId("matchesPlayed").textContent = String(soloProgress.played);
+  byId("matchesWon").textContent = String(soloProgress.wins);
+  byId("matchesLost").textContent = String(soloProgress.losses);
+  byId("bestStreak").textContent = String(soloProgress.bestStreak);
+  const earned = new Set(earnedSoloBadges(soloProgress).map(item => item.id));
+  const fragment = document.createDocumentFragment();
+  for (const badge of SOLO_BADGES) {
+    const unlocked = earned.has(badge.id);
+    const item = el("div", unlocked ? "solo-badge achieved" : "solo-badge locked");
+    const heading = el("strong", "", (unlocked ? "✓ " : "○ ") + badge.title);
+    item.append(heading, el("small", "", badge.description));
+    item.setAttribute("aria-label", (unlocked ? "Obtenu : " : "À débloquer : ") + badge.title);
+    fragment.append(item);
+  }
+  byId("soloBadgeList").replaceChildren(fragment);
+}
+
+function saveSoloResultIfNeeded() {
+  if (!match?.winner || matchResultRecorded) return;
+  const result = recordSoloResult(soloProgress, match);
+  soloProgress = result.progress;
+  matchResultRecorded = true;
+  try { localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(soloProgress)); } catch {}
+  const notice = byId("battleResultNotice");
+  notice.textContent = (match.winner === "player"
+    ? "Victoire contre Billy !" : "Billy a gagné ce duel.") +
+    " " + match.sides.player.knockouts + " KO réalisés." +
+    (result.unlocked.length ? " Nouveaux défis : " + result.unlocked.map(b => b.title).join(", ") + "." : "");
+  notice.classList.remove("hidden");
+  renderSoloProgress();
+}
+
 function renderArena() {
   renderSide("player");
   renderSide("ai");
+  byId("aiDifficulty").disabled = Boolean(match && !match.winner);
   const title = byId("turnInfo");
   const hint = byId("actionHint");
   const isReady = match && !match.winner && match.turn === "player";
@@ -298,6 +344,13 @@ function startSoloMatch() {
     return;
   }
   matchEpoch += 1;
+  matchResultRecorded = false;
+  const notice = byId("battleResultNotice");
+  notice.classList.add("hidden");
+  notice.textContent = "";
+  const requested = byId("aiDifficulty").value;
+  activeDifficulty = AI_DIFFICULTIES.includes(requested) ? requested : "normal";
+  try { localStorage.setItem(DIFFICULTY_STORAGE_KEY, activeDifficulty); } catch {}
   match = createMatch({ playerDeck: currentDeck, aiDeck: DEFAULT_AI_DECK, seed: Date.now() });
   renderArena();
 }
@@ -309,16 +362,18 @@ function playerAction(action) {
     byId("actionHint").textContent = error.message;
     return;
   }
+  saveSoloResultIfNeeded();
   renderArena();
   if (!match.winner && match.turn === "ai") {
     const scheduledFor = matchEpoch;
     window.setTimeout(() => {
       if (scheduledFor !== matchEpoch || !match || match.winner || match.turn !== "ai") return;
-      try { match = applyAction(match, "ai", chooseAiAction(match)); }
+      try { match = applyAction(match, "ai", chooseAiAction(match, activeDifficulty)); }
       catch (error) {
         byId("actionHint").textContent = "Le tour de Billy a échoué : " + error.message;
         return;
       }
+      saveSoloResultIfNeeded();
       renderArena();
     }, 450);
   }
@@ -328,4 +383,5 @@ byId("quickAction").addEventListener("click", () => playerAction({ type: "quick"
 byId("burstAction").addEventListener("click", () => playerAction({ type: "burst" }));
 byId("focusAction").addEventListener("click", () => playerAction({ type: "focus" }));
 renderDeck();
+renderSoloProgress();
 renderArena();
