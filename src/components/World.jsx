@@ -411,7 +411,7 @@ function BuildingBranch({transit,flightPosition}) {
     let start,end
     if(reverse){
       start=Math.max(.005,arrival-.09)
-      end=Math.max(start+.03,hub.toT-margin)
+      end=Math.min(.998,Math.max(start+.03,hub.toT-margin))
     }else{
       start=Math.min(.985,hub.toT+margin)
       end=Math.min(.998,Math.max(start+.115,arrival+.075))
