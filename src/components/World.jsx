@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { routeInfo, scrollT, sampleTransit, junctionFor, arrivalT, bridgeBuild, PROJECT_LOOKOUT_T } from '../scene/transit.js'
+import { routeInfo, scrollT, sampleTransit, samplePosition, junctionFor, arrivalT, bridgeBuild, PROJECT_LOOKOUT_T } from '../scene/transit.js'
 import {
   PATHS, PROJECT_BRANCH_COLORS, PROJECT_FORK_OPEN, PROJECT_FORK_CLOSE, PROJECT_FORK_FOCUS,
   createSkin, createSeam, detailReturning
@@ -225,11 +225,11 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       // changes pages from the far end of a long corridor via the header.
       // This also prevents crossing an opaque wall after a GPU stall.
       const last=sampleTransit(from,to,departure.current,flight.p)
-      const lastPoint=last.path.getPointAt(clamp(last.t))
+      const lastPoint=samplePosition(last)
       let nextP=Math.min(1,flight.p+dt/(transit.duration/1000))
       for(let attempt=0;attempt<10;attempt++){
         const next=sampleTransit(from,to,departure.current,nextP)
-        const point=next.path.getPointAt(clamp(next.t))
+        const point=samplePosition(next)
         if(lastPoint.distanceTo(point)<=1.4)break
         nextP=(flight.p+nextP)*.5
       }
@@ -253,19 +253,22 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
     }
 
     const t=Math.max(.001,Math.min(.998,sample.t))
-    sample.path.getPointAt(t,position)
+    samplePosition(sample,position)
+    // Follow the same geometric offset as the camera during the junction
+    // handoff: the eye and look target must stay in the same physical tube.
     sample.path.getPointAt(
       sample.reverse?Math.max(.001,t-.024):Math.min(.999,t+.024),ahead
     )
+    if(sample.offset)ahead.add(sample.offset)
     if(transit){
       const p=visualProgress
       const from=routeInfo(transit.from),to=routeInfo(transit.to)
-      if(p>.29 && p<.56){
+      if(p>.29 && p<.75){
         const junction=junctionFor(from,to,departure.current)
         const destT=arrivalT(to,from)
         const lookT=Math.max(.003,Math.min(.997,junction.toT+(destT>=junction.toT?.075:-.075)))
         const destinationLook=to.path.getPointAt(lookT)
-        const weight=smooth((p-.29)/.17)*(1-smooth((p-.51)/.05))
+        const weight=smooth((p-.29)/.17)*(1-smooth((p-.64)/.11))
         ahead.lerp(destinationLook,weight)
       }
       // Look OUT through the open crossroads, not backwards into the trunk.
@@ -283,7 +286,11 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
     goal.copy(position)
       .addScaledVector(right,softPointer.current.x*.095)
       .addScaledVector(UP,-softPointer.current.y*.06+Math.sin(clock.elapsedTime*.28)*.015)
-    camera.position.copy(goal)
+    // Filtering the final camera position removes small one-frame pops
+    // caused by asynchronous DOM/3D mesh handoffs and frame jitter.
+    // The target remains exactly on the spline, within the tube radius.
+    if(first.current)camera.position.copy(goal)
+    else camera.position.lerp(goal,1-Math.exp(-dt*(transit?16:13)))
 
     // The projects page is an open atrium, not the closed mouth of the trunk.
     // Keep looking through the physical junction toward its five corridors,
@@ -315,6 +322,7 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
     // tests (DOM-only route tests cannot detect a 3D position teleport).
     window.__portfolioFlight={
       position:[camera.position.x,camera.position.y,camera.position.z],
+      quaternion:[camera.quaternion.x,camera.quaternion.y,camera.quaternion.z,camera.quaternion.w],
       direction:[ahead.x-camera.position.x,ahead.y-camera.position.y,ahead.z-camera.position.z],
       mode:sample.mode,t,forkTarget:PROJECT_LOOKOUT_T,transiting:Boolean(transit),
       phase:sample.phase||'scroll',
