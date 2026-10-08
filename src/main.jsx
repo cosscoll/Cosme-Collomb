@@ -4,6 +4,7 @@ import App from './App.jsx'
 import './styles/global.css'
 import './styles/cinematic.css'
 import './styles/pages.css'
+import './styles/branching.css'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode><App /></React.StrictMode>,

@@ -46,6 +46,47 @@ function Hero() {
   )
 }
 
+const FORKS = [
+  { to: '/projets', key: 'projects', n: '01', label: 'Projets', detail: 'Explorer mes réalisations' },
+  { to: '/experience', key: 'experience', n: '02', label: 'Parcours', detail: 'Découvrir mon histoire' },
+  { to: '/contact', key: 'contact', n: '03', label: 'Contact', detail: 'Imaginer la suite' },
+]
+
+function ForkSection({ onBranchHover }) {
+  return (
+    <section id="embranchements" className="section fork-section" aria-labelledby="fork-title">
+      <div className="fork-content">
+        <Reveal><p className="eyebrow">Première bifurcation</p></Reveal>
+        <Reveal delay={0.08} y={48}>
+          <h2 className="fork-heading" id="fork-title">Choisissez votre chemin.</h2>
+        </Reveal>
+        <Reveal delay={0.14}>
+          <p className="fork-explain">Le tunnel se divise. Chaque voie mène à une partie du portfolio.</p>
+        </Reveal>
+        <nav className="fork-options" aria-label="Choisir une direction dans le portfolio">
+          {FORKS.map((fork, i) => (
+            <motion.div key={fork.key}
+              initial={{ opacity: 0, y: 42 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.4 }}
+              transition={{ duration: 0.72, delay: i * 0.11 }}>
+              <Link to={fork.to} className="fork-link"
+                onMouseEnter={() => onBranchHover(fork.key)}
+                onMouseLeave={() => onBranchHover('')}
+                onFocus={() => onBranchHover(fork.key)}
+                onBlur={() => onBranchHover('')}>
+                <span className="fork-number">{fork.n}</span>
+                <span className="fork-name">{fork.label}<small>{fork.detail}</small></span>
+                <span className="fork-arrow" aria-hidden="true">↗</span>
+              </Link>
+            </motion.div>
+          ))}
+        </nav>
+      </div>
+    </section>
+  )
+}
+
 function About() {
   return (
     <section className="section quiet-section">
@@ -141,10 +182,11 @@ function FinalCTA() {
   )
 }
 
-export default function Home() {
+export default function Home({ onBranchHover = () => {} }) {
   return (
     <>
       <Hero />
+      <ForkSection onBranchHover={onBranchHover} />
       <About />
       <FeaturedProjects />
       <ExperienceTeaser />

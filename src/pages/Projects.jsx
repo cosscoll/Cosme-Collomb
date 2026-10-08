@@ -14,12 +14,35 @@ function ProjectCard({ project, index }) {
   )
 }
 
-export default function Projects() {
+function ProjectFork({ onBranchHover }) {
+  return (
+    <div className="subfork" aria-label="Embranchements vers les projets">
+      <p className="eyebrow">Deuxième bifurcation / Choisir un projet</p>
+      <div className="subfork-list">
+        {PROJECTS_WITH_SLUGS.map((project, index) => (
+          <Link key={project.slug} to={'/projets/' + project.slug}
+            className="subfork-link"
+            onMouseEnter={() => onBranchHover('project-' + index)}
+            onMouseLeave={() => onBranchHover('')}
+            onFocus={() => onBranchHover('project-' + index)}
+            onBlur={() => onBranchHover('')}>
+            <span>{String(index + 1).padStart(2, '0')}</span>
+            <strong>{project.title}</strong>
+            <span aria-hidden="true">↗</span>
+          </Link>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export default function Projects({ onBranchHover = () => {} }) {
   return (
     <section className="section page-section projects-page">
       <Reveal><p className="eyebrow">Archive / projets</p></Reveal>
       <Reveal delay={0.08} y={70}><h1 className="page-title">Des idées transformées en expériences.</h1></Reveal>
       <Reveal delay={0.15}><p className="page-lead">Chaque projet possède sa propre logique, son propre univers et une expérience interactive dédiée.</p></Reveal>
+      <ProjectFork onBranchHover={onBranchHover} />
       <div className="project-gallery">{PROJECTS_WITH_SLUGS.map((project, index) => <ProjectCard key={project.slug} project={project} index={index} />)}</div>
     </section>
   )

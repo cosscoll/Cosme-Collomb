@@ -1,0 +1,22 @@
+/* Navigation arborescente : lisibilité avant effets */
+.fork-section{min-height:132vh;display:flex;align-items:center;padding-block:9rem 12rem;position:relative;isolation:isolate}
+.fork-content{width:min(1060px,94vw);margin-inline:auto}
+.fork-heading{font-size:clamp(3rem,6.4vw,6.8rem);line-height:1.04;font-weight:530;margin-top:1rem;max-width:840px}
+.fork-explain{margin-top:1.5rem;font-size:.97rem;line-height:1.7;color:var(--muted);max-width:460px}
+.fork-options{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1.4rem;margin-top:clamp(4rem,14vh,8rem)}
+.fork-link{min-height:170px;display:flex;flex-direction:column;padding:1.25rem 1.3rem;gap:1.6rem;border-top:1px solid rgba(210,207,255,.48);background:linear-gradient(180deg,rgba(17,17,27,.62),rgba(9,9,17,.17));backdrop-filter:blur(12px);transition:transform .4s cubic-bezier(.16,1,.3,1),border-color .35s,background .35s}
+.fork-link:hover,.fork-link:focus-visible{transform:translateY(-8px);border-color:#c4bfff;background:linear-gradient(180deg,rgba(59,50,111,.45),rgba(12,12,22,.31))}
+.fork-number{font-size:.7rem;letter-spacing:.16em;color:#b8b3d5}
+.fork-name{font-family:var(--font-display);font-size:clamp(1.5rem,3vw,3rem);letter-spacing:-.04em;line-height:1.05}
+.fork-name small{display:block;color:var(--muted);font-family:var(--font-body);font-size:.74rem;letter-spacing:0;margin-top:.7rem;font-weight:400}
+.fork-arrow{font-size:1.2rem;margin-top:auto;align-self:flex-end;transition:transform .3s}
+.fork-link:hover .fork-arrow{transform:translate(4px,-4px)}
+.subfork{margin-top:clamp(5rem,11vw,10rem);padding-block:2rem;border-top:1px solid var(--line)}
+.subfork-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 2.2rem;margin-top:1.3rem}
+.subfork-link{display:grid;grid-template-columns:2rem 1fr auto;align-items:center;gap:1rem;min-height:78px;padding:1rem .5rem;border-bottom:1px solid var(--line);transition:padding .3s,background .3s}
+.subfork-link>span:first-child{font-size:.72rem;color:var(--muted)}
+.subfork-link strong{font-family:var(--font-display);font-size:clamp(1rem,1.7vw,1.55rem);font-weight:500;line-height:1.2;letter-spacing:-.03em}
+.subfork-link>span:last-child{color:#bcb7ff;font-size:1.2rem}
+.subfork-link:hover,.subfork-link:focus-visible{padding-left:1rem;background:rgba(128,117,255,.1)}
+@media(max-width:820px){.fork-options{grid-template-columns:1fr;gap:.65rem;margin-top:3.5rem}.fork-link{min-height:112px;display:grid;grid-template-columns:2rem 1fr auto;align-items:center;gap:.8rem}.fork-name{font-size:1.8rem}.fork-arrow{align-self:center}.fork-section{min-height:auto;padding-block:10rem}.subfork-list{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){.fork-link,.subfork-link,.fork-arrow{transition:none!important}}

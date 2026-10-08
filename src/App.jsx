@@ -83,14 +83,14 @@ function Nav() {
   )
 }
 
-function BackgroundLayer() {
+function BackgroundLayer({ pathname, hovered }) {
   const veilRef = useRef(null)
 
   return (
     <div className="background-layer" aria-hidden="true">
       <SceneErrorBoundary>
         <Suspense fallback={null}>
-          <BackgroundScene veilRef={veilRef} />
+          <BackgroundScene veilRef={veilRef} pathname={pathname} hovered={hovered} />
         </Suspense>
       </SceneErrorBoundary>
       <div ref={veilRef} className="scene-veil" />
@@ -113,14 +113,14 @@ function RouteTransition({ children, routeKey }) {
   )
 }
 
-function AnimatedRoutes() {
+function AnimatedRoutes({ onBranchHover }) {
   const location = useLocation()
 
   return (
     <AnimatePresence mode="wait" initial={false}>
       <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<RouteTransition routeKey="home"><Home /></RouteTransition>} />
-        <Route path="/projets" element={<RouteTransition routeKey="projects"><Projects /></RouteTransition>} />
+        <Route path="/" element={<RouteTransition routeKey="home"><Home onBranchHover={onBranchHover} /></RouteTransition>} />
+        <Route path="/projets" element={<RouteTransition routeKey="projects"><Projects onBranchHover={onBranchHover} /></RouteTransition>} />
         <Route path="/projets/:slug" element={<RouteTransition routeKey="project"><ProjectDetail /></RouteTransition>} />
         <Route path="/experience" element={<RouteTransition routeKey="experience"><Experience /></RouteTransition>} />
         <Route path="/contact" element={<RouteTransition routeKey="contact"><Contact /></RouteTransition>} />
@@ -131,6 +131,8 @@ function AnimatedRoutes() {
 
 function AppShell() {
   const [loading, setLoading] = useState(true)
+  const [hovered, setHovered] = useState('')
+  const { pathname } = useLocation()
 
   useEffect(() => {
     const timer = window.setTimeout(() => setLoading(false), 900)
@@ -140,13 +142,13 @@ function AppShell() {
   return (
     <>
       <AnimatePresence>{loading && <Loader key="loader" />}</AnimatePresence>
-      <BackgroundLayer />
+      <BackgroundLayer pathname={pathname} hovered={hovered} />
       <div className="site-grain" aria-hidden="true" />
       <CursorGlow />
       <Nav />
       <ScrollToTop />
       <main className="site-main">
-        <AnimatedRoutes />
+        <AnimatedRoutes onBranchHover={setHovered} />
       </main>
     </>
   )
