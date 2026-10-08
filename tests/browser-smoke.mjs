@@ -22,7 +22,7 @@ async function waitForServer(){
 }
 
 async function verifyPage(page,name,expected){
-  // Router navigation includes a 2.5-second cinematic hand-off.
+  // Router navigation includes a 4.2-second built tunnel passage.
   // Await the EXPECTED page, rather than immediately reading the departing H1.
   const target=page.locator('main h1').filter({hasText:expected}).first()
   await target.waitFor({state:'visible',timeout:25000})
@@ -65,7 +65,25 @@ async function run(){
   assert.ok(await page.locator('.fork-choice').count()===5,'Missing one of five 3D project choices')
   await page.screenshot({path:'test-output/projects.png'})
 
+  // The WebGL passage must exist and build in visible frames, not a white
+  // screen that merely masks an instantaneous URL change.
+  const canvas=page.locator('.scene-backdrop canvas').first()
+  await canvas.waitFor({state:'visible',timeout:25000})
+  console.log('3D canvas present:',await canvas.evaluate(node=>({
+    width:node.width,height:node.height
+  })))
   await page.locator('.fork-choice').first().click()
+  await page.locator('[data-bridge-transition="active"]').waitFor()
+  assert.equal(await page.locator('.transition-portal').count(),0,
+    'Legacy full-screen portal is still masking the real tunnel')
+  await page.waitForTimeout(550)
+  await page.screenshot({path:'test-output/bridge-building-055.png'})
+  await page.waitForTimeout(750)
+  await page.screenshot({path:'test-output/bridge-building-130.png'})
+  await page.waitForTimeout(950)
+  await page.screenshot({path:'test-output/bridge-building-225.png'})
+  await page.waitForTimeout(1050)
+  await page.screenshot({path:'test-output/bridge-building-330.png'})
   await verifyPage(page,'first project',/Ouvertures d'échecs/i)
   await page.screenshot({path:'test-output/detail.png'})
 

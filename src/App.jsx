@@ -502,32 +502,24 @@ function RouteView({ pathname, setHovered }) {
 }
 
 // Navigation is intercepted before React Router replaces the page.
-const TRANSIT_MS=2500
-const TRANSIT_MIDPOINT=1250
-function TransitionCurtain({ transit }) {
-  if(!transit) return null
-  const name=(path)=>{
-    const project=PROJECTS.find(p=>path==='/projets/'+p.slug)
-    if(project)return project.title
-    return path==='/projets'?'LES PROJETS':
-      path==='/parcours'||path==='/experience'?'LE PARCOURS':
-      path==='/contact'?'CONTACT':'L’ACCUEIL'
-  }
-  return <div key={transit.id} className="transition-portal" aria-live="polite"
-    aria-label={'Traversée vers '+name(transit.to)}>
-    <div className="portal-inset" aria-hidden="true">
-      <span className="portal-ring portal-ring-one"/>
-      <span className="portal-ring portal-ring-two"/>
-      <span className="portal-ring portal-ring-three"/>
-      <span className="portal-horizon"/>
-    </div>
-    <div className="portal-caption">
-      <span>ESPACE / TRANSITION</span>
-      <strong>{name(transit.to)}</strong>
-      <span className="portal-progress"><i/></span>
-    </div>
+const TRANSIT_MS=4200
+const TRANSIT_MIDPOINT=2400
+function TransitionCurtain({transit}) {
+  if(!transit)return null
+  const project=PROJECTS.find(p=>transit.to==='/projets/'+p.slug)
+  const name=project?.title || (transit.to==='/projets'?'Les projets':
+    transit.to==='/parcours'||transit.to==='/experience'?'Le parcours':
+    transit.to==='/contact'?'Contact':'Accueil')
+  // A readable, non-occluding indicator — there is no white flash,
+  // no full-screen transition overlay and no teleport masking.
+  return <div className="bridge-wayfinding" data-bridge-transition="active"
+    role="status" aria-label={'Construction du tunnel vers '+name}>
+    <span className="bridge-wayfinding-kicker">LE CHEMIN SE CONSTRUIT</span>
+    <strong>{name}</strong>
+    <span className="bridge-wayfinding-track" aria-hidden="true"><i/></span>
   </div>
 }
+
 
 function Shell() {
   const {pathname}=useLocation()
