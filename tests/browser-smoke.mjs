@@ -43,6 +43,13 @@ async function verifyPage(page,name,expected){
   console.log('Browser passed:',name,'—',heading.replace(/\s+/g,' '))
 }
 
+async function captureWhenPossible(page,path){
+  // Software WebGL screenshots occasionally stall on GPU readback even while
+  // navigation works normally. Never confuse that with a broken site.
+  try{await page.screenshot({path,timeout:6500})}
+  catch(error){console.warn('Optional WebGL screenshot unavailable:',path,error.message)}
+}
+
 async function run(){
   await waitForServer()
   await mkdir('test-output',{recursive:true})
@@ -76,40 +83,32 @@ async function run(){
   await page.locator('[data-bridge-transition="active"]').waitFor()
   assert.equal(await page.locator('.transition-portal').count(),0,
     'Legacy full-screen portal is still masking the real tunnel')
-  await page.waitForTimeout(550)
-  await page.screenshot({path:'test-output/bridge-building-055.png'})
-  await page.waitForTimeout(750)
-  await page.screenshot({path:'test-output/bridge-building-130.png'})
-  await page.waitForTimeout(950)
-  await page.screenshot({path:'test-output/bridge-building-225.png'})
-  await page.waitForTimeout(1050)
-  await page.screenshot({path:'test-output/bridge-building-330.png'})
+  await page.waitForTimeout(630)
+  await captureWhenPossible(page,'test-output/bridge-building-start.png')
+  await page.waitForTimeout(2250)
+  await captureWhenPossible(page,'test-output/bridge-building-complete.png')
   await verifyPage(page,'first project',/Ouvertures d'échecs/i)
-  await page.screenshot({path:'test-output/detail.png'})
+  await captureWhenPossible(page,'test-output/detail.png')
 
   // Reproduce the reported regression AFTER finishing the entire project
   // corridor. The camera is then travelling back towards the junction.
   await page.locator('#return-to-projects').scrollIntoViewIfNeeded()
   await page.evaluate(()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'}))
   await page.waitForTimeout(450)
-  await page.screenshot({path:'test-output/completed-first-project.png'})
+  await captureWhenPossible(page,'test-output/completed-first-project.png')
   // Project return is the previously broken case: inspect the 3D transition
   // and assert that the actual five-way crossroads and its scroll position
   // have been restored, with no last-frame camera teleport.
   await page.locator('#return-to-projects a[href*="projets"]').last().click()
   await page.locator('[data-bridge-transition="active"]').waitFor()
   await page.waitForTimeout(2750)
-  await page.screenshot({path:'test-output/return-bridge-middle.png'})
+  await captureWhenPossible(page,'test-output/return-bridge-middle.png')
   await verifyPage(page,'back to projects',/Cinq projets/i)
   await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:12000})
   await page.waitForTimeout(260)
   // SwiftShader can stall on GPU readback after disposing the temporary 3D
   // bridge. The geometric/UI checks below remain mandatory if that happens.
-  try{
-    await page.screenshot({path:'test-output/return-five-open-paths.png',timeout:7500})
-  }catch(err){
-    console.warn('Return screenshot readback unavailable:',err.message)
-  }
+  await captureWhenPossible(page,'test-output/return-five-open-paths.png')
   const crossroads=await page.evaluate(()=>{
     const target=document.querySelector('#project-crossroads')
     return {scrollY:window.scrollY,top:target?.offsetTop,choices:
