@@ -107,3 +107,29 @@
 .rules-help-grid strong{color:var(--text)}
 .hero-catalogue{display:inline-flex;align-items:center;margin:0 0 0 12px;text-decoration:none}
 @media(max-width:680px){.rules-help-grid{grid-template-columns:1fr}.hero-catalogue{margin:12px 0 0}}
+
+/* Phase 2 — Solo accessibility, difficulty and symbolic progress */
+.arena-start{display:flex;flex-direction:column;gap:12px;align-items:stretch;min-width:210px}
+.arena-start label{display:flex;flex-direction:column;gap:7px;color:var(--muted);font-size:.77rem;font-weight:750}
+.arena-start select{background:var(--panel);border:1px solid #ffffff30;color:var(--text);border-radius:10px;padding:12px 13px;font:inherit;font-size:.88rem;cursor:pointer}
+.arena-start select:disabled{opacity:.55;cursor:not-allowed}
+.arena-start .main-cta{margin:0}
+.battle-result{border:1px solid #ffce8670;border-radius:12px;background:linear-gradient(115deg,#65503e55,#55448140);padding:16px 20px;color:#ffe6be;font-weight:750;font-size:.9rem;line-height:1.5;margin:0 0 20px}
+.battle-result.hidden{display:none}
+.solo-progress-section{max-width:1290px;margin:0 auto 75px;padding:36px 42px;background:linear-gradient(115deg,#222034,#1a1928);border:1px solid #a28cff3a;border-radius:19px;display:grid;grid-template-columns:minmax(200px,.7fr) minmax(0,1.3fr);gap:33px;align-items:start}
+.solo-progress-section h2{font-size:clamp(1.95rem,3.2vw,3rem);line-height:1.1;letter-spacing:-.045em;margin:0 0 17px}
+.solo-progress-section>div>p:not(.eyebrow){color:var(--muted);font-size:.84rem;line-height:1.7;margin:0}
+.solo-progress-counters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.solo-progress-counters>div{display:flex;flex-direction:column;align-items:center;text-align:center;justify-content:center;gap:6px;border:1px solid #ffffff17;border-radius:11px;padding:13px 5px;background:#ffffff08}
+.solo-progress-counters strong{color:var(--gold);font-size:1.65rem;line-height:1;font-variant-numeric:tabular-nums}
+.solo-progress-counters span{color:var(--muted);font-size:.67rem;line-height:1.2}
+.solo-progress-panel h3{font-size:1rem;margin:25px 0 12px}
+.badge-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.solo-badge{display:flex;flex-direction:column;gap:5px;min-height:80px;justify-content:center;padding:13px;border:1px solid #ffffff1a;border-radius:10px;background:#ffffff04}
+.solo-badge strong{font-size:.77rem;line-height:1.3}
+.solo-badge small{font-size:.65rem;line-height:1.35;color:var(--muted)}
+.solo-badge.achieved{border-color:#ffd17f8a;background:#ffc45f17;color:#ffe2aa}
+.solo-badge.locked{opacity:.6}
+@media(max-width:850px){.solo-progress-section{margin:0 5% 65px;grid-template-columns:1fr;padding:28px 22px}.arena-start{width:100%;min-width:auto}.arena-section>.section-top{align-items:stretch}.badge-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:550px){.solo-progress-counters{grid-template-columns:repeat(2,minmax(0,1fr))}.arena-start{margin-top:14px}.badge-list{grid-template-columns:1fr 1fr}.solo-badge{min-height:100px}}
+@media(max-width:375px){.badge-list{grid-template-columns:1fr}}
