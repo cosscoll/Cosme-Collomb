@@ -172,13 +172,71 @@ export function applyAction(match, actor, action) {
   return state;
 }
 
-/** All decisions are deterministic for reproducible offline tests. */
-export function chooseAiAction(match) {
+/** Skill presets modify only the choices of the solo AI, never the player's rules. */
+export const AI_DIFFICULTIES = Object.freeze(["decouverte", "normal", "expert"]);
+
+function expertActionScore(match, choice) {
+  const current = match.sides.ai;
+  const foe = match.sides.player;
+  const after = applyAction(match, "ai", choice);
+  const future = after.sides.ai;
+  const target = after.sides.player;
+  const knockouts = future.knockouts - current.knockouts;
+  const hpDamage = knockouts > 0
+    ? foe.active.hp
+    : foe.active.hp - target.active.hp;
+  const guardDamage = foe.guard - target.guard;
+  let score =
+    hpDamage + guardDamage * 0.45 +
+    knockouts * 62 + (after.winner === "ai" ? 180 : 0) +
+    (future.energy - current.energy) * 7.3 +
+    (future.guard - current.guard) * 0.48;
+
+  // An apparently weak swap is useful only when it prevents a near-certain KO.
+  if (choice.type === "swap") {
+    const enemyStats = cardStats(foe.active.id);
+    const nextThreat = foe.energy >= 1 ? enemyStats.burst : enemyStats.quick;
+    const threatened = current.active.hp + current.guard <= nextThreat;
+    const savedHp = future.active.hp - current.active.hp;
+    score += Math.max(0, savedHp) * (threatened ? 0.48 : 0.18);
+    score += threatened ? 17 : -7;
+  }
+  if (choice.type === "focus") {
+    const threat = cardStats(foe.active.id).burst;
+    const needed = current.active.hp + current.guard <= threat;
+    const saved = future.active.hp + future.guard > threat;
+    if (needed && saved) score += 16;
+    if (foe.active.hp <= cardStats(current.active.id).quick) score -= 19;
+  }
+  return score;
+}
+
+/**
+ * Select an AI move without mutating match state or seeing hidden cards.
+ * "decouverte" is deliberately forgiving, "normal" keeps the original strategy,
+ * "expert" evaluates legal single-turn outcomes. No server/PvP authority here.
+ */
+export function chooseAiAction(match, difficulty = "normal") {
+  if (!AI_DIFFICULTIES.includes(difficulty)) {
+    throw new Error("Difficulté inconnue : " + difficulty);
+  }
   const choices = legalActions(match, "ai");
   if (!choices.length) return null;
   const self = match.sides.ai;
   const enemy = match.sides.player;
   const info = cardStats(self.active.id);
+
+  if (difficulty === "decouverte") {
+    if (self.energy >= 4 && match.round % 4 === 0) return { type: "burst" };
+    if (self.guard < 8 && match.round % 5 === 0) return { type: "focus" };
+    return { type: "quick" };
+  }
+
+  if (difficulty === "expert") {
+    return choices.map(choice => ({ choice, score: expertActionScore(match, choice) }))
+      .sort((a, b) => b.score - a.score)[0].choice;
+  }
+
   const damaged = self.active.hp < info.maxHp * 0.28;
   if (damaged && self.bench.length && self.bench[0].hp > self.active.hp + 35) {
     return { type: "swap", index: 0 };
