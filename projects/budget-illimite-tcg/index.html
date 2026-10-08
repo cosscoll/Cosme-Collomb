@@ -45,6 +45,10 @@
       <div id="cardGrid" class="card-grid" aria-live="polite"></div>
       <p id="emptyResults" class="empty hidden">Aucune carte ne correspond à ces filtres.</p>
     </section>
+    <section id="booster" class="booster-section">
+      <div><p class="eyebrow">Découvrir les raretés</p><h2>Et si tu ouvrais un booster ?</h2><p>Cinq cartes aléatoires, dont une au moins rare sur le dernier emplacement. Il s'agit d'une <strong>simulation</strong> : aucun Budget dépensé, aucune carte obtenue.</p><button id="simulateBooster" type="button" class="main-cta">Simuler une ouverture <span aria-hidden="true">↗</span></button></div>
+      <div class="booster-pack" aria-hidden="true"><span>BUDGET<br>ILLIMITÉ</span><strong>5 CARTES</strong><small>APERÇU NON OFFICIEL</small></div>
+    </section>
     <section id="avancement" class="progress-section"><div><p class="eyebrow">Phase de construction</p><h2>Un catalogue d'abord, un jeu ensuite.</h2></div><p>Le système de combat existant n'était pas inclus dans l'archive reçue. Cette première version n'invente ni mécaniques, ni statistiques, ni sources : elle prépare une base de données à vérifier avant l'intégration du jeu complet.</p></section>
   </main>
   <footer>Budget Illimité — Prototype fan-made, non affilié à Thomas Deseur. Aucun usage officiel des images, noms ou marques revendiqué.</footer>
@@ -52,6 +56,10 @@
     <form method="dialog" class="dialog-close-form"><button class="dialog-close" aria-label="Fermer">×</button></form>
     <div id="detailArt" class="detail-art"><span>?</span></div>
     <div class="detail-body"><p id="detailRarity" class="eyebrow"></p><h2 id="detailTitle"></h2><p id="detailId" class="detail-id"></p><dl><dt>Apparition</dt><dd>À vérifier à partir des vidéos originales</dd><dt>Photographie</dt><dd>Non fournie</dd><dt>Capacités et statistiques</dt><dd>En attente du moteur de combat initial</dd></dl><button id="markCard" class="main-cta" type="button">Marquer comme repérée</button><p class="local-note">Ce marqueur est enregistré uniquement dans ton navigateur. Ce n'est pas une carte possédée en jeu.</p></div>
+  </dialog>
+  <dialog id="boosterDialog" class="booster-dialog" aria-labelledby="boosterTitle">
+    <form method="dialog" class="dialog-close-form"><button class="dialog-close" aria-label="Fermer">×</button></form>
+    <div class="booster-dialog-inner"><p class="eyebrow">Tirage de démonstration</p><h2 id="boosterTitle">Ton booster</h2><p>Aucune récompense n'est ajoutée au compte ou au classeur.</p><div id="boosterResults" class="booster-results"></div><button id="rerollBooster" type="button" class="main-cta">Simuler à nouveau</button></div>
   </dialog>
 </body>
 </html>
