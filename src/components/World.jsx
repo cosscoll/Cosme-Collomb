@@ -369,6 +369,7 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       phase:sample.phase||'scroll',
       currentRoute:route.pathName,from:transit?.from,to:transit?.to,
       flightId:transit?.id??null,
+      updatedAt:performance.now(),
       progress:transit?visualProgress:null,
       samplePath:transit?(sample.path===routeInfo(transit.to).path?'destination':'source'):route.pathName
     }
