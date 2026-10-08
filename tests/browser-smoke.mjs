@@ -26,6 +26,16 @@ async function verifyPage(page,name,expected){
   // Await the EXPECTED page, rather than immediately reading the departing H1.
   const target=page.locator('main h1').filter({hasText:expected}).first()
   await target.waitFor({state:'visible',timeout:25000})
+  // A heading can appear while Framer Motion is still blurring the page.
+  // Verify the final state, not a screenshot taken mid-transition.
+  await page.waitForFunction(()=>{
+    const blocks=[...document.querySelectorAll('main > div')]
+    const current=blocks[blocks.length-1]
+    if(!current)return false
+    const css=getComputedStyle(current)
+    const blur=css.filter.match(/blur\\(([-\\d.]+)px\\)/)
+    return Number(css.opacity)>.98 && (!blur||Number(blur[1])<.35)
+  },null,{timeout:10000})
   const heading=(await target.innerText()).trim()
   assert.match(heading,expected,name+': unexpected heading '+heading)
   assert.ok(await page.locator('.header-menu-toggle').isVisible(),name+': header missing')

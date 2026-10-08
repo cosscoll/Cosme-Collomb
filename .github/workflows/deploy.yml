@@ -43,3 +43,7 @@ jobs:
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Confirm live public HTML and asset
+        env:
+          PUBLIC_SITE: ${{ steps.deployment.outputs.page_url }}
+        run: node tests/public-http-check.mjs
