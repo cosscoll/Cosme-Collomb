@@ -57,6 +57,14 @@
     <section id="arena" class="arena-section" aria-labelledby="arenaTitle">
       <div class="section-top"><div><p class="eyebrow">Mode solo · Billy l'ordinateur</p><h2 id="arenaTitle">L'arène</h2><p>Chaque tour, choisis une seule action. La première équipe à mettre KO 3 cartes remporte la partie. C'est un prototype de règles, indépendant du PvP existant.</p></div>
       <button type="button" id="startMatch" class="main-cta">Lancer une partie <span aria-hidden="true">↗</span></button></div>
+      <details class="rules-help"><summary>Comment jouer ? <span aria-hidden="true">＋</span></summary>
+        <div class="rules-help-grid">
+          <p><strong>1. Prépare ton équipe.</strong> Choisis huit cartes différentes dans le catalogue. Une carte démarre active, deux attendent en réserve.</p>
+          <p><strong>2. Gère tes tours.</strong> Frappe rapide gratuitement, attaque spéciale pour deux énergies, concentration pour te protéger, ou échange avec une carte de réserve.</p>
+          <p><strong>3. Vise trois KO.</strong> La protection encaisse les dégâts avant les points de vie. Après un KO, une carte de réserve prend le relais.</p>
+          <p><strong>4. Exploite les rôles.</strong> Assaut frappe fort, Rempart encaisse, Tacticien récupère de l'énergie et Chaos se renforce à faible santé.</p>
+        </div>
+      </details>
       <div class="arena-shell">
         <div class="arena-board">
           <div class="combatant" id="aiPanel" aria-label="Adversaire Billy"><div class="combatant-top"><div><small>ADVERSAIRE</small><h3>Billy</h3></div><strong id="aiScore">0 / 3 KO</strong></div><div id="aiActive" class="arena-active-placeholder">L'adversaire arrive...</div><div class="health-row"><div id="aiHpText">— PV</div><div id="aiEnergy">— énergie</div></div><div class="hp-track"><div id="aiHpBar" class="hp-fill" style="width:0%"></div></div><p id="aiGuard" class="guard-text">Aucune protection</p><div id="aiBench" class="bench-row"></div></div>
