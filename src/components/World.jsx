@@ -31,7 +31,7 @@ function Shell({path,branch=false,transit=null,arrival=false}) {
   const seamMaterials=useRef([])
   useFrame((_,dt)=>{
     if(!surface.current)return
-    const p=transit?Math.max(0,Math.min(1,(performance.now()-transit.startedAt)/transit.duration)):0
+    const p=transit?(transit.progress??0):0
     // Never draw two full overlapping opaque route shells at once. They
     // share most of the trunk but have slightly different Frenet frames:
     // transparency overdraw here looked like broken walls / clipping.
@@ -157,6 +157,7 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
   const {camera}=useThree()
   const current=useRef(null)
   const transitId=useRef(null)
+  const flightState=useRef({id:null,p:0,mid:false,done:false})
   const departure=useRef(null)
   const pointer=useRef({x:0,y:0})
   const softPointer=useRef({x:0,y:0})
@@ -180,7 +181,24 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
   },[])
 
   useFrame(({clock},delta)=>{
-    const dt=Math.min(delta,.05)
+    // Clamp elapsed FRAME time, not just clock time: a costly WebGL frame
+    // must slow the journey rather than skipping 15 metres when rendering resumes.
+    const dt=Math.min(delta,.12)
+    const flight=flightState.current
+    if(transit){
+      if(flight.id!==transit.id){
+        flight.id=transit.id
+        flight.p=0
+        flight.mid=false
+        flight.done=false
+      }
+      flight.p=Math.min(1,flight.p+dt/(transit.duration/1000))
+      transit.progress=flight.p
+    }else{
+      flight.id=null
+      flight.p=0
+    }
+    const visualProgress=transit?flight.p:0
     const total=Math.max(1,document.documentElement.scrollHeight-window.innerHeight)
     const y=window.scrollY
     const homeJunction=document.getElementById('junction')
@@ -203,7 +221,7 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
             projectFork:scrollPositions.current.fork}):
           current.current
       }
-      const p=Math.min(1,Math.max(0,(performance.now()-transit.startedAt)/transit.duration))
+      const p=visualProgress
       sample=sampleTransit(routeInfo(transit.from),routeInfo(transit.to),departure.current,p)
       current.current=sample.t
     }else{
@@ -226,7 +244,7 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       sample.reverse?Math.max(.001,t-.024):Math.min(.999,t+.024),ahead
     )
     if(transit){
-      const p=Math.max(0,Math.min(1,(performance.now()-transit.startedAt)/transit.duration))
+      const p=visualProgress
       const from=routeInfo(transit.from),to=routeInfo(transit.to)
       if(p>.29 && p<.56){
         const junction=junctionFor(from,to,departure.current)
@@ -276,8 +294,7 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
     }else{
       camera.quaternion.slerp(rotation,1-Math.exp(-dt*(transit?7:5)))
     }
-    const boost=transit?2.3*Math.sin(Math.PI*Math.min(1,
-      Math.max(0,(performance.now()-transit.startedAt)/transit.duration))):0
+    const boost=transit?2.3*Math.sin(Math.PI*visualProgress):0
     camera.fov=THREE.MathUtils.damp(camera.fov,45+boost,4,dt)
     camera.updateProjectionMatrix()
     // Expose physical flight telemetry for real camera-continuity regression
@@ -288,8 +305,24 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       mode:sample.mode,t,transiting:Boolean(transit),
       phase:sample.phase||'scroll',
       currentRoute:route.pathName,from:transit?.from,to:transit?.to,
-      progress:transit?clamp((performance.now()-transit.startedAt)/transit.duration):null,
+      progress:transit?visualProgress:null,
       samplePath:transit?(sample.path===routeInfo(transit.to).path?'destination':'source'):route.pathName
+    }
+    if(transit){
+      // Notify React Router only once the camera has PHYSICALLY arrived.
+      // Prevents DOM and 3D shell swaps while WebGL rendering is stalled.
+      if(!flight.mid&&visualProgress>=.56){
+        flight.mid=true
+        window.dispatchEvent(new CustomEvent('portfolio:flight-milestone',{
+          detail:{id:transit.id,stage:'midpoint'}
+        }))
+      }
+      if(!flight.done&&visualProgress>=1){
+        flight.done=true
+        window.dispatchEvent(new CustomEvent('portfolio:flight-milestone',{
+          detail:{id:transit.id,stage:'complete'}
+        }))
+      }
     }
   })
   return null
