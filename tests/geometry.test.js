@@ -116,3 +116,19 @@ test('Each journey returns to the same physical intersection after its story',()
     assert.equal(detailReturning(.8),true)
   }
 })
+
+test('Each project has grounded narrative stops and working exploration links',async()=>{
+  const [{PROJECT_STORIES},{PROJECTS_WITH_SLUGS:projects}]=await Promise.all([
+    import('../src/data/projectStories.js'),
+    import('../src/data/projects.js')
+  ])
+  assert.equal(PROJECT_STORIES.length,PATHS.children.length)
+  assert.equal(PROJECT_STORIES.length,projects.length)
+  for(let i=0;i<projects.length;i++){
+    const story=PROJECT_STORIES[i]
+    assert.ok(story.introduction&&story.idea&&story.experience)
+    assert.ok(story.features.length>=3)
+    assert.ok(projects[i].slug)
+    assert.ok(projects[i].link?.startsWith('https://'))
+  }
+})

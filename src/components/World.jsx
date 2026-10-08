@@ -101,6 +101,20 @@ function RouteMarkers({mode,hovered}) {
   </group>
 }
 
+// Light traces make the five-way split legible while keeping the atrium open:
+// unlike five intersecting cylinders, these lines never obstruct the camera.
+function ForkGuide({path,color,active}) {
+  const connector=useMemo(()=>{
+    const samples=Array.from({length:42},(_,i)=>path.getPointAt(.045+i/41*.49))
+    return new THREE.CatmullRomCurve3(samples,false,'centripetal')
+  },[path])
+  return <mesh>
+    <tubeGeometry args={[connector,105,active?.055:.025,7,false]}/>
+    <meshBasicMaterial color={color} transparent opacity={active?.96:.55}
+      depthWrite={false} toneMapped={false}/>
+  </mesh>
+}
+
 function Sparkles() {
   const data=useMemo(()=>{
     const pts=new Float32Array(420*3)
@@ -232,6 +246,10 @@ function Scene({pathname,hovered}) {
     <Shell key={mode+'-'+index} path={path}/>
     {mode==='projects' && PATHS.children.map((arm,i)=>(
       <Shell key={'branch-'+i} path={arm} branch/>
+    ))}
+    {(mode==='projects'||mode==='detail') && PATHS.children.map((arm,i)=>(
+      <ForkGuide key={'guide-'+i} path={arm}
+        color={PROJECT_BRANCH_COLORS[i]} active={hovered==='project-'+i}/>
     ))}
     <RouteMarkers mode={mode} hovered={hovered}/>
     <Sparkles/>
