@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { routeInfo, scrollT, sampleTransit, junctionFor, arrivalT, bridgeBuild, PROJECT_LOOKOUT_T } from '../scene/transit.js'
+import { routeInfo, scrollT, sampleTransit, transitPoint, junctionFor, arrivalT, bridgeBuild, PROJECT_LOOKOUT_T } from '../scene/transit.js'
 import {
   PATHS, PROJECT_BRANCH_COLORS, PROJECT_FORK_OPEN, PROJECT_FORK_CLOSE, PROJECT_FORK_FOCUS,
   createSkin, createSeam, detailReturning
@@ -11,6 +11,22 @@ const UP=new THREE.Vector3(0,1,0)
 const FORWARD=new THREE.Vector3(0,0,1)
 const clamp=n=>Math.min(1,Math.max(0,n))
 const smooth=n=>{const v=clamp(n);return v*v*(3-2*v)}
+
+// Camera heading always remains upright when reversing or turning around a
+// tunnel junction. Interpolating unnormalised look-at targets can pass through
+// the eye and produce a visible 180-degree twitch.
+function blendHeading(a,b,weight,target){
+  const t=smooth(weight)
+  const start=Math.atan2(a.x,-a.z)
+  const end=Math.atan2(b.x,-b.z)
+  const yawDelta=Math.atan2(Math.sin(end-start),Math.cos(end-start))
+  const pitchA=Math.asin(THREE.MathUtils.clamp(a.y,-1,1))
+  const pitchB=Math.asin(THREE.MathUtils.clamp(b.y,-1,1))
+  const yaw=start+yawDelta*t
+  const pitch=pitchA+(pitchB-pitchA)*t
+  target.set(Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch))
+  return target
+}
 
 function Shell({path,branch=false,transit=null,arrival=false}) {
   // Closed 360° surface, with no overlapping opaque walls inside the hub.
@@ -165,6 +181,10 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
   const position=useMemo(()=>new THREE.Vector3(),[])
   const ahead=useMemo(()=>new THREE.Vector3(),[])
   const direction=useMemo(()=>new THREE.Vector3(),[])
+  const capturedHeading=useRef(new THREE.Vector3(0,0,-1))
+  const sourceHeading=useMemo(()=>new THREE.Vector3(),[])
+  const destinationHeading=useMemo(()=>new THREE.Vector3(),[])
+  const forkHeading=useMemo(()=>new THREE.Vector3(),[])
   const right=useMemo(()=>new THREE.Vector3(),[])
   const matrix=useMemo(()=>new THREE.Matrix4(),[])
   const rotation=useMemo(()=>new THREE.Quaternion(),[])
@@ -191,6 +211,9 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
         flight.p=0
         flight.mid=false
         flight.done=false
+        // Take the actual visible eye direction, so the first animation
+        // frame cannot suddenly reverse the camera on header navigation.
+        camera.getWorldDirection(capturedHeading.current)
       }
       // The spatial step is calculated after the departure spline is known.
     }else{
@@ -225,11 +248,11 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       // changes pages from the far end of a long corridor via the header.
       // This also prevents crossing an opaque wall after a GPU stall.
       const last=sampleTransit(from,to,departure.current,flight.p)
-      const lastPoint=last.path.getPointAt(clamp(last.t))
+      const lastPoint=transitPoint(last)
       let nextP=Math.min(1,flight.p+dt/(transit.duration/1000))
       for(let attempt=0;attempt<10;attempt++){
         const next=sampleTransit(from,to,departure.current,nextP)
-        const point=next.path.getPointAt(clamp(next.t))
+        const point=transitPoint(next)
         if(lastPoint.distanceTo(point)<=1.4)break
         nextP=(flight.p+nextP)*.5
       }
@@ -253,29 +276,39 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
     }
 
     const t=Math.max(.001,Math.min(.998,sample.t))
-    sample.path.getPointAt(t,position)
-    sample.path.getPointAt(
-      sample.reverse?Math.max(.001,t-.024):Math.min(.999,t+.024),ahead
-    )
+    transitPoint(sample,position)
     if(transit){
       const p=visualProgress
       const from=routeInfo(transit.from),to=routeInfo(transit.to)
-      if(p>.29 && p<.56){
-        const junction=junctionFor(from,to,departure.current)
-        const destT=arrivalT(to,from)
-        const lookT=Math.max(.003,Math.min(.997,junction.toT+(destT>=junction.toT?.075:-.075)))
-        const destinationLook=to.path.getPointAt(lookT)
-        const weight=smooth((p-.29)/.17)*(1-smooth((p-.51)/.05))
-        ahead.lerp(destinationLook,weight)
+      const junction=junctionFor(from,to,departure.current)
+      const endT=arrivalT(to,from)
+      from.path.getTangentAt(clamp(junction.fromT),sourceHeading)
+      sourceHeading.multiplyScalar(junction.fromT<departure.current?-1:1).normalize()
+      to.path.getTangentAt(clamp(p<.52?junction.toT:t),destinationHeading)
+      destinationHeading.multiplyScalar(endT<junction.toT?-1:1).normalize()
+      if(p<.35) {
+        // Begin at the actual orientation the visitor was already seeing.
+        blendHeading(capturedHeading.current,sourceHeading,p/.31,direction)
+      }else if(p<.52){
+        // Turn WHILE the 3D connecting tunnel is constructed at the fork,
+        // not instantaneously when the destination spline becomes active.
+        blendHeading(sourceHeading,destinationHeading,(p-.35)/.17,direction)
+      }else{
+        direction.copy(destinationHeading)
       }
-      // Look OUT through the open crossroads, not backwards into the trunk.
-      // This turn begins while still approaching the junction, and finishes
-      // before the destination shell replaces the temporary bridge.
       if(to.mode==='projects'&&from.mode==='detail'){
-        ahead.lerp(PROJECT_FORK_FOCUS,smooth((p-.62)/.25))
+        // Back gently out of the visited corridor while recovering the exact
+        // original view of the five tunnel mouths (no last-frame spin).
+        forkHeading.copy(PROJECT_FORK_FOCUS).sub(position).normalize()
+        if(p>.56)blendHeading(direction,forkHeading,(p-.56)/.35,direction)
       }
+      ahead.copy(position).addScaledVector(direction,12)
+    }else{
+      sample.path.getPointAt(
+        sample.reverse?Math.max(.001,t-.024):Math.min(.999,t+.024),ahead
+      )
+      sample.path.getTangentAt(t,direction)
     }
-    sample.path.getTangentAt(t,direction)
     right.crossVectors(direction,UP).normalize()
     softPointer.current.x=THREE.MathUtils.damp(softPointer.current.x,pointer.current.x,3.2,dt)
     softPointer.current.y=THREE.MathUtils.damp(softPointer.current.y,pointer.current.y,3.2,dt)
@@ -315,6 +348,7 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
     // tests (DOM-only route tests cannot detect a 3D position teleport).
     window.__portfolioFlight={
       position:[camera.position.x,camera.position.y,camera.position.z],
+      quaternion:[camera.quaternion.x,camera.quaternion.y,camera.quaternion.z,camera.quaternion.w],
       direction:[ahead.x-camera.position.x,ahead.y-camera.position.y,ahead.z-camera.position.z],
       mode:sample.mode,t,forkTarget:PROJECT_LOOKOUT_T,transiting:Boolean(transit),
       phase:sample.phase||'scroll',
@@ -471,6 +505,9 @@ function Scene({pathname,hovered,transit}) {
     <pointLight position={[3,3,-28]} color="#f1c9bb" intensity={42} distance={30} decay={2}/>
     <pointLight position={[-6,3,-53]} color="#a6cbd9" intensity={45} distance={32} decay={2}/>
     <pointLight position={[3,-2,-77]} color="#9996de" intensity={34} distance={27} decay={2}/>
+    {/* Camera updates the shared progress BEFORE wall and bridge draw ranges.
+        Rendering the walls first caused a one-frame mismatch at the handoff. */}
+    <CameraFlight route={route} hovered={hovered} transit={transit} flightPosition={flightPosition}/>
     <Shell key={mode+'-'+index} path={path} transit={transit}/>
     {mode==='projects' && PATHS.children.map((arm,i)=>(
       <Shell key={'branch-'+i} path={arm} branch transit={transit}/>
@@ -487,7 +524,6 @@ function Scene({pathname,hovered,transit}) {
     ))}
     {!transit&&<RouteMarkers mode={mode} hovered={hovered}/>}
     {!transit&&<Sparkles/>}
-    <CameraFlight route={route} hovered={hovered} transit={transit} flightPosition={flightPosition}/>
     {transit&&<BuildingBranch key={transit.id} transit={transit} flightPosition={flightPosition}/>}
   </>
 }
