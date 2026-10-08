@@ -33,8 +33,8 @@ async function verifyPage(page,name,expected){
     const current=blocks[blocks.length-1]
     if(!current)return false
     const css=getComputedStyle(current)
-    const blur=css.filter.match(/blur\\(([-\\d.]+)px\\)/)
-    return Number(css.opacity)>.98 && (!blur||Number(blur[1])<.35)
+    const blur=css.filter.startsWith('blur(')?parseFloat(css.filter.slice(5)):0
+    return Number(css.opacity)>.98 && blur<.35
   },null,{timeout:10000})
   const heading=(await target.innerText()).trim()
   assert.match(heading,expected,name+': unexpected heading '+heading)

@@ -16,7 +16,7 @@ for(let attempt=1;attempt<=24;attempt++){
     const html=await response.text()
     if(!html.includes('id="root"'))throw new Error('Published homepage lacks React root')
     if(!html.includes('Cosme Collomb'))throw new Error('Wrong page served')
-    const script=html.match(/<script[^>]*src="([^"]+\\.js)"/)
+    const script=[...html.matchAll(/<script[^>]*src="([^"]+)"/g)].find(match=>match[1].endsWith('.js'))
     if(!script)throw new Error('Published homepage has no JavaScript bundle')
     const asset=new URL(script[1],homepage)
     const js=await fetch(asset,{signal:AbortSignal.timeout(13000)})
