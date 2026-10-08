@@ -362,6 +362,7 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       mode:sample.mode,t,forkTarget:PROJECT_LOOKOUT_T,transiting:Boolean(transit),
       phase:sample.phase||'scroll',
       currentRoute:route.pathName,from:transit?.from,to:transit?.to,
+      flightId:transit?.id??null,
       progress:transit?visualProgress:null,
       samplePath:transit?(sample.path===routeInfo(transit.to).path?'destination':'source'):route.pathName
     }
