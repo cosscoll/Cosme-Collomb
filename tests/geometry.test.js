@@ -12,7 +12,7 @@ test('All navigable journeys have one continuous centerline', () => {
   assert.equal(PATHS.details.length,5)
   for(const path of everyPath){
     const a=path.getPointAt(0),b=path.getPointAt(1)
-    assert.ok(a.distanceTo(b)>30)
+    assert.ok(a.distanceTo(b)>125, 'The new long tunnel must span more than 125 world units')
     for(let i=0;i<=100;i++){
       const point=path.getPointAt(i/100)
       const tangent=path.getTangentAt(i/100)
@@ -67,5 +67,27 @@ test('Navigation hubs and decorative seams are based on the flight paths',()=>{
   for(const t of [0,1]){
     const distance=seam.getPointAt(t).distanceTo(PATHS.routes[0].getPointAt(t))
     assert.ok(distance>3.9 && distance<4.6)
+  }
+})
+
+test('Extended journeys provide genuinely longer continuous travel before and after junctions',()=>{
+  for(let i=0;i<PATHS.routes.length;i++){
+    const path=PATHS.routes[i]
+    assert.ok(path.getLength()>130,'Main corridor too short')
+    const hub=MAIN_HUBS[i]
+    assert.ok(path.getPointAt(.025).distanceTo(path.getPointAt(hub))>47,'Not enough entry distance')
+    assert.ok(path.getPointAt(hub).distanceTo(path.getPointAt(.955))>73,'Not enough corridor after first choice')
+  }
+  for(let i=0;i<PATHS.details.length;i++){
+    const path=PATHS.details[i]
+    assert.ok(path.getLength()>175,'Project journey too short')
+    const hub=PROJECT_HUBS[i]
+    assert.ok(path.getPointAt(hub).distanceTo(path.getPointAt(.955))>83,'Project subpath too short')
+    let previousZ=Infinity
+    for(let k=0;k<=120;k++){
+      const point=path.getPointAt(k/120)
+      assert.ok(point.z<previousZ+.015,'Project route doubles back into its wall')
+      previousZ=point.z
+    }
   }
 })

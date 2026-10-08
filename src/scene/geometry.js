@@ -5,20 +5,40 @@ import { PROJECTS_WITH_SLUGS as PROJECTS } from '../data/projects.js'
 const V = (a) => new THREE.Vector3(...a)
 const spline = (points) => new THREE.CatmullRomCurve3(points.map(V), false, 'catmullrom', .48)
 export const TRUNK = [
-  [0,0,11],[0,0,6],[-.35,.25,-2],[-.55,-.1,-11],[.6,0,-21],[0,0,-30]
+  // A longer entrance creates depth before the first junction.
+  [0,0,22],[.05,0,15],[-.18,.14,7],[-.35,.25,-2],
+  [-.55,-.1,-11],[.2,-.07,-19],[.6,0,-25],[0,0,-30]
 ]
 export const BRANCHES = [
-  [[0,0,-30],[-1.1,0,-36],[-3.9,.45,-43],[-7.1,.1,-51],[-9.5,0,-61]],
-  [[0,0,-30],[0,.25,-37],[.45,2.2,-44],[.7,3.5,-54],[.85,4,-63]],
-  [[0,0,-30],[1.1,-.2,-36],[3.5,-.6,-44],[7,-.4,-53],[9.2,-.2,-63]]
+  [
+    [0,0,-30],[-1.1,0,-36],[-3.9,.45,-43],[-7.1,.1,-51],[-9.5,0,-61],
+    [-10.4,.2,-72],[-10.7,.7,-85],[-9.4,1.1,-98],[-10.2,.65,-114]
+  ],
+  [
+    [0,0,-30],[0,.25,-37],[.45,2.2,-44],[.7,3.5,-54],[.85,4,-63],
+    [.25,4.4,-76],[-.7,4.1,-90],[.2,3.7,-104],[.45,4,-116]
+  ],
+  [
+    [0,0,-30],[1.1,-.2,-36],[3.5,-.6,-44],[7,-.4,-53],[9.2,-.2,-63],
+    [10.3,.15,-76],[10.1,.6,-90],[8.9,.25,-103],[9.8,-.1,-116]
+  ]
 ]
 export const CHILDREN = PROJECTS.map((_,i) => {
   const n=i-(PROJECTS.length-1)/2
-  return [[-9.5,0,-61],[-10+n*1.25,.1+n*.08,-66],[-10+n*3.2,n*.8,-75],[-10+n*4.5,n*.9,-88]]
+  return [
+    [-9.5,0,-61],[-10+n*1.25,.1+n*.08,-68],
+    [-10+n*3.2,n*.8,-82],[-10+n*4.5,n*.9,-97],
+    [-11+n*4.8,n*1.1,-113],[-12+n*5,n*1.15,-133],
+    [-12+n*5.4,n*1.2,-153]
+  ]
 })
+// Detail flights diverge from the *second* hub, before the projects corridor
+// continues. Reversing back along that corridor would make the camera clip walls.
+const PROJECT_SPLIT=BRANCHES[0].findIndex(p=>p[2]===-61)
+const PROJECT_APPROACH=BRANCHES[0].slice(1,PROJECT_SPLIT+1)
 export const PATHS = {
   routes: BRANCHES.map(points => spline([...TRUNK,...points.slice(1)])),
-  details: CHILDREN.map(points => spline([...TRUNK,...BRANCHES[0].slice(1),...points.slice(1)])),
+  details: CHILDREN.map(points => spline([...TRUNK,...PROJECT_APPROACH,...points.slice(1)])),
   arms: BRANCHES.map(spline),
   children: CHILDREN.map(spline)
 }
@@ -51,7 +71,7 @@ const tempColor=new THREE.Color()
 export function radiusAt(t,angle,radius=TUNNEL_RADIUS) {
   return radius*(1+.028*Math.sin(angle*3+t*6)+.012*Math.sin(angle*7-t*11))
 }
-export function createSkin(path,{radius=TUNNEL_RADIUS,lengthSegments=300,radialSegments=RADIAL_SEGMENTS}={}) {
+export function createSkin(path,{radius=TUNNEL_RADIUS,lengthSegments=480,radialSegments=RADIAL_SEGMENTS}={}) {
   const positions=new Float32Array((lengthSegments+1)*(radialSegments+1)*3)
   const colors=new Float32Array(positions.length)
   const indices=[]
@@ -104,7 +124,7 @@ export function createSkin(path,{radius=TUNNEL_RADIUS,lengthSegments=300,radialS
   geometry.computeBoundingSphere()
   return geometry
 }
-export function createSeam(path, angle,{radius=TUNNEL_RADIUS,segments=140}={}) {
+export function createSeam(path, angle,{radius=TUNNEL_RADIUS,segments=210}={}) {
   const pts=[]
   const frames=path.computeFrenetFrames(segments,false)
   for(let i=0;i<=segments;i++){
