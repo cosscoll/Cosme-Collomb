@@ -192,13 +192,12 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
         flight.mid=false
         flight.done=false
       }
-      flight.p=Math.min(1,flight.p+dt/(transit.duration/1000))
-      transit.progress=flight.p
+      // The spatial step is calculated after the departure spline is known.
     }else{
       flight.id=null
       flight.p=0
     }
-    const visualProgress=transit?flight.p:0
+    let visualProgress=transit?flight.p:0
     const total=Math.max(1,document.documentElement.scrollHeight-window.innerHeight)
     const y=window.scrollY
     const homeJunction=document.getElementById('junction')
@@ -221,8 +220,23 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
             projectFork:scrollPositions.current.fork}):
           current.current
       }
-      const p=visualProgress
-      sample=sampleTransit(routeInfo(transit.from),routeInfo(transit.to),departure.current,p)
+      const from=routeInfo(transit.from),to=routeInfo(transit.to)
+      // Cap each actual *world-space* frame movement, even when the user
+      // changes pages from the far end of a long corridor via the header.
+      // This also prevents crossing an opaque wall after a GPU stall.
+      const last=sampleTransit(from,to,departure.current,flight.p)
+      const lastPoint=last.path.getPointAt(clamp(last.t))
+      let nextP=Math.min(1,flight.p+dt/(transit.duration/1000))
+      for(let attempt=0;attempt<10;attempt++){
+        const next=sampleTransit(from,to,departure.current,nextP)
+        const point=next.path.getPointAt(clamp(next.t))
+        if(lastPoint.distanceTo(point)<=1.4)break
+        nextP=(flight.p+nextP)*.5
+      }
+      flight.p=nextP
+      transit.progress=nextP
+      visualProgress=nextP
+      sample=sampleTransit(from,to,departure.current,visualProgress)
       current.current=sample.t
     }else{
       transitId.current=null
