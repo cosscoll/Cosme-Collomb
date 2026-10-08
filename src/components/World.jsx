@@ -200,7 +200,10 @@ function CameraFlight({mode,projectIndex,hovered}) {
       if(window.scrollY<junction){
         t=.035+smooth(window.scrollY/Math.max(1,junction))*.85
       }else if(window.scrollY<work){
-        t=.91
+        const branchIndex=['projects','experience','contact'].indexOf(hovered)
+        const blend=smooth((window.scrollY-junction)/Math.max(1,work-junction))
+        p=WORLD.routes[branchIndex>=0?branchIndex:1]
+        t=.43+blend*.14
       }else{
         p=WORLD.routes[0]
         const through=clamp((window.scrollY-work)/Math.max(1,total-work))

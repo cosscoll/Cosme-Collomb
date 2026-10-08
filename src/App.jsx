@@ -69,7 +69,7 @@ function Background({ pathname, hovered }) {
   }, [pathname])
 
   return (
-    <div ref={bgRef} className="scene-backdrop" aria-hidden="true">
+    <div ref={bgRef} className="scene-backdrop" data-hovered={hovered} aria-hidden="true">
       <div className={'scene-css-art ' + (ready ? 'scene-css-art--hidden' : '')}>
         <span className="fallback-glow" />
         <span className="fallback-fold fallback-fold-one" />

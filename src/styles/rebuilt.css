@@ -210,3 +210,9 @@ a:focus-visible,button:focus-visible{outline:2px solid #ffedce;outline-offset:5p
 .fallback-branch-center{left:58%;border-color:rgba(178,230,235,.74);transform:perspective(900px) translateY(calc(var(--fork)*-5vh)) rotateY(12deg) scale(calc(.4 + var(--fork)*.38))}
 .fallback-branch-right{left:63%;border-color:rgba(242,206,195,.82);transform:perspective(900px) translateX(calc(var(--fork) * 23vw)) rotateY(35deg) rotate(10deg) scale(calc(.5 + var(--fork)*.48))}
 @media(max-width:680px){.fallback-branch{width:48vw;left:38%;top:22%;height:60%}.fallback-branch-left{transform:perspective(500px) translateX(calc(var(--fork) * -32vw)) rotateY(-28deg) scale(.85)}.fallback-branch-right{transform:perspective(500px) translateX(calc(var(--fork) * 32vw)) rotateY(28deg) scale(.85)}}
+
+.scene-backdrop[data-hovered="projects"] .fallback-branch-left,
+.scene-backdrop[data-hovered="experience"] .fallback-branch-center,
+.scene-backdrop[data-hovered="contact"] .fallback-branch-right{
+  opacity:1;filter:brightness(1.55) drop-shadow(0 0 28px rgba(235,211,255,.4));
+}
