@@ -143,7 +143,7 @@ async function run(){
   await page.waitForFunction(()=>{
     const f=window.__portfolioFlight
     return f?.mode==='projects' && !f.transiting &&
-      Math.abs(f.t-f.forkTarget)<.004
+      Math.abs(f.t-f.forkTarget)<.004 && f.trackingError<.10
   },null,{timeout:60000})
   const originalFork=await page.evaluate(()=>window.__portfolioFlight?.position)
   console.log('INITIAL FIVE-WAY 3D CAMERA',await page.evaluate(()=>window.__portfolioFlight))
