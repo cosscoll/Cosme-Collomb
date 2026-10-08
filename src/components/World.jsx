@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { routeInfo, scrollT, sampleTransit, junctionFor, arrivalT, bridgeBuild } from '../scene/transit.js'
+import { routeInfo, scrollT, sampleTransit, junctionFor, arrivalT, bridgeBuild, PROJECT_LOOKOUT_T } from '../scene/transit.js'
 import {
   PATHS, PROJECT_BRANCH_COLORS, PROJECT_FORK_OPEN, PROJECT_FORK_CLOSE, PROJECT_FORK_FOCUS,
   createSkin, createSeam, detailReturning
@@ -316,7 +316,7 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
     window.__portfolioFlight={
       position:[camera.position.x,camera.position.y,camera.position.z],
       direction:[ahead.x-camera.position.x,ahead.y-camera.position.y,ahead.z-camera.position.z],
-      mode:sample.mode,t,transiting:Boolean(transit),
+      mode:sample.mode,t,forkTarget:PROJECT_LOOKOUT_T,transiting:Boolean(transit),
       phase:sample.phase||'scroll',
       currentRoute:route.pathName,from:transit?.from,to:transit?.to,
       progress:transit?visualProgress:null,
