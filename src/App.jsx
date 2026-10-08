@@ -70,9 +70,8 @@ function WebGLScene({ veilRef, pathname, hovered }) {
   useEffect(() => {
     try {
       const probe = document.createElement('canvas')
-      const gl = probe.getContext('webgl2', { failIfMajorPerformanceCaveat: true })
+      const gl = probe.getContext('webgl2')
       setSupported(Boolean(gl))
-      gl?.getExtension('WEBGL_lose_context')?.loseContext()
     } catch {
       setSupported(false)
     }
