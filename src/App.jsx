@@ -1,7 +1,6 @@
-import { Suspense, useEffect, useRef, useState } from 'react'
+import { Component, Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { HashRouter, Link, Route, Routes, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import BackgroundScene from './components/BackgroundScene.jsx'
 import CursorGlow from './components/CursorGlow.jsx'
 import ScrollToTop from './components/ScrollToTop.jsx'
 import Home from './pages/Home.jsx'
@@ -11,25 +10,43 @@ import Experience from './pages/Experience.jsx'
 import Contact from './pages/Contact.jsx'
 import { NAME } from './data/site.js'
 
+const BackgroundScene = lazy(() => import('./components/BackgroundScene.jsx'))
+
 const NAV_LINKS = [
   { to: '/projets', label: 'Projets' },
   { to: '/experience', label: 'Parcours' },
   { to: '/contact', label: 'Contact' },
 ]
 
+class SceneErrorBoundary extends Component {
+  constructor(props) {
+    super(props)
+    this.state = { failed: false }
+  }
+
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+
+  componentDidCatch(error) {
+    console.error('3D scene disabled after a runtime error:', error)
+  }
+
+  render() {
+    if (this.state.failed) return null
+    return this.props.children
+  }
+}
+
 function Loader() {
   return (
-    <motion.div
-      className="loader-screen"
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.65 }}
-    >
+    <motion.div className="loader-screen" exit={{ opacity: 0 }} transition={{ duration: 0.55 }}>
       <div className="loader-minimal">
         <span>CC</span>
         <motion.i
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
-          transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
         />
       </div>
     </motion.div>
@@ -44,7 +61,7 @@ function Nav() {
       className="site-nav nav-minimal"
       initial={{ y: -28, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.75, delay: 0.95, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.75, delay: 0.75, ease: [0.16, 1, 0.3, 1] }}
     >
       <Link to="/" className="nav-brand">
         <span className="nav-brand-dot" />
@@ -71,9 +88,11 @@ function BackgroundLayer() {
 
   return (
     <div className="background-layer" aria-hidden="true">
-      <Suspense fallback={null}>
-        <BackgroundScene veilRef={veilRef} />
-      </Suspense>
+      <SceneErrorBoundary>
+        <Suspense fallback={null}>
+          <BackgroundScene veilRef={veilRef} />
+        </Suspense>
+      </SceneErrorBoundary>
       <div ref={veilRef} className="scene-veil" />
     </div>
   )
@@ -114,7 +133,7 @@ function AppShell() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setLoading(false), 1120)
+    const timer = window.setTimeout(() => setLoading(false), 900)
     return () => window.clearTimeout(timer)
   }, [])
 

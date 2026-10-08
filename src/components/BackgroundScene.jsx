@@ -1,7 +1,6 @@
-import { Suspense, useEffect, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { Environment, Float, Line, MeshTransmissionMaterial, PointMaterial, Points } from '@react-three/drei'
-import { Bloom, EffectComposer, Noise, Vignette } from '@react-three/postprocessing'
+import { Float, PointMaterial, Points } from '@react-three/drei'
 import * as THREE from 'three'
 
 const UP = new THREE.Vector3(0, 1, 0)
@@ -10,6 +9,7 @@ const clamp = (value) => Math.min(Math.max(value, 0), 1)
 
 function usePointer() {
   const pointer = useRef({ x: 0, y: 0 })
+
   useEffect(() => {
     const move = (event) => {
       pointer.current.x = (event.clientX / window.innerWidth) * 2 - 1
@@ -18,6 +18,7 @@ function usePointer() {
     window.addEventListener('pointermove', move, { passive: true })
     return () => window.removeEventListener('pointermove', move)
   }, [])
+
   return pointer
 }
 
@@ -65,6 +66,7 @@ function CameraRig({ curve, state, pointer }) {
   useFrame(({ clock }) => {
     const progress = clamp(state.current.progress)
     const eased = progress * progress * (3 - 2 * progress)
+
     curve.getPointAt(eased, current)
     curve.getPointAt(Math.min(eased + 0.028, 1), ahead)
 
@@ -86,8 +88,7 @@ function CameraRig({ curve, state, pointer }) {
     camera.lookAt(lookAt)
 
     const speed = Math.min(Math.abs(state.current.velocity) * 1500, 1)
-    const targetFov = 44 + speed * 6
-    camera.fov += (targetFov - camera.fov) * 0.07
+    camera.fov += (44 + speed * 6 - camera.fov) * 0.07
     camera.updateProjectionMatrix()
   })
 
@@ -101,13 +102,14 @@ function HeroSculpture({ curve, state }) {
   const position = useMemo(() => curve.getPointAt(0.1), [curve])
 
   useFrame(({ clock }) => {
-    const progress = state.current.progress
-    const proximity = Math.max(0, 1 - Math.abs(progress - 0.1) / 0.18)
+    const proximity = Math.max(0, 1 - Math.abs(state.current.progress - 0.1) / 0.18)
+
     if (group.current) {
       group.current.rotation.y = clock.elapsedTime * 0.09
       group.current.rotation.x = Math.sin(clock.elapsedTime * 0.22) * 0.12
       group.current.scale.setScalar(0.92 + proximity * 0.14)
     }
+
     if (knot.current) knot.current.rotation.z = clock.elapsedTime * 0.08
     if (outer.current) outer.current.rotation.z = -clock.elapsedTime * 0.055
   })
@@ -116,31 +118,38 @@ function HeroSculpture({ curve, state }) {
     <Float speed={0.65} rotationIntensity={0.08} floatIntensity={0.18}>
       <group ref={group} position={position}>
         <mesh ref={knot}>
-          <torusKnotGeometry args={[1.45, 0.42, 220, 36, 2, 3]} />
-          <MeshTransmissionMaterial
-            transmission={1}
-            thickness={0.85}
-            roughness={0.08}
-            ior={1.16}
-            chromaticAberration={0.03}
-            anisotropy={0.25}
-            samples={6}
-            color="#8f84ff"
+          <torusKnotGeometry args={[1.45, 0.42, 180, 28, 2, 3]} />
+          <meshPhysicalMaterial
+            color="#7770c9"
+            metalness={0.12}
+            roughness={0.09}
+            transmission={0.72}
+            thickness={1.1}
+            transparent
+            opacity={0.92}
+            clearcoat={1}
+            clearcoatRoughness={0.08}
           />
         </mesh>
 
         <mesh ref={outer} rotation={[Math.PI / 2.7, 0, 0]}>
-          <torusGeometry args={[2.45, 0.035, 16, 160]} />
-          <meshStandardMaterial color="#ffffff" metalness={1} roughness={0.12} emissive="#786cff" emissiveIntensity={0.3} />
+          <torusGeometry args={[2.45, 0.035, 16, 140]} />
+          <meshStandardMaterial
+            color="#f4f4ff"
+            metalness={1}
+            roughness={0.12}
+            emissive="#655cff"
+            emissiveIntensity={0.28}
+          />
         </mesh>
 
         <mesh rotation={[Math.PI / 2.05, 0.15, 0.4]}>
-          <torusGeometry args={[2.9, 0.012, 12, 160]} />
-          <meshBasicMaterial color="#d9e0ff" transparent opacity={0.28} />
+          <torusGeometry args={[2.9, 0.012, 12, 140]} />
+          <meshBasicMaterial color="#d9e0ff" transparent opacity={0.25} />
         </mesh>
 
-        <pointLight color="#7b6cff" intensity={18} distance={8} />
-        <pointLight color="#d9f5ff" intensity={6} distance={7} position={[1.5, 1.2, 1.8]} />
+        <pointLight color="#7166ff" intensity={17} distance={8} />
+        <pointLight color="#e6f3ff" intensity={5} distance={7} position={[1.5, 1.2, 1.8]} />
       </group>
     </Float>
   )
@@ -150,6 +159,7 @@ function Gateway({ curve, fraction, scale = 1, state, tilt = 0 }) {
   const group = useRef()
   const ring = useRef()
   const disk = useRef()
+
   const position = useMemo(() => curve.getPointAt(fraction), [curve, fraction])
   const quaternion = useMemo(
     () => new THREE.Quaternion().setFromUnitVectors(Z_AXIS, curve.getTangentAt(fraction).normalize()),
@@ -158,53 +168,65 @@ function Gateway({ curve, fraction, scale = 1, state, tilt = 0 }) {
 
   useFrame(({ clock }) => {
     const proximity = Math.max(0, 1 - Math.abs(state.current.progress - fraction) / 0.1)
+
     if (group.current) group.current.scale.setScalar(scale * (1 + proximity * 0.12))
     if (ring.current) ring.current.rotation.z = tilt + clock.elapsedTime * 0.05
-    if (disk.current) disk.current.material.opacity = 0.025 + proximity * 0.07
+    if (disk.current) disk.current.material.opacity = 0.018 + proximity * 0.055
   })
 
   return (
     <group ref={group} position={position} quaternion={quaternion}>
       <mesh ref={ring}>
-        <torusGeometry args={[3.65, 0.065, 18, 150]} />
-        <meshStandardMaterial color="#dcdcff" metalness={0.96} roughness={0.13} emissive="#7163ff" emissiveIntensity={0.4} />
+        <torusGeometry args={[3.65, 0.065, 18, 130]} />
+        <meshStandardMaterial
+          color="#ddddef"
+          metalness={0.96}
+          roughness={0.14}
+          emissive="#655cff"
+          emissiveIntensity={0.32}
+        />
       </mesh>
+
       <mesh ref={disk}>
-        <circleGeometry args={[3.5, 96]} />
-        <meshBasicMaterial color="#9c94ff" transparent opacity={0.03} side={THREE.DoubleSide} />
+        <circleGeometry args={[3.5, 80]} />
+        <meshBasicMaterial color="#958cff" transparent opacity={0.018} side={THREE.DoubleSide} />
       </mesh>
     </group>
   )
 }
 
 function MonolithField({ curve, state }) {
-  const items = useMemo(() => {
-    return Array.from({ length: 9 }, (_, index) => {
-      const t = 0.46 + index * 0.045
-      const center = curve.getPointAt(t)
-      const tangent = curve.getTangentAt(t).normalize()
-      const side = new THREE.Vector3().crossVectors(tangent, UP).normalize()
-      const direction = index % 2 === 0 ? 1 : -1
-      center.addScaledVector(side, direction * (2.3 + (index % 3) * 0.45))
-      center.y += ((index % 4) - 1.5) * 0.58
-      return {
-        t,
-        position: center.toArray(),
-        rotation: [0.12 * (index % 3), 0.22 * direction, 0.08 * direction],
-        height: 2.7 + (index % 3) * 1.05,
-      }
-    })
-  }, [curve])
+  const items = useMemo(
+    () =>
+      Array.from({ length: 8 }, (_, index) => {
+        const t = 0.47 + index * 0.048
+        const center = curve.getPointAt(t)
+        const tangent = curve.getTangentAt(t).normalize()
+        const side = new THREE.Vector3().crossVectors(tangent, UP).normalize()
+        const direction = index % 2 === 0 ? 1 : -1
 
-  return items.map((item, index) => (
-    <Monolith key={index} item={item} index={index} state={state} />
-  ))
+        center.addScaledVector(side, direction * (2.35 + (index % 3) * 0.42))
+        center.y += ((index % 4) - 1.5) * 0.58
+
+        return {
+          t,
+          position: center.toArray(),
+          rotation: [0.12 * (index % 3), 0.22 * direction, 0.08 * direction],
+          height: 2.7 + (index % 3) * 1.05,
+        }
+      }),
+    [curve]
+  )
+
+  return items.map((item, index) => <Monolith key={index} item={item} index={index} state={state} />)
 }
 
 function Monolith({ item, index, state }) {
   const ref = useRef()
+
   useFrame(({ clock }) => {
     if (!ref.current) return
+
     const proximity = Math.max(0, 1 - Math.abs(state.current.progress - item.t) * 5.5)
     ref.current.rotation.y = item.rotation[1] + Math.sin(clock.elapsedTime * 0.18 + index) * 0.025
     ref.current.position.y = item.position[1] + Math.sin(clock.elapsedTime * 0.3 + index * 0.7) * 0.08
@@ -232,47 +254,56 @@ function FinalOrb({ curve, state }) {
 
   useFrame(({ clock }) => {
     const proximity = Math.max(0, 1 - Math.abs(state.current.progress - 0.9) / 0.16)
+
     if (shell.current) {
       shell.current.rotation.x = clock.elapsedTime * 0.055
       shell.current.rotation.y = clock.elapsedTime * 0.07
       shell.current.scale.setScalar(1 + proximity * 0.18)
     }
+
     if (core.current) core.current.scale.setScalar(0.78 + proximity * 0.25)
   })
 
   return (
     <group position={position}>
       <mesh ref={shell}>
-        <icosahedronGeometry args={[2.2, 4]} />
-        <MeshTransmissionMaterial
-          transmission={1}
-          thickness={1.05}
-          roughness={0.06}
-          ior={1.2}
-          chromaticAberration={0.02}
-          samples={5}
-          color="#d9ddff"
+        <icosahedronGeometry args={[2.2, 3]} />
+        <meshPhysicalMaterial
+          color="#b8b9d9"
+          metalness={0.08}
+          roughness={0.08}
+          transmission={0.66}
+          thickness={1.25}
+          transparent
+          opacity={0.9}
+          clearcoat={1}
+          clearcoatRoughness={0.05}
         />
       </mesh>
+
       <mesh ref={core}>
-        <sphereGeometry args={[0.62, 48, 48]} />
-        <meshStandardMaterial color="#ffffff" emissive="#786cff" emissiveIntensity={6} roughness={0.12} />
+        <sphereGeometry args={[0.62, 40, 40]} />
+        <meshStandardMaterial color="#ffffff" emissive="#6f63ff" emissiveIntensity={5} roughness={0.12} />
       </mesh>
-      <pointLight color="#786cff" intensity={24} distance={11} />
+
+      <pointLight color="#7166ff" intensity={22} distance={11} />
     </group>
   )
 }
 
 function SparseParticles() {
   const points = useRef()
-  const count = 420
+  const count = 320
+
   const positions = useMemo(() => {
     const data = new Float32Array(count * 3)
+
     for (let i = 0; i < count; i += 1) {
       data[i * 3] = (Math.random() - 0.5) * 16
       data[i * 3 + 1] = (Math.random() - 0.5) * 11
       data[i * 3 + 2] = 8 - Math.random() * 72
     }
+
     return data
   }, [])
 
@@ -282,14 +313,9 @@ function SparseParticles() {
 
   return (
     <Points ref={points} positions={positions} stride={3} frustumCulled>
-      <PointMaterial transparent color="#e8e7ff" size={0.022} sizeAttenuation depthWrite={false} opacity={0.38} />
+      <PointMaterial transparent color="#e8e7ff" size={0.021} sizeAttenuation depthWrite={false} opacity={0.34} />
     </Points>
   )
-}
-
-function PathLine({ curve }) {
-  const points = useMemo(() => curve.getPoints(120), [curve])
-  return <Line points={points} color="#7064ff" transparent opacity={0.13} lineWidth={0.75} />
 }
 
 function Scene({ veilRef }) {
@@ -300,22 +326,17 @@ function Scene({ veilRef }) {
   useFrame(() => {
     if (!veilRef?.current) return
     const speed = Math.min(Math.abs(state.current.velocity) * 1300, 1)
-    veilRef.current.style.opacity = String(0.88 - speed * 0.08)
+    veilRef.current.style.opacity = String(0.86 - speed * 0.07)
   })
 
   return (
     <>
       <fog attach="fog" args={['#060608', 10, 66]} />
-      <ambientLight intensity={0.22} />
-      <directionalLight position={[4, 7, 7]} intensity={1.3} color="#ffffff" />
-      <pointLight position={[-4, 2, -13]} intensity={8} color="#7569ff" distance={18} />
-      <pointLight position={[3, -2, -39]} intensity={7} color="#d7e7ff" distance={18} />
+      <ambientLight intensity={0.34} />
+      <directionalLight position={[4, 7, 7]} intensity={1.8} color="#ffffff" />
+      <pointLight position={[-4, 2, -13]} intensity={8} color="#7166ff" distance={18} />
+      <pointLight position={[3, -2, -39]} intensity={6} color="#d7e7ff" distance={18} />
 
-      <Suspense fallback={null}>
-        <Environment preset="city" background={false} />
-      </Suspense>
-
-      <PathLine curve={curve} />
       <HeroSculpture curve={curve} state={state} />
       <Gateway curve={curve} fraction={0.31} scale={1.05} state={state} />
       <Gateway curve={curve} fraction={0.59} scale={1.16} state={state} tilt={0.7} />
@@ -326,12 +347,6 @@ function Scene({ veilRef }) {
 
       <ScrollDriver state={state} />
       <CameraRig curve={curve} state={state} pointer={pointer} />
-
-      <EffectComposer multisampling={0}>
-        <Bloom intensity={0.7} luminanceThreshold={0.45} luminanceSmoothing={0.8} mipmapBlur />
-        <Vignette offset={0.22} darkness={0.72} />
-        <Noise opacity={0.009} />
-      </EffectComposer>
     </>
   )
 }
@@ -340,7 +355,7 @@ export default function BackgroundScene({ veilRef }) {
   return (
     <Canvas
       camera={{ position: [0, 0.15, 8.5], fov: 44, near: 0.1, far: 100 }}
-      dpr={[1, 1.65]}
+      dpr={[1, 1.5]}
       gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}
     >
       <Scene veilRef={veilRef} />
