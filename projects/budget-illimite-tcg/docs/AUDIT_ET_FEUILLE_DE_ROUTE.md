@@ -9,9 +9,23 @@ L'archive `files (9).zip` transmise dans la conversation contient :
 
 **Absents** : `engine.js`, `index.html` original, médias, `supabase_schema.sql`, `supabase_schema_trading.sql`, `supabase_schema_ranked.sql`, `supabase_schema_hidden_info.sql`, `card_catalog_seed.sql`, `supabase_schema_rng.sql`. On ne peut pas reconstituer fidèlement les règles, les cartes ou l'interface actuelle sans ces sources.
 
+## État du premier cycle — 8 octobre 2026
+
+**Phase 1 (fondations du prototype) : effectuée.** Le projet est isolé sur la branche de travail, les 49 identifiants sont testés, les sources manquantes sont consignées. Le nouvel éditeur de decks, le moteur solo et les interfaces sont ajoutés.
+
+**Phase 2 (moteur solo expérimental) : première version implémentée.** Un match se joue jusqu'à 3 KO avec huit cartes par camp, quatre profils de combattants, actions validées, IA Billy et historique des événements. Cette implémentation est **indépendante** du moteur PvP d'origine introuvable et ne représente pas les règles historiques.
+
+**Tests effectués :** 14 scénarios de catalogue, booster et moteur réussis via un interpréteur JavaScript lors du travail ; 50 puis 200 simulations de parties utilisées pour inspecter le déroulement et le rapport de victoire ; un parcours d'interface simulé couvre sélection de carte, édition de deck, duel complet, revanche et booster. Les tests Node (`npm test`) et un workflow CI GitHub Actions sont également enregistrés dans le dépôt. Les tests en vrai navigateur restent à réaliser.
+
+**Déséquilibre observé :** un joueur qui ne fait que frapper dès qu'il dispose d'énergie suffisante gagne moins souvent qu'une IA qui gère davantage sa stratégie ; ce résultat ne constitue pas encore une mesure d'équilibrage par population de joueurs.
+
+**Restant immédiat :** tests manuels sur Chrome/Firefox/Safari/mobile, vérification clavier et lecteur d'écran, UX du deck, simulation sur plusieurs stratégies, tutoriel in-app, identification de vraies images et médias.
+
 ## Avancement réalisé dans ce dossier
 - Branche GitHub de travail isolée pour ne pas modifier le site du dépôt existant.
 - Inventaire reproductible des **49 IDs existants** : 17 communes, 15 rares, 10 épiques, 4 légendaires, 3 secrètes.
+- **Prototype solo jouable** : deck de huit cartes, joueur/Billy, protection, énergie, réserves, KO, victoire.
+- Interface de combat et atelier du deck ajoutés, tests et règles documentées.
 - Prototype interactif responsive : liste, recherche, filtre, détail, suivi local de documentation.
 - Identification explicite des sources, médias et statistiques non vérifiés.
 - Tests unitaires des invariants du catalogue, disponibles par `npm test`.
