@@ -51,7 +51,7 @@ async function run(){
       '--use-angle=swiftshader','--enable-unsafe-swiftshader',
       '--disable-dev-shm-usage','--disable-gpu-sandbox']
   })
-  const page=await browser.newPage({viewport:{width:1365,height:850}})
+  const page=await browser.newPage({viewport:{width:1030,height:690}})
   page.setDefaultTimeout(20000)
   const errors=[]
   page.on('pageerror',error=>errors.push(String(error)))

@@ -344,7 +344,12 @@ function BuildingBranch({transit,flightPosition}) {
     const p=Math.max(0,Math.min(1,(performance.now()-transit.startedAt)/transit.duration))
     const built=bridgeBuild(p)
     const visibility=1-smooth((p-.76)/.22)
-    if(bridgeMaterial.current)bridgeMaterial.current.opacity=visibility
+    if(bridgeMaterial.current){
+      bridgeMaterial.current.opacity=visibility
+      // Depth-test the fully constructed wall normally. Otherwise several
+      // transparent corridor skins fill the same pixels and overload WebGL.
+      bridgeMaterial.current.depthWrite=visibility>.975
+    }
     guideMaterials.current.forEach((mat,i)=>{
       if(mat)mat.opacity=visibility*.5
     })
@@ -373,7 +378,7 @@ function BuildingBranch({transit,flightPosition}) {
     <mesh geometry={journey.skin}>
       <meshStandardMaterial ref={bridgeMaterial} side={THREE.BackSide} vertexColors
         transparent opacity={1} roughness={.72} metalness={.19} emissive="#262038"
-        emissiveIntensity={.15} depthWrite={false}/>
+        emissiveIntensity={.15} depthWrite/>
     </mesh>
     {journey.guides.map((geom,i)=><mesh key={i} geometry={geom}>
       <meshBasicMaterial ref={el=>{guideMaterials.current[i]=el}}
