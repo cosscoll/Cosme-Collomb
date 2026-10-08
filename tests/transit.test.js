@@ -4,7 +4,7 @@ import * as THREE from 'three'
 import { PROJECTS_WITH_SLUGS as PROJECTS } from '../src/data/projects.js'
 import { createSkin, PATHS, PROJECT_FORK_FOCUS, PROJECT_FORK_POSITION } from '../src/scene/geometry.js'
 import {
-  routeInfo, sampleTransit, junctionFor, arrivalT, scrollT,
+  routeInfo, sampleTransit, samplePosition, junctionFor, arrivalT, scrollT,
   bridgeBuild, TRANSIT_DURATION, PROJECT_INDEX_HUB, PROJECT_LOOKOUT_T, TRANSIT_MID
 } from '../src/scene/transit.js'
 
@@ -164,4 +164,38 @@ test('Finishing a project cannot display an invented four-choice return junction
  assert.ok(app.includes("beginTrip('/projets')"))
  assert.ok(!app.includes('className="return-choices"'))
  assert.ok(app.includes('document.documentElement.scrollHeight-window.innerHeight'))
+})
+
+
+test('Physical camera never jumps when 3D flight transfers between spline branches',()=>{
+ let pairs=0
+ for(const source of names){
+  for(const destination of names){
+   if(source===destination)continue
+   const from=routeInfo(source),to=routeInfo(destination)
+   for(const initialT of [.36,.82,.95]){
+    const before=samplePosition(sampleTransit(from,to,initialT,TRANSIT_MID-1e-7))
+    const after=samplePosition(sampleTransit(from,to,initialT,TRANSIT_MID))
+    assert.ok(before.distanceTo(after)<.015,
+      source+' → '+destination+' physical jump at spline join: '+before.distanceTo(after))
+    const beforeApproach=samplePosition(sampleTransit(from,to,initialT,.35-1e-7))
+    const afterApproach=samplePosition(sampleTransit(from,to,initialT,.35))
+    assert.ok(beforeApproach.distanceTo(afterApproach)<.015,
+      source+' → '+destination+' physical jump at arrival to fork')
+    let last=before
+    for(let i=0;i<=200;i++){
+      const p=TRANSIT_MID+(1-TRANSIT_MID)*i/200
+      const sample=sampleTransit(from,to,initialT,p)
+      const point=samplePosition(sample)
+      assert.ok(Number.isFinite(point.x)&&Number.isFinite(point.y)&&Number.isFinite(point.z))
+      assert.ok(point.distanceTo(last)<.6,
+        source+' → '+destination+' displaced camera inside junction ramp at '+p)
+      last=point
+    }
+    assert.equal(sampleTransit(from,to,initialT,1).offset,null)
+    pairs++
+   }
+  }
+ }
+ assert.ok(pairs>170)
 })
