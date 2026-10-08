@@ -256,7 +256,7 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       for(let attempt=0;attempt<10;attempt++){
         const next=sampleTransit(from,to,departure.current,nextP)
         const point=transitPoint(next)
-        if(lastPoint.distanceTo(point)<=.85)break
+        if(lastPoint.distanceTo(point)<=.42)break
         nextP=(flight.p+nextP)*.5
       }
       flight.p=nextP
