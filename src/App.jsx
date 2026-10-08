@@ -1,4 +1,4 @@
-import { Component, Suspense, lazy, useEffect, useRef, useState } from 'react'
+import { Component, Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react'
 import { HashRouter, Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import { PROJECTS_WITH_SLUGS as PROJECTS } from './data/projects.js'
@@ -409,9 +409,29 @@ function JourneyStation({number,kicker,title,children,align=''}) {
   </section>
 }
 
-function ProjectDetail({slug}) {
+function ProjectDetail({slug,onJourneyFinished}) {
   const i=PROJECTS.findIndex(p=>p.slug===slug)
   const p=PROJECTS[i]
+  // The end of each project's scroll journey leads back to the SAME physical
+  // five-way junction, not a second UI containing only four alternatives.
+  useEffect(()=>{
+    if(!p)return
+    let travelled=false
+    let returned=false
+    const mountedAt=performance.now()
+    const followScroll=()=>{
+      const total=document.documentElement.scrollHeight-window.innerHeight
+      if(total<500 || returned)return
+      if(window.scrollY>total*.5)travelled=true
+      if(travelled && window.scrollY>=total-14 &&
+        performance.now()-mountedAt>1100){
+        returned=true
+        onJourneyFinished()
+      }
+    }
+    window.addEventListener('scroll',followScroll,{passive:true})
+    return ()=>window.removeEventListener('scroll',followScroll)
+  },[slug,onJourneyFinished])
   if(!p)return <PageIntro kicker="ERREUR" title="Projet" italic="introuvable." />
   const story=PROJECT_STORIES[i]
   return <>
@@ -452,15 +472,8 @@ function ProjectDetail({slug}) {
         viewport={{once:false,amount:.25}} transition={{duration:.9}}>
         <p className="micro-label">05 / RETOUR AU CARREFOUR</p>
         <h2>De retour.<br/><em>Quel autre chemin ?</em></h2>
-        <p>Vous avez parcouru {p.title}. Choisissez une nouvelle direction.</p>
-        <nav className="return-choices" aria-label="Explorer un autre projet">
-          {PROJECTS.filter(project=>project.slug!==p.slug).map((other)=>(
-            <Link key={other.slug} to={'/projets/'+other.slug}>
-              <span>{other.title}</span><span>↗</span>
-            </Link>
-          ))}
-        </nav>
-        <Link to="/projets" state={{fromJourney:true}} className="underlined-link">← Retourner au carrefour des cinq projets <span>↗</span></Link>
+        <p>Vous avez parcouru {p.title}. Avancez jusqu'au bout : le tunnel vous reconduit automatiquement devant les cinq mêmes chemins.</p>
+        <Link to="/projets" state={{fromJourney:true}} className="underlined-link">← Revenir maintenant au carrefour des cinq projets <span>↗</span></Link>
       </motion.div>
     </section>
   </>
@@ -494,10 +507,10 @@ function Contact() {
   </>
 }
 
-function RouteView({ pathname, setHovered }) {
+function RouteView({ pathname, setHovered, onJourneyFinished }) {
   if(pathname === '/')return <Home setHovered={setHovered}/>
   if(pathname === '/projets')return <ProjectIndex setHovered={setHovered}/>
-  if(pathname.startsWith('/projets/'))return <ProjectDetail slug={pathname.split('/')[2]}/>
+  if(pathname.startsWith('/projets/'))return <ProjectDetail slug={pathname.split('/')[2]} onJourneyFinished={onJourneyFinished}/>
   if(pathname === '/parcours' || pathname === '/experience')return <About/>
   if(pathname === '/contact')return <Contact/>
   return <Home setHovered={setHovered}/>
@@ -534,6 +547,31 @@ function Shell() {
   const nextId=useRef(0)
 
   useEffect(()=>{setHovered('');setMenuOpen(false)},[pathname])
+  const beginTrip=useCallback((next)=>{
+    if(next===pathname || transitRef.current)return false
+    // Both the header links and the automatic journey completion use the same
+    // continuous 3D route animation: no plain Router jumps.
+    const journey={
+      id:++nextId.current,from:pathname,to:next,startedAt:performance.now(),
+      duration:TRANSIT_MS,sourceScroll:window.scrollY
+    }
+    transitRef.current=journey
+    setMenuOpen(false)
+    setTransit(journey)
+    window.history.scrollRestoration='manual'
+    timers.current.push(window.setTimeout(()=>{
+      navigate(next,{state:{
+        fromJourney:pathname.startsWith('/projets/') && next==='/projets',
+        fromTransit:true
+      }})
+    },TRANSIT_MIDPOINT))
+    timers.current.push(window.setTimeout(()=>{
+      transitRef.current=null
+      setTransit(null)
+    },TRANSIT_MS))
+    return true
+  },[pathname,navigate])
+
   useEffect(()=>{
     const capture=(event)=>{
       if(event.defaultPrevented || event.button!==0 || event.metaKey ||
@@ -547,33 +585,14 @@ function Shell() {
         destination.pathname!==window.location.pathname ||
         !destination.hash.startsWith('#/'))return
       const next=decodeURI(destination.hash.slice(1)).split('?')[0]
-      if(next===pathname || transitRef.current)return
+      if(next===pathname)return
       event.preventDefault()
       event.stopPropagation()
-      setMenuOpen(false)
-      // Maintain a continuous WebGL scene while pages are exchanged in the
-      // middle of a geometric path, instead of instantly resetting the camera.
-      const journey={
-        id:++nextId.current,from:pathname,to:next,startedAt:performance.now(),
-        duration:TRANSIT_MS,sourceScroll:window.scrollY
-      }
-      transitRef.current=journey
-      setTransit(journey)
-      window.history.scrollRestoration='manual'
-      timers.current.push(window.setTimeout(()=>{
-        navigate(next,{state:{
-          fromJourney:pathname.startsWith('/projets/') && next==='/projets',
-          fromTransit:true
-        }})
-      },TRANSIT_MIDPOINT))
-      timers.current.push(window.setTimeout(()=>{
-        transitRef.current=null
-        setTransit(null)
-      },TRANSIT_MS))
+      beginTrip(next)
     }
     document.addEventListener('click',capture,true)
     return ()=>document.removeEventListener('click',capture,true)
-  },[pathname,navigate])
+  },[pathname,beginTrip])
 
   useEffect(()=>()=>timers.current.forEach(window.clearTimeout),[])
   return <>
@@ -588,7 +607,7 @@ function Shell() {
           animate={{opacity:1,filter:'blur(0px)',y:0}}
           exit={{opacity:0,filter:'blur(13px)',y:-26}}
           transition={{duration:.55,ease:[.22,1,.36,1]}}>
-          <RouteView pathname={pathname} setHovered={setHovered}/>
+          <RouteView pathname={pathname} setHovered={setHovered} onJourneyFinished={()=>beginTrip('/projets')}/>
         </motion.div>
       </AnimatePresence>
     </main>
