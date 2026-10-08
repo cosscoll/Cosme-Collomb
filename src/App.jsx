@@ -427,19 +427,30 @@ function ProjectDetail({slug,onJourneyFinished}) {
     if(!p)return
     let travelled=false
     let returned=false
+    let pollTimer=0
     const mountedAt=performance.now()
     const followScroll=()=>{
       const total=document.documentElement.scrollHeight-window.innerHeight
       if(total<500 || returned)return
-      if(window.scrollY>total*.5)travelled=true
-      if(travelled && window.scrollY>=total-14 &&
+      if(window.scrollY>total*.45)travelled=true
+      if(travelled && window.scrollY>=total-30 &&
         performance.now()-mountedAt>1100){
-        returned=true
-        onJourneyFinished()
+        // A journey can reach the page bottom while its inbound 3D transit
+        // is still active. Only mark it complete once a NEW return flight
+        // has actually started, otherwise the user gets stranded at the end.
+        returned=Boolean(onJourneyFinished())
       }
     }
+    const poll=()=>{
+      followScroll()
+      if(!returned)pollTimer=window.setTimeout(poll,180)
+    }
     window.addEventListener('scroll',followScroll,{passive:true})
-    return ()=>window.removeEventListener('scroll',followScroll)
+    pollTimer=window.setTimeout(poll,180)
+    return ()=>{
+      window.removeEventListener('scroll',followScroll)
+      window.clearTimeout(pollTimer)
+    }
   },[slug,onJourneyFinished])
   if(!p)return <PageIntro kicker="ERREUR" title="Projet" italic="introuvable." />
   const story=PROJECT_STORIES[i]
