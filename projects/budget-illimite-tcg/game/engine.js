@@ -48,6 +48,21 @@ export function validateDeck(ids) {
   return { valid: errors.length === 0, errors: [...new Set(errors)] };
 }
 
+/**
+ * Deterministic recommendation: two cards of each role, no reliance on rarity.
+ * This is a deck for the free prototype, not a player's owned collection.
+ */
+export function suggestBalancedDeck() {
+  const chosen = [];
+  for (const role of ARCHETYPES) {
+    const options = CARDS.filter(card => cardStats(card.id).role === role);
+    if (options.length < 2) throw new Error("Catalogue incomplet pour le rôle " + role);
+    chosen.push(options[0].id, options[1].id);
+  }
+  if (!validateDeck(chosen).valid) throw new Error("Échec de création du deck équilibré.");
+  return chosen;
+}
+
 function seededRng(seed) {
   let state = (seed >>> 0) || 0x12345abc;
   return () => {
