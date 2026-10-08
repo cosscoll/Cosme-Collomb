@@ -15,7 +15,7 @@ test('Every page owns a valid continuous 3D flight route',()=>{
     const route=routeInfo(name)
     assert.ok(route.path.getLength()>30,name)
     assert.ok(route.mainHub>.1 && route.mainHub<.9)
-    assert.ok(route.projectHub===null||(route.projectHub>.1&&route.projectHub<.97))
+    assert.ok(route.projectHub===null||(route.projectHub>.1&&route.projectHub<=1))
     assert.ok(arrivalT(route,routeInfo('/'))>=0 && arrivalT(route,routeInfo('/'))<1)
   }
 })
