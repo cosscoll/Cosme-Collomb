@@ -13,8 +13,18 @@ export const BRANCHES = [
   [[0,0,-30],[1.1,-.2,-36],[3.5,-.6,-44],[7,-.4,-53],[9.2,-.2,-63]]
 ]
 export const CHILDREN = PROJECTS.map((_,i) => {
-  const n=i-(PROJECTS.length-1)/2
-  return [[-9.5,0,-61],[-10+n*1.25,.1+n*.08,-66],[-10+n*3.2,n*.8,-75],[-10+n*4.5,n*.9,-88]]
+  // Five corridors fan radially out of the common atrium, like flower petals.
+  // Their separation makes it impossible for the opaque shells to intersect.
+  const angle=-Math.PI/2 + i*Math.PI*2/PROJECTS.length
+  const x=Math.cos(angle),y=Math.sin(angle)
+  const radial=(r,z)=>[-9.5+x*r,y*r,z]
+  return [
+    [-9.5,0,-61],
+    radial(2.7,-67),
+    radial(6.8,-76),
+    radial(8.7,-89),
+    radial(9.1,-103)
+  ]
 })
 export const PATHS = {
   routes: BRANCHES.map(points => spline([...TRUNK,...points.slice(1)])),
@@ -127,7 +137,7 @@ export const PROJECT_BRANCH_COLORS = [
 ]
 // Portals and physical corridor segments begin only after the paths diverge,
 // leaving the common atrium free of intersecting opaque walls.
-export const PROJECT_FORK_OPEN = .43
+export const PROJECT_FORK_OPEN = .5
 export const PROJECT_FORK_CLOSE = .94
 export function projectOutboundT(index) {
   return PROJECT_HUBS[index]+.014
