@@ -35,6 +35,7 @@ test("solo UI: from card catalog and deck editing through a finished match", asy
   const ids = [...html.matchAll(/id="([^"]+)"/g)].map(match => match[1]);
   const elements = new Map(ids.map(id => [id, new FakeElement()]));
   elements.get("rarity").value = "all";
+  elements.get("aiDifficulty").value = "normal";
   const get = id => {
     assert.ok(elements.has(id), "HTML element missing: " + id);
     return elements.get(id);
@@ -70,8 +71,13 @@ test("solo UI: from card catalog and deck editing through a finished match", asy
   get("resetDeck").click();
   assert.equal(get("deckCount").textContent, "8 / 8");
   assert.equal(get("startMatch").disabled, false);
+  get("balancedDeck").click();
+  assert.equal(get("deckCount").textContent, "8 / 8");
+  get("resetDeck").click();
+  get("aiDifficulty").value = "decouverte";
 
   get("startMatch").click();
+  assert.equal(get("aiDifficulty").disabled, true);
   assert.equal(get("turnInfo").textContent, "C'est ton tour");
 
   for (let step = 0; step < 120; step++) {
@@ -84,9 +90,17 @@ test("solo UI: from card catalog and deck editing through a finished match", asy
   }
   assert.ok(["Victoire !", "Billy remporte la partie"].includes(get("turnInfo").textContent));
   assert.ok(get("battleLog").children.length > 0);
+  assert.equal(get("matchesPlayed").textContent, "1");
+  assert.equal(Number(get("matchesWon").textContent) + Number(get("matchesLost").textContent), 1);
+  assert.equal(get("aiDifficulty").disabled, false);
+  assert.ok(get("battleResultNotice").textContent.length > 20);
+  assert.equal(JSON.parse(database.get("budget-illimite:solo-progress:v1")).played, 1);
 
   get("startMatch").click();
+  assert.equal(get("matchesPlayed").textContent, "1");
   assert.equal(get("turnInfo").textContent, "C'est ton tour");
   get("simulateBooster").click();
   assert.equal(get("boosterResults").children.length, 5);
+  assert.equal(database.get("budget-illimite:solo-difficulty:v1"), "decouverte");
+  assert.equal(get("soloBadgeList").children.length, 6);
 });
