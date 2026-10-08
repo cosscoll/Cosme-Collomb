@@ -103,7 +103,13 @@ async function run(){
   await verifyPage(page,'back to projects',/Cinq projets/i)
   await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:12000})
   await page.waitForTimeout(260)
-  await page.screenshot({path:'test-output/return-five-open-paths.png'})
+  // SwiftShader can stall on GPU readback after disposing the temporary 3D
+  // bridge. The geometric/UI checks below remain mandatory if that happens.
+  try{
+    await page.screenshot({path:'test-output/return-five-open-paths.png',timeout:7500})
+  }catch(err){
+    console.warn('Return screenshot readback unavailable:',err.message)
+  }
   const crossroads=await page.evaluate(()=>{
     const target=document.querySelector('#project-crossroads')
     return {scrollY:window.scrollY,top:target?.offsetTop,choices:

@@ -238,12 +238,13 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
         const weight=smooth((p-.29)/.17)*(1-smooth((p-.51)/.05))
         ahead.lerp(destinationLook,weight)
       }
-      // On returning from a project, the camera approaches the hub looking
-      // backward, but must finish FACING the five choices, not a tunnel wall.
-      // Complete this turn before the transit state disappears.
-      if(to.mode==='projects'&&from.mode==='detail'&&p>.72){
-        const forwardPoint=to.path.getPointAt(Math.min(.999,t+.055))
-        ahead.lerp(forwardPoint,smooth((p-.72)/.22))
+      // Look OUT through the open crossroads, not backwards into the trunk.
+      // This turn begins while still approaching the junction, and finishes
+      // before the destination shell replaces the temporary bridge.
+      if(to.mode==='projects'&&from.mode==='detail'){
+        const forkForward=to.path.getPointAt(.999)
+          .addScaledVector(to.path.getTangentAt(.997),12)
+        ahead.lerp(forkForward,smooth((p-.29)/.25))
       }
     }
     sample.path.getTangentAt(t,direction)
@@ -256,6 +257,13 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       .addScaledVector(UP,-softPointer.current.y*.06+Math.sin(clock.elapsedTime*.28)*.015)
     camera.position.copy(goal)
 
+    // The projects page is an open atrium, not the closed mouth of the trunk.
+    // Keep looking through the physical junction toward its five corridors,
+    // including immediately after a completed-project return.
+    if(!transit && route.mode==='projects' && y>=scrollPositions.current.fork*.68){
+      ahead.copy(route.path.getPointAt(.999))
+        .addScaledVector(route.path.getTangentAt(.997),12)
+    }
     if(!transit && route.mode==='projects' && hovered.startsWith('project-') && y>window.innerHeight*.45){
       const idx=Number(hovered.slice(8))
       if(idx>=0&&idx<PATHS.children.length)
