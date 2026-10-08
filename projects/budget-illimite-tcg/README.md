@@ -1,34 +1,73 @@
 # Budget Illimité — TCG Thomas Deseur
 
-> **Chantier isolé**. Prototype de développement, non officiel, sans affiliation à Thomas Deseur ou à ses collaborateurs. Ce dossier est provisoirement hébergé sur une branche dédiée d'un dépôt existant : il devra être transféré vers son propre dépôt.
+**Prototype non officiel et expérimental** d'un jeu de cartes à collectionner inspiré d'apparitions, costumes et déguisements de Thomas Deseur. Ce projet n'est affilié à aucun créateur cité.
 
-## État constaté le 8 octobre 2026
+## Ce qui fonctionne actuellement
 
-L'archive initiale remise contient quatre fichiers : `README.md`, `supabase_schema_concurrency_fixes.sql`, `submit-action-edge-function.ts`, `open-booster-edge-function.ts`. Elle **ne contient pas** le site, le moteur `engine.js`, les fichiers SQL antérieurs ni les images. **Ne pas déployer** le backend partiel tel quel.
+- Catalogue interactif des **49 identifiants de cartes** extraits du code de booster remis (17 communes, 15 rares, 10 épiques, 4 légendaires, 3 secrètes).
+- Filtres, recherche, fiches de cartes et suivi de documentation sauvegardé localement.
+- Atelier de deck : sélection de **8 cartes distinctes**, deck de départ, suppression et sauvegarde locale.
+- **Mode solo jouable contre Billy** : 3 KO pour gagner, énergie, PV, capacités spéciales, protection, remplacement après KO et changements de cartes en réserve.
+- Quatre archétypes de combat aux statistiques **provisoires** et équilibrées indépendamment de la rareté.
+- Simulateur de booster **sans gain réel**, 5 cartes dont la dernière est au minimum rare.
+- Tests catalogue / boosters / moteur + CI GitHub Actions dans `.github/workflows/budget-illimite-tcg-tests.yml`.
 
-Les 49 identifiants/raretés ont été retranscrits du code de booster transmis. Les noms affichés dans cette interface sont des libellés de travail générés depuis les IDs, **pas une validation d'apparitions réelles**.
+### Exécuter sur son ordinateur
 
-## Ce qui est utilisable
+Depuis `projects/budget-illimite-tcg/` :
 
-- `index.html`, `styles.css`, `app.js`, `data/cards.js` : prototype statique de l'inventaire des 49 cartes.
-- Recherche textuelle, filtre par rareté, fenêtre de détails, suivi local des cartes repérées, affichage adapté au mobile.
-- Simulation visuelle de booster 5 cartes avec 5e carte rare ou mieux, sans attribution ni débit. Règles et tests dans `game/booster.js` et `tests/booster.test.mjs`.
-- Proposition SQL non déployée pour restreindre les RPC critiques dans `security/restrict_booster_rpc.sql`.
-- Aucune carte réelle, photo, source vidéo ou donnée de combat n'a été inventée.
-- Les marqueurs « repérées » servent uniquement à organiser la documentation en local : **ce n'est pas une vraie collection possédée ni une monnaie virtuelle**.
+```bash
+python3 -m http.server 8000
+# ou un autre serveur statique HTTP
+```
 
-Pour prévisualiser : ouvrir `index.html` depuis un serveur HTTP local (ex. `python -m http.server 8000` depuis ce dossier). Le navigateur doit permettre le chargement des modules ES.
+Ouvrir ensuite `http://localhost:8000`. Il n'y a pas d'installation JS requise pour visualiser le jeu.
 
-## Bloquants pour le vrai jeu
+### Vérifier le moteur
 
-1. Récupérer `engine.js` et le site initial.
-2. Récupérer les migrations SQL initiales et rattacher un environnement Supabase de développement.
-3. Vérifier les 49 apparitions, sources vidéos, droits sur les médias et capacités des cartes.
-4. Corriger les vulnérabilités identifiées avant l'exposition publique : RPC privileged, changements d'état PvP non atomiques, état secret des pioches, CORS, minuterie, contrôle des erreurs.
-5. Écrire les tests de combat, d'économie et d'équilibrage; seulement ensuite activer les comptes et le PvP.
+```bash
+npm test
+```
 
-Consulter `docs/AUDIT_ET_FEUILLE_DE_ROUTE.md`. Aucune modification n'a été appliquée en production Supabase. Aucun déploiement GitHub Pages n'a été activé.
+Node.js 22 recommandé. `npm test` utilise `node --test` ; aucun paquet NPM n'est requis.
 
-## Sécurité et contributions
+## Structure
 
-Jamais de clé `service_role`, de mot de passe ou de fichier `.env` dans le dépôt. Les futures fonctions Edge doivent valider le JWT, l'autorisation joueur, les données entrantes et gérer des écritures atomiques. Le serveur, jamais le navigateur, attribue cartes, budget et victoire.
+```text
+index.html                       Interface de collection, deck, arène, boosters
+styles.css                       Identité visuelle responsive
+app.js                           Logique d'interface / mode solo
+data/cards.js                    49 identifiants et raretés, sources à vérifier
+game/engine.js                   Moteur solo déterministe + IA
+game/booster.js                  Simulation de tirage, sans économie réelle
+tests/*.test.mjs                 Tests moteur, booster et données
+security/restrict_booster_rpc.sql Proposition de durcissement, NON APPLIQUÉE
+docs/AUDIT_ET_FEUILLE_DE_ROUTE.md Audit de sécurité et plan de travail
+docs/REGLES_DU_PROTOTYPE.md      Règles du mode solo
+```
+
+## Attention : deux moteurs différents
+
+Le moteur solo `game/engine.js` est un **nouveau prototype indépendant**. L'archive d'origine mentionnait `engine.js` mais ne le contenait pas, pas plus que le site d'origine ou les migrations initiales. **Ce nouveau moteur ne doit pas être importé tel quel dans les anciennes Edge Functions PvP** : les signatures et règles doivent d'abord être réconciliées.
+
+Les noms du catalogue sont des libellés provisoires dérivés des IDs. Aucune référence vidéo ni photographie n'a été inventée ou validée. Les statistiques de combat affichées sont temporaires et ne reflètent pas une recherche sur Thomas Deseur.
+
+### Ce qui n'est PAS prêt
+
+- Pas de connexion à Supabase (aucun projet lié accessible lors du contrôle).
+- Pas de vrais comptes, PvP, ELO, économie en ligne, propriété des cartes ni échanges.
+- Pas de contenu média final autorisé ou vérifié.
+- Pas de déploiement public ; les modifications sont isolées sur la branche `dev/thomas-deseur-tcg` du dépôt `cosscoll/Cosme-Collomb`, qui n'est pas le futur dépôt indépendant.
+
+Ne jamais committer de `service_role`, mot de passe ou secrets dans GitHub. Ne pas déployer `security/restrict_booster_rpc.sql` sans vérifier les signatures et les politiques réelles de la base cible.
+
+## Roadmap
+
+1. Valider le solo sur navigateur desktop et mobile, tester l'équilibrage sur davantage de decks.
+2. Retrouver les sources du projet initial et identifier précisément les mécaniques d'origine.
+3. Documenter les 49 apparitions et leurs médias avec liens, dates et statut de droits.
+4. Créer un dépôt autonome et un environnement Supabase de développement si les accès l'autorisent.
+5. Construire le backend PvP/économie par transactions atomiques, RLS et tests de concurrence.
+6. Ajouter onboarding, progression, classements, échanges, puis publier après validation.
+
+Voir le document des règles et l'audit détaillé dans `docs/`.
