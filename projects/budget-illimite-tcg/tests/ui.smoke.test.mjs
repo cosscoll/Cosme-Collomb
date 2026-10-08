@@ -73,6 +73,10 @@ test("solo UI: from card catalog and deck editing through a finished match", asy
   assert.equal(get("startMatch").disabled, false);
   get("balancedDeck").click();
   assert.equal(get("deckCount").textContent, "8 / 8");
+  assert.match(get("deckComposition").textContent, /Assaut : 2/);
+  assert.match(get("deckComposition").textContent, /Rempart : 2/);
+  assert.match(get("deckComposition").textContent, /Tacticien : 2/);
+  assert.match(get("deckComposition").textContent, /Chaos : 2/);
   get("resetDeck").click();
   get("aiDifficulty").value = "decouverte";
 
@@ -99,6 +103,12 @@ test("solo UI: from card catalog and deck editing through a finished match", asy
   get("startMatch").click();
   assert.equal(get("matchesPlayed").textContent, "1");
   assert.equal(get("turnInfo").textContent, "C'est ton tour");
+  get("quickAction").click(); // Planifie le tour de Billy
+  assert.ok(timers.length > 0);
+  get("startMatch").click(); // Annule l'ancienne partie
+  timers.shift()(); // L'ancien callback ne doit plus rien modifier
+  assert.equal(get("turnInfo").textContent, "C'est ton tour");
+  assert.equal(get("matchesPlayed").textContent, "1");
   get("simulateBooster").click();
   assert.equal(get("boosterResults").children.length, 5);
   assert.equal(database.get("budget-illimite:solo-difficulty:v1"), "decouverte");
