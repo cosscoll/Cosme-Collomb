@@ -132,6 +132,11 @@ export function createSeam(path, angle,{radius=TUNNEL_RADIUS,segments=140,start=
 // The second junction belongs to the shared projects corridor.
 // Its five routes are actual independent splines (not decorative labels).
 export const PROJECT_FORK_POSITION = [-9.5,0,-61]
+// Fixed shared view target: all five gateways are surveyed from the exact
+// same place and orientation before entering a project and after returning.
+export const PROJECT_FORK_FOCUS = PATHS.children.reduce(
+  (sum,path)=>sum.add(path.getPointAt(.45)),new THREE.Vector3()
+).multiplyScalar(1/PATHS.children.length)
 export const PROJECT_BRANCH_COLORS = [
   '#c7b5ff', '#97dce5', '#f5c5b2', '#d8c8a4', '#b0dbca'
 ]
