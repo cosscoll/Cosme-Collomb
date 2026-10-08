@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { routeInfo, scrollT, sampleTransit, junctionFor, arrivalT, bridgeBuild } from '../scene/transit.js'
+import { routeInfo, scrollT, sampleTransit, junctionFor, arrivalT, bridgeBuild, PROJECT_LOOKOUT_T } from '../scene/transit.js'
 import {
-  PATHS, PROJECT_BRANCH_COLORS, PROJECT_FORK_OPEN, PROJECT_FORK_CLOSE,
+  PATHS, PROJECT_BRANCH_COLORS, PROJECT_FORK_OPEN, PROJECT_FORK_CLOSE, PROJECT_FORK_FOCUS,
   createSkin, createSeam, detailReturning
 } from '../scene/geometry.js'
 
@@ -17,11 +17,12 @@ function Shell({path,branch=false,transit=null,arrival=false}) {
   const start=branch?PROJECT_FORK_OPEN:0
   const end=branch?PROJECT_FORK_CLOSE:1
   const radius=branch?2.85:4.25
-  // Incoming preview uses a lighter shell; at the end the full-quality
-  // destination replaces it with precisely the same spline and radius.
-  const divisions=arrival?(branch?66:180):(branch?104:300)
-  const radial=arrival?(branch?28:48):(branch?40:64)
-  const seamsCount=arrival?(branch?2:4):(branch?3:7)
+  // The outgoing and incoming walls have EXACTLY the same tessellation.
+  // A lighter preview used to pop into a different full-quality mesh at the
+  // final frame, even though the camera itself had not moved.
+  const divisions=branch?104:300
+  const radial=branch?40:64
+  const seamsCount=branch?3:7
   const geometry=useMemo(()=>createSkin(path,{
     radius,lengthSegments:divisions,radialSegments:radial,start,end
   }),[path,branch,arrival])
@@ -30,19 +31,16 @@ function Shell({path,branch=false,transit=null,arrival=false}) {
   const seamMaterials=useRef([])
   useFrame((_,dt)=>{
     if(!surface.current)return
-    const p=transit?Math.max(0,Math.min(1,(performance.now()-transit.startedAt)/transit.duration)):0
-    // Avoid expensive transparent overdraw of dormant corridors in software
-    // WebGL. Reveal each 3D segment only when its animation has begun.
+    const p=transit?(transit.progress??0):0
+    // Never draw two full overlapping opaque route shells at once. They
+    // share most of the trunk but have slightly different Frenet frames:
+    // transparency overdraw here looked like broken walls / clipping.
+    // Switch at the actual common junction while the building branch persists.
     if(root.current)root.current.visible=!transit||
-      (arrival?p>(branch?.78:.65):p<.72)
-    // Incoming corridor reaches full opacity BEFORE the departing corridor
-    // and temporary bridge are removed. This prevents the final-frame pop.
-    const target=!transit?1:arrival?
-      smooth((p-(branch?.78:.66))/(branch?.21:.29)):
-      1-smooth((p-.28)/.40)
-    surface.current.opacity=target
+      (arrival?p>=.52:p<.52)
+    surface.current.opacity=1
     seamMaterials.current.forEach((material,i)=>{
-      if(material)material.opacity=target*(i%2===0?.46:.24)
+      if(material)material.opacity=i%2===0?.46:.24
     })
   })
   useEffect(()=>()=>geometry.dispose(),[geometry])
@@ -55,7 +53,7 @@ function Shell({path,branch=false,transit=null,arrival=false}) {
     <group ref={root}>
       <mesh geometry={geometry}>
         <meshPhysicalMaterial ref={surface} vertexColors side={THREE.BackSide}
-          transparent opacity={arrival?0:1} depthWrite={false}
+          opacity={1} depthWrite
           metalness={.58} roughness={.29}
           clearcoat={.88} clearcoatRoughness={.17}
           emissive="#514962" emissiveIntensity={.2}/>
@@ -65,7 +63,7 @@ function Shell({path,branch=false,transit=null,arrival=false}) {
           <tubeGeometry args={[seam,160,index%2===0?.018:.009,6,false]}/>
           <meshBasicMaterial ref={el=>{seamMaterials.current[index]=el}}
             color={index%3===0?'#f2d9d0':'#d4d8ff'}
-            transparent opacity={arrival?0:index%2===0?.46:.24}
+            transparent opacity={index%2===0?.46:.24}
             depthWrite={false} toneMapped={false}/>
         </mesh>
       ))}
@@ -119,7 +117,7 @@ function RouteMarkers({mode,hovered}) {
       <DirectionGate key={'sub'+i} path={path}
         color={PROJECT_BRANCH_COLORS[i]}
         hovered={hovered==='project-'+i}
-        at={.55} radius={2.45}/>
+        at={.45} radius={2.1}/>
     ))}
   </group>
 }
@@ -159,6 +157,7 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
   const {camera}=useThree()
   const current=useRef(null)
   const transitId=useRef(null)
+  const flightState=useRef({id:null,p:0,mid:false,done:false})
   const departure=useRef(null)
   const pointer=useRef({x:0,y:0})
   const softPointer=useRef({x:0,y:0})
@@ -182,7 +181,23 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
   },[])
 
   useFrame(({clock},delta)=>{
-    const dt=Math.min(delta,.05)
+    // Clamp elapsed FRAME time, not just clock time: a costly WebGL frame
+    // must slow the journey rather than skipping 15 metres when rendering resumes.
+    const dt=Math.min(delta,.12)
+    const flight=flightState.current
+    if(transit){
+      if(flight.id!==transit.id){
+        flight.id=transit.id
+        flight.p=0
+        flight.mid=false
+        flight.done=false
+      }
+      // The spatial step is calculated after the departure spline is known.
+    }else{
+      flight.id=null
+      flight.p=0
+    }
+    let visualProgress=transit?flight.p:0
     const total=Math.max(1,document.documentElement.scrollHeight-window.innerHeight)
     const y=window.scrollY
     const homeJunction=document.getElementById('junction')
@@ -205,8 +220,23 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
             projectFork:scrollPositions.current.fork}):
           current.current
       }
-      const p=Math.min(1,Math.max(0,(performance.now()-transit.startedAt)/transit.duration))
-      sample=sampleTransit(routeInfo(transit.from),routeInfo(transit.to),departure.current,p)
+      const from=routeInfo(transit.from),to=routeInfo(transit.to)
+      // Cap each actual *world-space* frame movement, even when the user
+      // changes pages from the far end of a long corridor via the header.
+      // This also prevents crossing an opaque wall after a GPU stall.
+      const last=sampleTransit(from,to,departure.current,flight.p)
+      const lastPoint=last.path.getPointAt(clamp(last.t))
+      let nextP=Math.min(1,flight.p+dt/(transit.duration/1000))
+      for(let attempt=0;attempt<10;attempt++){
+        const next=sampleTransit(from,to,departure.current,nextP)
+        const point=next.path.getPointAt(clamp(next.t))
+        if(lastPoint.distanceTo(point)<=1.4)break
+        nextP=(flight.p+nextP)*.5
+      }
+      flight.p=nextP
+      transit.progress=nextP
+      visualProgress=nextP
+      sample=sampleTransit(from,to,departure.current,visualProgress)
       current.current=sample.t
     }else{
       transitId.current=null
@@ -228,7 +258,7 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       sample.reverse?Math.max(.001,t-.024):Math.min(.999,t+.024),ahead
     )
     if(transit){
-      const p=Math.max(0,Math.min(1,(performance.now()-transit.startedAt)/transit.duration))
+      const p=visualProgress
       const from=routeInfo(transit.from),to=routeInfo(transit.to)
       if(p>.29 && p<.56){
         const junction=junctionFor(from,to,departure.current)
@@ -242,9 +272,7 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       // This turn begins while still approaching the junction, and finishes
       // before the destination shell replaces the temporary bridge.
       if(to.mode==='projects'&&from.mode==='detail'){
-        const forkForward=to.path.getPointAt(.999)
-          .addScaledVector(to.path.getTangentAt(.997),12)
-        ahead.lerp(forkForward,smooth((p-.29)/.25))
+        ahead.lerp(PROJECT_FORK_FOCUS,smooth((p-.62)/.25))
       }
     }
     sample.path.getTangentAt(t,direction)
@@ -261,8 +289,7 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
     // Keep looking through the physical junction toward its five corridors,
     // including immediately after a completed-project return.
     if(!transit && route.mode==='projects' && y>=scrollPositions.current.fork*.68){
-      ahead.copy(route.path.getPointAt(.999))
-        .addScaledVector(route.path.getTangentAt(.997),12)
+      ahead.copy(PROJECT_FORK_FOCUS)
     }
     if(!transit && route.mode==='projects' && hovered.startsWith('project-') && y>window.innerHeight*.45){
       const idx=Number(hovered.slice(8))
@@ -281,10 +308,36 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
     }else{
       camera.quaternion.slerp(rotation,1-Math.exp(-dt*(transit?7:5)))
     }
-    const boost=transit?2.3*Math.sin(Math.PI*Math.min(1,
-      Math.max(0,(performance.now()-transit.startedAt)/transit.duration))):0
+    const boost=transit?2.3*Math.sin(Math.PI*visualProgress):0
     camera.fov=THREE.MathUtils.damp(camera.fov,45+boost,4,dt)
     camera.updateProjectionMatrix()
+    // Expose physical flight telemetry for real camera-continuity regression
+    // tests (DOM-only route tests cannot detect a 3D position teleport).
+    window.__portfolioFlight={
+      position:[camera.position.x,camera.position.y,camera.position.z],
+      direction:[ahead.x-camera.position.x,ahead.y-camera.position.y,ahead.z-camera.position.z],
+      mode:sample.mode,t,forkTarget:PROJECT_LOOKOUT_T,transiting:Boolean(transit),
+      phase:sample.phase||'scroll',
+      currentRoute:route.pathName,from:transit?.from,to:transit?.to,
+      progress:transit?visualProgress:null,
+      samplePath:transit?(sample.path===routeInfo(transit.to).path?'destination':'source'):route.pathName
+    }
+    if(transit){
+      // Notify React Router only once the camera has PHYSICALLY arrived.
+      // Prevents DOM and 3D shell swaps while WebGL rendering is stalled.
+      if(!flight.mid&&visualProgress>=.56){
+        flight.mid=true
+        window.dispatchEvent(new CustomEvent('portfolio:flight-milestone',{
+          detail:{id:transit.id,stage:'midpoint'}
+        }))
+      }
+      if(!flight.done&&visualProgress>=1){
+        flight.done=true
+        window.dispatchEvent(new CustomEvent('portfolio:flight-milestone',{
+          detail:{id:transit.id,stage:'complete'}
+        }))
+      }
+    }
   })
   return null
 }
@@ -349,7 +402,7 @@ function BuildingBranch({transit,flightPosition}) {
     ringGeometry.dispose()
   },[journey,ringGeometry])
   useFrame((_,dt)=>{
-    const p=Math.max(0,Math.min(1,(performance.now()-transit.startedAt)/transit.duration))
+    const p=transit.progress??0
     const built=bridgeBuild(p)
     const visibility=1-smooth((p-.76)/.22)
     if(bridgeMaterial.current){

@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import * as THREE from 'three'
 import { PROJECTS_WITH_SLUGS as PROJECTS } from '../src/data/projects.js'
-import { createSkin } from '../src/scene/geometry.js'
+import { createSkin, PATHS, PROJECT_FORK_FOCUS, PROJECT_FORK_POSITION } from '../src/scene/geometry.js'
 import {
   routeInfo, sampleTransit, junctionFor, arrivalT, scrollT,
   bridgeBuild, TRANSIT_DURATION, PROJECT_INDEX_HUB, PROJECT_LOOKOUT_T, TRANSIT_MID
@@ -134,7 +134,9 @@ test('All five paths remain accessible when a project visit is complete',async()
  const fs=await import('node:fs/promises')
  const app=await fs.readFile(new URL('../src/App.jsx',import.meta.url),'utf8')
  const world=await fs.readFile(new URL('../src/components/World.jsx',import.meta.url),'utf8')
- assert.ok(app.includes('Retourner au carrefour des cinq projets'))
+ assert.ok(app.includes('Revenir maintenant au carrefour des cinq projets'))
+ assert.ok(app.includes('onJourneyFinished()'))
+ assert.ok(!app.includes('PROJECTS.filter(project=>project.slug!==p.slug)'))
  assert.ok(app.includes('state={{fromJourney:true}}'))
  assert.ok(world.includes("projectFork.offsetTop"))
  assert.ok(!world.includes("projectFork.offsetTop+projectFork.offsetHeight*.35"))
@@ -142,4 +144,24 @@ test('All five paths remain accessible when a project visit is complete',async()
  assert.ok(world.includes("to.mode==='projects'&&from.mode==='detail'"))
  assert.ok(world.includes('bridgeMaterial.current.opacity=visibility'))
  assert.ok(world.includes('arrival?'))
+})
+
+test('All five physical tunnel mouths face the same stable fork camera viewpoint',()=>{
+ assert.equal(PATHS.children.length,5)
+ assert.ok(PROJECT_FORK_FOCUS.z<PROJECT_FORK_POSITION[2]-10)
+ assert.ok(Math.abs(PROJECT_FORK_FOCUS.x-PROJECT_FORK_POSITION[0])<.01)
+ assert.ok(Math.abs(PROJECT_FORK_FOCUS.y-PROJECT_FORK_POSITION[1])<.01)
+ const mouths=PATHS.children.map(route=>route.getPointAt(.45))
+ for(let i=0;i<mouths.length;i++)for(let j=i+1;j<mouths.length;j++){
+  assert.ok(mouths[i].distanceTo(mouths[j])>4.2,
+   'Physical five-way gates overlap and obscure one another: '+i+' / '+j)
+ }
+})
+test('Finishing a project cannot display an invented four-choice return junction',async()=>{
+ const fs=await import('node:fs/promises')
+ const app=await fs.readFile(new URL('../src/App.jsx',import.meta.url),'utf8')
+ assert.ok(app.includes('onJourneyFinished()'))
+ assert.ok(app.includes("beginTrip('/projets')"))
+ assert.ok(!app.includes('className="return-choices"'))
+ assert.ok(app.includes('document.documentElement.scrollHeight-window.innerHeight'))
 })

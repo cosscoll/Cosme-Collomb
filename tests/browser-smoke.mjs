@@ -25,7 +25,7 @@ async function verifyPage(page,name,expected){
   // Router navigation includes a 4.2-second built tunnel passage.
   // Await the EXPECTED page, rather than immediately reading the departing H1.
   const target=page.locator('main h1').filter({hasText:expected}).first()
-  await target.waitFor({state:'visible',timeout:25000})
+  await target.waitFor({state:'visible',timeout:60000})
   // A heading can appear while Framer Motion is still blurring the page.
   // Verify the final state, not a screenshot taken mid-transition.
   await page.waitForFunction(()=>{
@@ -50,6 +50,43 @@ async function captureWhenPossible(page,path){
   catch(error){console.warn('Optional WebGL screenshot unavailable:',path,error.message)}
 }
 
+
+// Record actual WebGL camera positions over time. A browser route can pass
+// while the rendered camera visibly teleports or crosses the same wall twice.
+async function beginFlightTrace(page){
+  await page.evaluate(()=>{
+    clearInterval(window.__flightTimer)
+    window.__flightTrace=[]
+    window.__flightTimer=setInterval(()=>{
+      const f=window.__portfolioFlight
+      if(f)window.__flightTrace.push({
+        at:performance.now(),...f
+      })
+    },40)
+  })
+}
+async function assertFlightContinuous(page,label){
+  const data=await page.evaluate(()=>{
+    clearInterval(window.__flightTimer)
+    return window.__flightTrace||[]
+  })
+  assert.ok(data.length>12,label+': insufficient 3D camera samples')
+  let worst=0
+  for(let i=1;i<data.length;i++){
+    const a=data[i-1],b=data[i]
+    const distance=Math.hypot(...a.position.map((v,j)=>v-b.position[j]))
+    const speed=distance/Math.max(1,b.at-a.at)
+    worst=Math.max(worst,speed)
+    if(distance>2 && speed>.16)console.error('PHYSICAL CAMERA JUMP',JSON.stringify({
+      label,distance,speed,previous:data[i-2],a,b,next:data[i+1]
+    }))
+    assert.ok(!(distance>2 && speed>.16),
+      label+': physical camera jump '+distance.toFixed(2)+'m in '+(b.at-a.at).toFixed(0)+'ms')
+  }
+  console.log('Camera path continuous:',label, 'samples:',data.length,
+    'peak m/ms:',worst.toFixed(3))
+}
+
 async function run(){
   await waitForServer()
   await mkdir('test-output',{recursive:true})
@@ -59,11 +96,11 @@ async function run(){
       '--disable-dev-shm-usage','--disable-gpu-sandbox']
   })
   const page=await browser.newPage({viewport:{width:1030,height:690}})
-  page.setDefaultTimeout(20000)
+  page.setDefaultTimeout(60000)
   const errors=[]
   page.on('pageerror',error=>errors.push(String(error)))
 
-  await page.goto(site,{waitUntil:'domcontentloaded',timeout:25000})
+  await page.goto(site,{waitUntil:'domcontentloaded',timeout:60000})
   await verifyPage(page,'home',/Donner forme/i)
 
   await page.locator('.header-primary a').filter({hasText:'Projets'}).click()
@@ -73,7 +110,7 @@ async function run(){
   // The WebGL passage must exist and build in visible frames, not a white
   // screen that merely masks an instantaneous URL change.
   const canvas=page.locator('.scene-backdrop canvas').first()
-  await canvas.waitFor({state:'visible',timeout:25000})
+  await canvas.waitFor({state:'visible',timeout:60000})
   console.log('3D canvas present:',await canvas.evaluate(node=>({
     width:node.width,height:node.height
   })))
@@ -89,38 +126,55 @@ async function run(){
     })
     observer.observe(document.documentElement,{childList:true,subtree:true})
   })
+  await page.evaluate(()=>window.scrollTo({
+    top:document.getElementById('project-crossroads').offsetTop,behavior:'instant'
+  }))
+  await page.waitForFunction(()=>{
+    const f=window.__portfolioFlight
+    return f?.mode==='projects' && !f.transiting &&
+      Math.abs(f.t-f.forkTarget)<.004
+  },null,{timeout:60000})
+  const originalFork=await page.evaluate(()=>window.__portfolioFlight?.position)
+  console.log('INITIAL FIVE-WAY 3D CAMERA',await page.evaluate(()=>window.__portfolioFlight))
+  assert.ok(originalFork?.length===3,'Original 3D fork viewpoint not available')
+  await beginFlightTrace(page)
   await page.locator('.fork-choice').first().click()
-  await page.waitForFunction(()=>window.__sawProjectBridge,{timeout:12000})
+  await page.waitForFunction(()=>window.__sawProjectBridge,{timeout:60000})
   assert.equal(await page.locator('.transition-portal').count(),0,
     'Legacy full-screen portal is still masking the real tunnel')
   await page.waitForTimeout(630)
   await page.waitForTimeout(2250)
   await verifyPage(page,'first project',/Ouvertures d'échecs/i)
+  await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:60000})
+  await assertFlightContinuous(page,'first project entry')
 
-  // Reproduce the reported regression AFTER finishing the entire project
-  // corridor. The camera is then travelling back towards the junction.
-  await page.locator('#return-to-projects').scrollIntoViewIfNeeded()
-  await page.evaluate(()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'}))
-  await page.waitForTimeout(450)
-  // Project return is the previously broken case: inspect the 3D transition
-  // and assert that the actual five-way crossroads and its scroll position
-  // have been restored, with no last-frame camera teleport.
-  console.log('BEFORE RETURN CLICK',await page.evaluate(()=>({
-    location:location.hash,scroll:scrollY,
-    link:document.querySelector('#return-to-projects a[href*="projets"]')?.href
-  })))
-  await page.locator('#return-to-projects a[href*="projets"]').last().click()
-  console.log('RETURN CLICKED',await page.evaluate(()=>({
-    location:location.hash,transit:!!document.querySelector('[data-bridge-transition="active"]')
-  })))
-  await page.locator('[data-bridge-transition="active"]').waitFor()
-  await page.waitForTimeout(2750)
-  console.log('AFTER RETURN MIDPOINT',await page.evaluate(()=>({
-    location:location.hash,scroll:scrollY,heading:document.querySelector('main h1')?.textContent
-  })))
+  // Finishing a project must AUTO-RETURN to the physical five-way fork.
+  // A duplicate four-choice "return intersection" is explicitly forbidden.
+  assert.equal(await page.locator('.return-choices').count(),0,
+    'A second crossroads with only four projects still exists')
+  await beginFlightTrace(page)
+  await page.evaluate(()=>window.scrollTo({
+    top:document.documentElement.scrollHeight,behavior:'instant'
+  }))
+  await page.locator('[data-bridge-transition="active"]').waitFor({timeout:60000})
   await verifyPage(page,'back to projects',/Cinq projets/i)
-  await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:12000})
-  await page.waitForTimeout(260)
+  await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:60000})
+  await page.waitForFunction(()=>{
+    const f=window.__portfolioFlight
+    return f?.mode==='projects' && !f.transiting &&
+      Math.abs(f.t-f.forkTarget)<.004
+  },null,{timeout:60000})
+  await assertFlightContinuous(page,'automatic project return')
+  console.log('RESTORED FIVE-WAY 3D CAMERA',await page.evaluate(()=>({
+    flight:window.__portfolioFlight,
+    scrollY:window.scrollY,
+    forkTop:document.querySelector('#project-crossroads')?.offsetTop
+  })))
+  const restoredFork=await page.evaluate(()=>window.__portfolioFlight?.position)
+  const forkDrift=Math.hypot(...originalFork.map((v,i)=>v-restoredFork[i]))
+  assert.ok(forkDrift<.7,
+    'Return is not the identical 3D camera location at the original five project gates: '+forkDrift)
+  console.log('Physical five-way fork restored, camera drift:',forkDrift.toFixed(3),'metres')
   // SwiftShader can stall on GPU readback after disposing the temporary 3D
   // bridge. The geometric/UI checks below remain mandatory if that happens.
   const crossroads=await page.evaluate(()=>{
@@ -137,10 +191,24 @@ async function run(){
   await verifyPage(page,'second project after returning',/Probabilités Hold'em/i)
   await page.locator('.header-return').click()
   await verifyPage(page,'back to projects a second time',/Cinq projets/i)
-  await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:12000})
+  await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:60000})
   assert.ok(await page.locator('.fork-choice').count()===5)
 
 
+  // Changing main pages with the header must animate through a physical
+  // corridor too, without an instant three-dimensional position jump.
+  await beginFlightTrace(page)
+  await page.locator('.header-primary a').filter({hasText:'Parcours'}).click()
+  await page.locator('[data-bridge-transition="active"]').waitFor()
+  await verifyPage(page,'header to parcours',/Faire dialoguer/i)
+  await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:60000})
+  await assertFlightContinuous(page,'header to parcours')
+  await beginFlightTrace(page)
+  await page.locator('.header-primary a').filter({hasText:'Contact'}).click()
+  await page.locator('[data-bridge-transition="active"]').waitFor()
+  await verifyPage(page,'header to contact',/La suite/i)
+  await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:60000})
+  await assertFlightContinuous(page,'header to contact')
   await page.locator('.header-home-link').click()
   await verifyPage(page,'return to homepage',/Donner forme/i)
 
