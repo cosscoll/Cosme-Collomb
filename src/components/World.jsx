@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { routeInfo, scrollT, arrivalT, sampleTransit, junctions, transitBuild } from '../scene/transit.js'
+import { routeInfo, scrollT, sampleTransit } from '../scene/transit.js'
 import {
   PATHS, PROJECT_BRANCH_COLORS, PROJECT_FORK_OPEN, PROJECT_FORK_CLOSE,
   createSkin, createSeam, detailReturning
@@ -12,7 +12,7 @@ const FORWARD=new THREE.Vector3(0,0,1)
 const clamp=n=>Math.min(1,Math.max(0,n))
 const smooth=n=>{const v=clamp(n);return v*v*(3-2*v)}
 
-function Shell({path,branch=false,transit=null}) {
+function Shell({path,branch=false}) {
   // Closed 360° surface, with no overlapping opaque walls inside the hub.
   const start=branch?PROJECT_FORK_OPEN:0
   const end=branch?PROJECT_FORK_CLOSE:1
@@ -23,22 +23,6 @@ function Shell({path,branch=false,transit=null}) {
   const geometry=useMemo(()=>createSkin(path,{
     radius,lengthSegments:divisions,radialSegments:radial,start,end
   }),[path,branch])
-  const material=useRef(null)
-  const seamMaterials=useRef([])
-  useFrame((_,delta)=>{
-    const p=transit?Math.min(1,Math.max(0,(performance.now()-transit.startedAt)/transit.duration)):0
-    // Never show two independent corridors intersecting mid-transition.
-    // Source fades BEFORE the page swap; destination appears only at arrival.
-    const fade=!transit?1:p<.15?1:
-      p<.35?1-.96*smooth((p-.15)/.20):
-      p<.79?.04:.04+.96*smooth((p-.79)/.21)
-    if(material.current){
-      material.current.opacity=THREE.MathUtils.damp(material.current.opacity,fade,10,Math.min(delta,.05))
-    }
-    seamMaterials.current.forEach((m,i)=>{
-      if(m)m.opacity=THREE.MathUtils.damp(m.opacity,fade*(i%2===0?.40:.19),10,Math.min(delta,.05))
-    })
-  })
   useEffect(()=>()=>geometry.dispose(),[geometry])
   const seams=useMemo(()=>
     Array.from({length:seamsCount},(_,i)=>
@@ -48,7 +32,7 @@ function Shell({path,branch=false,transit=null}) {
   return (
     <group>
       <mesh geometry={geometry}>
-        <meshPhysicalMaterial ref={material} transparent opacity={transit?.04:1} depthWrite={false} vertexColors side={THREE.BackSide}
+        <meshPhysicalMaterial vertexColors side={THREE.BackSide}
           metalness={.58} roughness={.29}
           clearcoat={.88} clearcoatRoughness={.17}
           emissive="#514962" emissiveIntensity={.2}/>
@@ -56,9 +40,8 @@ function Shell({path,branch=false,transit=null}) {
       {seams.map((seam,index)=>(
         <mesh key={index}>
           <tubeGeometry args={[seam,160,index%2===0?.018:.009,6,false]}/>
-          <meshBasicMaterial ref={m=>{seamMaterials.current[index]=m}}
-            color={index%3===0?'#f2d9d0':'#d4d8ff'}
-            transparent opacity={transit?.03:index%2===0?.40:.19}
+          <meshBasicMaterial color={index%3===0?'#f2d9d0':'#d4d8ff'}
+            transparent opacity={index%2===0?.58:.28}
             depthWrite={false} toneMapped={false}/>
         </mesh>
       ))}
@@ -148,10 +131,11 @@ function Sparkles() {
   </points>
 }
 
-function CameraFlight({route,hovered,transit,flightPosition}) {
+function CameraFlight({route,hovered,transit}) {
   const {camera}=useThree()
   const current=useRef(null)
-  const wasTransiting=useRef(false)
+  const transitId=useRef(null)
+  const departure=useRef(null)
   const pointer=useRef({x:0,y:0})
   const softPointer=useRef({x:0,y:0})
   const first=useRef(true)
@@ -184,24 +168,34 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
     if(work)scrollPositions.current.works=work.offsetTop
     if(projectFork)scrollPositions.current.fork=projectFork.offsetTop+projectFork.offsetHeight*.35
 
-    // The ordinary scroll camera relinquishes control for the whole graph
-    // transition. Its exact last spline parameter is preserved externally.
-    if(transit){wasTransiting.current=true;return}
-    const nextT=scrollT(route,{
-      scrollY:y,total,junction:scrollPositions.current.junction,
-      works:scrollPositions.current.works,projectFork:scrollPositions.current.fork
-    })
-    if(wasTransiting.current){
-      current.current=nextT
-      wasTransiting.current=false
+    let sample
+    if(transit){
+      if(transitId.current!==transit.id){
+        transitId.current=transit.id
+        // Capture the exact position in the existing 3D corridor, BEFORE
+        // React Router exchanges the content, even midway through a scroll.
+        departure.current=current.current===null?
+          scrollT(route,{scrollY:y,total,
+            junction:scrollPositions.current.junction,
+            works:scrollPositions.current.works,
+            projectFork:scrollPositions.current.fork}):
+          current.current
+      }
+      const p=Math.min(1,Math.max(0,(performance.now()-transit.startedAt)/transit.duration))
+      sample=sampleTransit(routeInfo(transit.from),routeInfo(transit.to),departure.current,p)
+      current.current=sample.t
     }else{
+      transitId.current=null
+      const nextT=scrollT(route,{
+        scrollY:y,total,junction:scrollPositions.current.junction,
+        works:scrollPositions.current.works,projectFork:scrollPositions.current.fork
+      })
       current.current=current.current===null?nextT:
         THREE.MathUtils.damp(current.current,nextT,3.4,dt)
+      sample={path:route.path,t:current.current,
+        reverse:route.mode==='detail'&&detailReturning(y/total),
+        mode:route.mode,index:route.index}
     }
-    if(flightPosition)flightPosition.current={t:current.current,pathname:route.pathName}
-    const sample={path:route.path,t:current.current,
-      reverse:route.mode==='detail'&&detailReturning(y/total),
-      mode:route.mode,index:route.index}
 
     const t=Math.max(.001,Math.min(.998,sample.t))
     sample.path.getPointAt(t,position)
@@ -243,142 +237,30 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
   return null
 }
 
-
-function JunctionTransit({transit,flightPosition}) {
-  const {camera}=useThree()
-  const journey=useMemo(()=>{
-    const source=routeInfo(transit.from)
-    const destination=routeInfo(transit.to)
-    // Prefer the parameter recorded by the scroll camera. The fallback is
-    // the source scroll progress if a click happened on the first frame.
-    const startingT=flightPosition.current?.pathname===transit.from
-      ?flightPosition.current.t
-      :scrollT(source,{
-        scrollY:transit.sourceScroll,
-        total:Math.max(1,document.documentElement.scrollHeight-window.innerHeight)
-      })
-    const shared=junctions(source,destination,startingT)
-    const endT=arrivalT(destination,source)
-    const reverse=endT<shared.target
-    const span=Math.abs(endT-shared.target)
-    const padding=.032
-    // Revealed skin follows the exact existing target spline. For very short
-    // returns to the projects hub, reveal a substantial tunnel approach.
-    const extra=span<.075?.13:.065
-    let start,end
-    if(reverse){
-      start=Math.max(0,endT-extra)
-      end=Math.max(start+.006,shared.target-padding)
-    }else{
-      start=Math.min(.985,shared.target+padding)
-      end=Math.min(.998,Math.max(start+.065,endT+extra))
-    }
-    const radial=48,segments=200,radius=4.17
-    const geometry=createSkin(destination.path,{
-      radius,lengthSegments:segments,radialSegments:radial,start,end
-    })
-    geometry.setDrawRange(0,0)
-    const hoops=[]
-    for(let i=0;i<14;i++){
-      const p=(i+.55)/14
-      const t=reverse?end+(start-end)*p:start+(end-start)*p
-      const position=destination.path.getPointAt(t)
-      const tangent=destination.path.getTangentAt(t)
-      const orientation=new THREE.Quaternion().setFromUnitVectors(
-        new THREE.Vector3(0,0,1),tangent.normalize()
-      )
-      hoops.push({p,position,orientation})
-    }
-    return {source,destination,startingT,shared,endT,start,end,
-      reverse,geometry,radial,segments,hoops}
-  },[transit.id])
-  const forward=useMemo(()=>new THREE.Vector3(),[])
-  const position=useMemo(()=>new THREE.Vector3(),[])
-  const destinationRotation=useMemo(()=>new THREE.Quaternion(),[])
-  const lookMatrix=useMemo(()=>new THREE.Matrix4(),[])
-  const hoops=useRef([])
-  const hoopGeometry=useMemo(()=>new THREE.TorusGeometry(4.07,.023,6,76),[])
-  useEffect(()=>()=>{
-    journey.geometry.dispose()
-    hoopGeometry.dispose()
-  },[journey,hoopGeometry])
-
-  useFrame((_,delta)=>{
-    const p=Math.max(0,Math.min(1,(performance.now()-transit.startedAt)/transit.duration))
-    const built=transitBuild(p)
-    const total=journey.geometry.index.count
-    const triangles=Math.floor(total/(journey.radial*6))
-    const count=Math.floor(triangles*built)*journey.radial*6
-    if(journey.reverse) journey.geometry.setDrawRange(Math.max(0,total-count),count)
-    else journey.geometry.setDrawRange(0,count)
-    journey.hoops.forEach((hoop,i)=>{
-      const mesh=hoops.current[i]
-      if(!mesh)return
-      const appeared=Math.max(0,Math.min(1,(built-hoop.p)*10))
-      mesh.visible=appeared>.01
-      mesh.material.opacity=appeared*.37
-    })
-
-    // EVERY frame samples the physical graph. Both legs meet at one world
-    // coordinate; no separate Bézier bridge can cut across a tunnel wall.
-    const sample=sampleTransit(journey.source,journey.destination,journey.startingT,p)
-    const t=Math.max(.001,Math.min(.998,sample.t))
-    sample.path.getPointAt(t,position)
-    sample.path.getPointAt(sample.reverse?Math.max(.001,t-.03):Math.min(.999,t+.03),forward)
-    camera.position.copy(position)
-    lookMatrix.lookAt(camera.position,forward,UP)
-    destinationRotation.setFromRotationMatrix(lookMatrix)
-    camera.quaternion.slerp(destinationRotation,
-      1-Math.exp(-Math.min(delta,.05)*4.5))
-    camera.fov=THREE.MathUtils.damp(camera.fov,45,4,Math.min(delta,.05))
-    camera.updateProjectionMatrix()
-  })
-  return <group>
-    <mesh geometry={journey.geometry} renderOrder={7}>
-      <meshStandardMaterial side={THREE.BackSide} vertexColors
-        metalness={.18} roughness={.76}
-        emissive="#20192b" emissiveIntensity={.12}
-        depthTest depthWrite/>
-    </mesh>
-    {journey.hoops.map((hoop,i)=><mesh key={i}
-      geometry={hoopGeometry}
-      ref={el=>{hoops.current[i]=el}}
-      position={hoop.position} quaternion={hoop.orientation}
-      visible={false}>
-      <meshBasicMaterial color={i%2===0?'#b6abce':'#a9c6c9'}
-        transparent opacity={0} depthWrite={false} toneMapped/>
-    </mesh>)}
-  </group>
-}
-
 function Scene({pathname,hovered,transit}) {
-  const route=routeInfo(transit?.from||pathname)
+  const route=routeInfo(pathname)
   const {mode,index,path}=route
-  const flightPosition=useRef(null)
   return <>
     <color attach="background" args={['#08080f']}/>
     <fog attach="fog" args={['#08080f',22,115]}/>
-    <ambientLight intensity={transit?.48:.78} color="#dfd1f1"/>
-    <hemisphereLight intensity={transit?.40:.75} color="#fff6e9" groundColor="#29243a"/>
-    <directionalLight position={[4,8,12]} color="#ffe9d9" intensity={transit?1.2:3.3}/>
-    <pointLight position={[-2,-1,-11]} color="#b3a1ef" intensity={transit?6:38} distance={28} decay={2}/>
-    <pointLight position={[3,3,-28]} color="#f1c9bb" intensity={transit?7:42} distance={30} decay={2}/>
-    <pointLight position={[-6,3,-53]} color="#a6cbd9" intensity={transit?7:45} distance={32} decay={2}/>
-    <pointLight position={[3,-2,-77]} color="#9996de" intensity={transit?6:34} distance={27} decay={2}/>
-    <Shell key={mode+'-'+index} path={path} transit={transit}/>
+    <ambientLight intensity={.78} color="#dfd1f1"/>
+    <hemisphereLight intensity={.75} color="#fff6e9" groundColor="#29243a"/>
+    <directionalLight position={[4,8,12]} color="#ffe9d9" intensity={3.3}/>
+    <pointLight position={[-2,-1,-11]} color="#b3a1ef" intensity={38} distance={28} decay={2}/>
+    <pointLight position={[3,3,-28]} color="#f1c9bb" intensity={42} distance={30} decay={2}/>
+    <pointLight position={[-6,3,-53]} color="#a6cbd9" intensity={45} distance={32} decay={2}/>
+    <pointLight position={[3,-2,-77]} color="#9996de" intensity={34} distance={27} decay={2}/>
+    <Shell key={mode+'-'+index} path={path}/>
     {mode==='projects' && PATHS.children.map((arm,i)=>(
-      <Shell key={'branch-'+i} path={arm} branch transit={transit}/>
+      <Shell key={'branch-'+i} path={arm} branch/>
     ))}
     {(mode==='projects'||mode==='detail') && PATHS.children.map((arm,i)=>(
       <ForkGuide key={'guide-'+i} path={arm}
         color={PROJECT_BRANCH_COLORS[i]} active={hovered==='project-'+i}/>
     ))}
-    {!transit && <RouteMarkers mode={mode} hovered={hovered}/>} 
-    {!transit && <Sparkles/>}
-    <CameraFlight route={route} hovered={hovered} transit={transit}
-      flightPosition={flightPosition}/>
-    {transit&&<JunctionTransit key={transit.id}
-      transit={transit} flightPosition={flightPosition}/>}
+    <RouteMarkers mode={mode} hovered={hovered}/>
+    <Sparkles/>
+    <CameraFlight route={route} hovered={hovered} transit={transit}/>
   </>
 }
 

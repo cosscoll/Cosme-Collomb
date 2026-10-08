@@ -2,8 +2,8 @@ import { PATHS, MAIN_HUBS, PROJECT_HUBS, PROJECT_FORK_POSITION,
   projectOutboundT, detailTravelT, closestT } from './geometry.js'
 import { PROJECTS_WITH_SLUGS as PROJECTS } from '../data/projects.js'
 
-export const TRANSIT_DURATION=5000
-export const TRANSIT_MID=.45
+export const TRANSIT_DURATION=2500
+export const TRANSIT_MID=.5
 export const ease=t=>{
   const v=Math.max(0,Math.min(1,t))
   return v*v*(3-2*v)
@@ -39,9 +39,8 @@ export function arrivalT(info,from){
   if(info.mode==='detail')return projectOutboundT(info.index)
   if(info.mode==='projects' && ['projects','detail'].includes(from.mode))
     return PROJECT_INDEX_HUB-.012
-  if(info.mode==='home')return .025
-  if(info.mode==='projects')return info.mainHub+.105
-  return info.mainHub+.13
+  if(info.mode==='home')return .035
+  return info.mainHub+.018
 }
 export function scrollT(info,{scrollY=0,total=1,junction=1,works=2,projectFork=2}={}){
   const fraction=clamp(scrollY/Math.max(1,total))
@@ -49,54 +48,33 @@ export function scrollT(info,{scrollY=0,total=1,junction=1,works=2,projectFork=2
   if(info.mode==='projects'){
     // Centre the camera precisely in the five-way atrium when its UI appears.
     const t=ease(scrollY/Math.max(1,projectFork))
-    return info.mainHub+.105 + t*(PROJECT_INDEX_HUB-.012-info.mainHub-.105)
+    return info.mainHub+.012 + t*(PROJECT_INDEX_HUB-.012-info.mainHub-.012)
   }
   if(info.mode==='home'){
     if(scrollY<=junction)return .025+ease(scrollY/Math.max(1,junction))*(info.mainHub+.012-.025)
     if(scrollY<works)return info.mainHub+.012+ease((scrollY-junction)/Math.max(1,works-junction))*.025
     return info.mainHub+.037+ease((scrollY-works)/Math.max(1,total-works))*(.955-info.mainHub-.037)
   }
-  const entry=info.mainHub+.13
-  return entry+ease(fraction)*(.955-entry)
-}
-// All paths are from the SAME navigation graph. Never generate a separate
-// connection curve from the camera: it can cross opaque existing walls.
-export function sharedJunction(from,to,initialT){
-  const sameProjectNetwork=['home','projects','detail']
-  const nearProjects=sameProjectNetwork.includes(from.mode) &&
-    sameProjectNetwork.includes(to.mode) &&
-    !(from.mode==='home'&&initialT<(from.mainHub+from.projectHub)*.50)
-  return nearProjects?'project':'main'
-}
-export function junctions(from,to,initialT){
-  const type=sharedJunction(from,to,initialT)
-  return {
-    type,
-    source:type==='project'?from.projectHub:from.mainHub,
-    target:type==='project'?to.projectHub:to.mainHub
-  }
+  return info.mainHub+.008+ease(fraction)*(.955-info.mainHub-.008)
 }
 export function sampleTransit(from,to,initialT,progress){
   const p=clamp(progress)
-  const hub=junctions(from,to,initialT)
-  const arrival=arrivalT(to,from)
-  // First half returns to a real physical intersection on the current tunnel.
-  if(p<.47){
-    const t=initialT+(hub.source-initialT)*ease(p/.47)
-    return {path:from.path,t,reverse:hub.source<initialT,
-      mode:from.mode,index:from.index,phase:'approach'}
+  // A project selected from the lower home page is already past the first fork.
+  // Use the nearby projects junction, instead of racing backwards through the
+  // entire entrance and forwards again.
+  const nearProjects=from.mode==='home' && to.mode==='detail' &&
+    initialT>(from.mainHub+PROJECT_INDEX_HUB)*.5
+  const fromHub=nearProjects?from.projectHub:transitionAnchor(from,from,to)
+  const toHub=nearProjects?to.projectHub:transitionAnchor(to,from,to)
+  if(p<TRANSIT_MID){
+    const f=ease(p/TRANSIT_MID)
+    const t=initialT+(fromHub-initialT)*f
+    return {path:from.path,t,reverse:fromHub<initialT,mode:from.mode,index:from.index}
   }
-  // The destination grows in front of us while the camera stays at the hub.
-  if(p<.61){
-    return {path:from.path,t:hub.source,reverse:false,
-      mode:from.mode,index:from.index,phase:'construct'}
+  const f=ease((p-TRANSIT_MID)/(1-TRANSIT_MID))
+  const end=arrivalT(to,from)
+  return {
+    path:to.path,t:toHub+(end-toHub)*f,
+    reverse:end<toHub,mode:to.mode,index:to.index
   }
-  const f=ease((p-.61)/.39)
-  return {path:to.path,t:hub.target+(arrival-hub.target)*f,
-    reverse:arrival<hub.target,mode:to.mode,index:to.index,phase:'arrival'}
-}
-export function transitBuild(progress){
-  const p=clamp(progress)
-  if(p<=.29)return 0
-  return ease((p-.29)/.48)
 }
