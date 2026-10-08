@@ -6,7 +6,8 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: portfolio-build
+  # Delayed push webhooks from older commits must not cancel a newer verified build.
+  group: portfolio-build-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: true
 jobs:
   verify-and-sync:
