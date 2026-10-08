@@ -17,21 +17,28 @@ function Shell({path,branch=false,transit=null,arrival=false}) {
   const start=branch?PROJECT_FORK_OPEN:0
   const end=branch?PROJECT_FORK_CLOSE:1
   const radius=branch?2.85:4.25
-  const divisions=branch?104:300
-  const radial=branch?40:64
-  const seamsCount=branch?3:7
+  // Incoming preview uses a lighter shell; at the end the full-quality
+  // destination replaces it with precisely the same spline and radius.
+  const divisions=arrival?(branch?66:180):(branch?104:300)
+  const radial=arrival?(branch?28:48):(branch?40:64)
+  const seamsCount=arrival?(branch?2:4):(branch?3:7)
   const geometry=useMemo(()=>createSkin(path,{
     radius,lengthSegments:divisions,radialSegments:radial,start,end
-  }),[path,branch])
+  }),[path,branch,arrival])
+  const root=useRef(null)
   const surface=useRef(null)
   const seamMaterials=useRef([])
   useFrame((_,dt)=>{
     if(!surface.current)return
     const p=transit?Math.max(0,Math.min(1,(performance.now()-transit.startedAt)/transit.duration)):0
+    // Avoid expensive transparent overdraw of dormant corridors in software
+    // WebGL. Reveal each 3D segment only when its animation has begun.
+    if(root.current)root.current.visible=!transit||
+      (arrival?p>(branch?.78:.65):p<.72)
     // Incoming corridor reaches full opacity BEFORE the departing corridor
     // and temporary bridge are removed. This prevents the final-frame pop.
     const target=!transit?1:arrival?
-      smooth((p-.66)/.29):
+      smooth((p-(branch?.78:.66))/(branch?.21:.29)):
       1-smooth((p-.28)/.40)
     surface.current.opacity=target
     seamMaterials.current.forEach((material,i)=>{
@@ -42,10 +49,10 @@ function Shell({path,branch=false,transit=null,arrival=false}) {
   const seams=useMemo(()=>
     Array.from({length:seamsCount},(_,i)=>
       createSeam(path,i*Math.PI*2/seamsCount,{radius,segments:branch?100:140,start,end})),
-    [path,branch]
+    [path,branch,arrival]
   )
   return (
-    <group>
+    <group ref={root}>
       <mesh geometry={geometry}>
         <meshPhysicalMaterial ref={surface} vertexColors side={THREE.BackSide}
           transparent opacity={arrival?0:1} depthWrite={false}

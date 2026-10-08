@@ -87,10 +87,16 @@ async function run(){
   await verifyPage(page,'first project',/Ouvertures d'échecs/i)
   await page.screenshot({path:'test-output/detail.png'})
 
+  // Reproduce the reported regression AFTER finishing the entire project
+  // corridor. The camera is then travelling back towards the junction.
+  await page.locator('#return-to-projects').scrollIntoViewIfNeeded()
+  await page.evaluate(()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'}))
+  await page.waitForTimeout(450)
+  await page.screenshot({path:'test-output/completed-first-project.png'})
   // Project return is the previously broken case: inspect the 3D transition
   // and assert that the actual five-way crossroads and its scroll position
   // have been restored, with no last-frame camera teleport.
-  await page.locator('.header-return').click()
+  await page.locator('#return-to-projects a[href*="projets"]').last().click()
   await page.locator('[data-bridge-transition="active"]').waitFor()
   await page.waitForTimeout(2750)
   await page.screenshot({path:'test-output/return-bridge-middle.png'})
