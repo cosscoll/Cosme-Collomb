@@ -61,9 +61,7 @@ async function beginFlightTrace(page){
       const f=window.__portfolioFlight
       if(f)window.__flightTrace.push({
         at:performance.now(),...f,
-        bridge:window.__portfolioBridgeMesh?.id===f?.fromTransitId?
-          window.__portfolioBridgeMesh:
-          (f.transiting?window.__portfolioBridgeMesh:null)
+        bridge:f.transiting&&window.__portfolioBridgeMesh?.id===f.flightId?window.__portfolioBridgeMesh:null
       })
     },40)
   })
@@ -75,7 +73,7 @@ async function assertFlightContinuous(page,label){
   })
   assert.ok(data.length>12,label+': insufficient 3D camera samples')
   let worst=0,worstTurn=0
-  let previousProgress=-1
+  let previousProgress=-1,previousFlightId=null
   for(let i=1;i<data.length;i++){
     const a=data[i-1],b=data[i]
     const distance=Math.hypot(...a.position.map((v,j)=>v-b.position[j]))
@@ -95,6 +93,7 @@ async function assertFlightContinuous(page,label){
         label+': visible camera turn '+(radians*180/Math.PI).toFixed(1)+'° in '+elapsed.toFixed(0)+'ms')
     }
     if(b.transiting && b.progress!==null){
+      if(b.flightId!==previousFlightId){previousProgress=-1;previousFlightId=b.flightId}
       if(previousProgress>=0)assert.ok(b.progress+.00001>=previousProgress,
         label+': camera moved backwards in animation time')
       previousProgress=b.progress
