@@ -77,8 +77,20 @@ async function run(){
   console.log('3D canvas present:',await canvas.evaluate(node=>({
     width:node.width,height:node.height
   })))
+  // Observe bridge creation throughout the click, rather than trying to
+  // catch its transient DOM marker at one exact animation frame.
+  await page.evaluate(()=>{
+    window.__sawProjectBridge=false
+    const observer=new MutationObserver(()=>{
+      if(document.querySelector('[data-bridge-transition="active"]')){
+        window.__sawProjectBridge=true
+        observer.disconnect()
+      }
+    })
+    observer.observe(document.documentElement,{childList:true,subtree:true})
+  })
   await page.locator('.fork-choice').first().click()
-  await page.locator('[data-bridge-transition="active"]').waitFor()
+  await page.waitForFunction(()=>window.__sawProjectBridge,{timeout:12000})
   assert.equal(await page.locator('.transition-portal').count(),0,
     'Legacy full-screen portal is still masking the real tunnel')
   await page.waitForTimeout(630)
