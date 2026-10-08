@@ -14,7 +14,7 @@
   <a class="skip" href="#catalogue">Aller au catalogue</a>
   <header class="topbar">
     <div class="brand"><span class="brand-icon" aria-hidden="true">BI</span><span>Budget <strong>Illimité</strong></span></div>
-    <nav aria-label="Navigation principale"><a href="#catalogue">Les cartes</a><a href="#avancement">Le projet</a></nav>
+    <nav aria-label="Navigation principale"><a href="#catalogue">Les cartes</a><a href="#deckbuilder">Mon deck</a><a href="#arena">Combat solo</a><a href="#booster">Boosters</a></nav>
     <span class="version">Prototype de développement</span>
   </header>
   <main>
@@ -45,6 +45,32 @@
       <div id="cardGrid" class="card-grid" aria-live="polite"></div>
       <p id="emptyResults" class="empty hidden">Aucune carte ne correspond à ces filtres.</p>
     </section>
+    <section id="deckbuilder" class="deck-section" aria-labelledby="deckTitle">
+      <div class="section-top"><div><p class="eyebrow">Atelier du joueur</p><h2 id="deckTitle">Compose ton deck</h2><p>Choisis exactement 8 apparitions parmi les 49 identifiants. Pour l'instant, toutes les cartes sont accessibles dans ce mode d'essai, sans tenir compte d'un inventaire possédé.</p></div>
+      <div class="deck-counter"><strong id="deckCount">8 / 8</strong><span>Cartes choisies</span></div></div>
+      <div class="deck-panel"><div id="deckList" class="deck-list"></div>
+        <div class="deck-actions"><p id="deckHint" aria-live="polite">Sélectionne une carte dans le catalogue pour la remplacer.</p>
+          <div class="deck-buttons"><button type="button" id="resetDeck" class="secondary-cta">Deck de départ</button><a class="main-cta" href="#arena">Aller au combat <span aria-hidden="true">↗</span></a></div>
+        </div>
+      </div>
+    </section>
+    <section id="arena" class="arena-section" aria-labelledby="arenaTitle">
+      <div class="section-top"><div><p class="eyebrow">Mode solo · Billy l'ordinateur</p><h2 id="arenaTitle">L'arène</h2><p>Chaque tour, choisis une seule action. La première équipe à mettre KO 3 cartes remporte la partie. C'est un prototype de règles, indépendant du PvP existant.</p></div>
+      <button type="button" id="startMatch" class="main-cta">Lancer une partie <span aria-hidden="true">↗</span></button></div>
+      <div class="arena-shell">
+        <div class="arena-board">
+          <div class="combatant" id="aiPanel" aria-label="Adversaire Billy"><div class="combatant-top"><div><small>ADVERSAIRE</small><h3>Billy</h3></div><strong id="aiScore">0 / 3 KO</strong></div><div id="aiActive" class="arena-active-placeholder">L'adversaire arrive...</div><div class="health-row"><div id="aiHpText">— PV</div><div id="aiEnergy">— énergie</div></div><div class="hp-track"><div id="aiHpBar" class="hp-fill" style="width:0%"></div></div><p id="aiGuard" class="guard-text">Aucune protection</p><div id="aiBench" class="bench-row"></div></div>
+          <div class="arena-center"><span id="turnInfo" aria-live="polite">Prêt pour le duel ?</span><span class="vs">VS</span><span id="roundInfo">3 KO pour gagner</span></div>
+          <div class="combatant player-panel" id="playerPanel" aria-label="Ton équipe"><div class="combatant-top"><div><small>TON ÉQUIPE</small><h3>Toi</h3></div><strong id="playerScore">0 / 3 KO</strong></div><div id="playerActive" class="arena-active-placeholder">Prépare ton deck pour jouer.</div><div class="health-row"><div id="playerHpText">— PV</div><div id="playerEnergy">— énergie</div></div><div class="hp-track"><div id="playerHpBar" class="hp-fill" style="width:0%"></div></div><p id="playerGuard" class="guard-text">Aucune protection</p><div id="playerBench" class="bench-row"></div></div>
+        </div>
+        <aside class="arena-sidebar" aria-label="Commandes du combat">
+          <div class="action-header"><p class="eyebrow">Ton tour</p><h3>Choisis une action</h3><p id="actionHint">Lance une partie pour activer les actions.</p></div>
+          <div class="arena-actions"><button type="button" id="quickAction" disabled><strong>Frappe rapide</strong><span id="quickDamage">Attaque gratuite</span></button><button type="button" id="burstAction" disabled><strong>Capacité spéciale</strong><span id="burstDamage">2 énergies</span></button><button type="button" id="focusAction" disabled><strong>Concentration</strong><span id="focusValue">+2 énergie, +protection</span></button></div>
+          <div class="battle-log"><h4>Historique du combat</h4><ol id="battleLog" aria-live="polite"></ol></div>
+          <p class="prototype-caveat">Règles et statistiques de démonstration. Aucune récompense réelle n'est distribuée.</p>
+        </aside>
+      </div>
+    </section>
     <section id="booster" class="booster-section">
       <div><p class="eyebrow">Découvrir les raretés</p><h2>Et si tu ouvrais un booster ?</h2><p>Cinq cartes aléatoires, dont une au moins rare sur le dernier emplacement. Il s'agit d'une <strong>simulation</strong> : aucun Budget dépensé, aucune carte obtenue.</p><button id="simulateBooster" type="button" class="main-cta">Simuler une ouverture <span aria-hidden="true">↗</span></button></div>
       <div class="booster-pack" aria-hidden="true"><span>BUDGET<br>ILLIMITÉ</span><strong>5 CARTES</strong><small>APERÇU NON OFFICIEL</small></div>
@@ -55,7 +81,7 @@
   <dialog id="cardDialog" aria-labelledby="detailTitle">
     <form method="dialog" class="dialog-close-form"><button class="dialog-close" aria-label="Fermer">×</button></form>
     <div id="detailArt" class="detail-art"><span>?</span></div>
-    <div class="detail-body"><p id="detailRarity" class="eyebrow"></p><h2 id="detailTitle"></h2><p id="detailId" class="detail-id"></p><dl><dt>Apparition</dt><dd>À vérifier à partir des vidéos originales</dd><dt>Photographie</dt><dd>Non fournie</dd><dt>Capacités et statistiques</dt><dd>En attente du moteur de combat initial</dd></dl><button id="markCard" class="main-cta" type="button">Marquer comme repérée</button><p class="local-note">Ce marqueur est enregistré uniquement dans ton navigateur. Ce n'est pas une carte possédée en jeu.</p></div>
+    <div class="detail-body"><p id="detailRarity" class="eyebrow"></p><h2 id="detailTitle"></h2><p id="detailId" class="detail-id"></p><dl><dt>Apparition</dt><dd>À vérifier à partir des vidéos originales</dd><dt>Photographie</dt><dd>Non fournie</dd><dt>Capacités et statistiques</dt><dd>En attente du moteur de combat initial</dd></dl><button id="markCard" class="main-cta" type="button">Marquer comme repérée</button><button id="toggleDeckCard" class="secondary-cta" type="button">Ajouter au deck</button><p class="local-note">Ce marqueur est enregistré uniquement dans ton navigateur. Ce n'est pas une carte possédée en jeu.</p></div>
   </dialog>
   <dialog id="boosterDialog" class="booster-dialog" aria-labelledby="boosterTitle">
     <form method="dialog" class="dialog-close-form"><button class="dialog-close" aria-label="Fermer">×</button></form>
