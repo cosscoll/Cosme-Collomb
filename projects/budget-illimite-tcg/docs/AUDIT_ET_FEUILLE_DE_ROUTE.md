@@ -21,6 +21,21 @@ L'archive `files (9).zip` transmise dans la conversation contient :
 
 **Restant immédiat :** tests manuels sur Chrome/Firefox/Safari/mobile, vérification clavier et lecteur d'écran, UX du deck, simulation sur plusieurs stratégies, tutoriel in-app, identification de vraies images et médias.
 
+## Deuxième cycle — IA, progression et lisibilité (8 octobre 2026)
+
+- Ajout de trois difficultés pour Billy : Découverte, Normal, Expert. Mode Expert évalue chaque action légale sur un tour, sans voir de cartes cachées ni utiliser de droits serveur.
+- Ajout d'un palmarès **local et symbolique** : duels, résultats, séries, KO, défis. Aucun compte ni carte virtuelle attribuée.
+- Atelier de deck : recommandation automatique de **2 cartes par rôle**, affichage de la composition.
+- Animations séquencées de la simulation de booster, désactivées en cas de préférence de mouvement réduit.
+- Jauges de vie accessibles et annonce de résultat, réduction des annonces inutiles dans le catalogue.
+- Tests de logique : **20 scénarios réussis** exécutés via un interpréteur JavaScript pendant la session, couvrant les quatre modules catalogue / moteur / boosters / progression.
+- **900 matchs simulés avec des compositions de decks variées**, 300 par difficulté, tous terminés sans erreur. Comparaison contre une stratégie purement offensive : 300/300 victoires du joueur en Découverte, 101/300 en Normal et 9/300 en Expert. **Ces chiffres ne sont pas des statistiques humaines** ; la difficulté Expert reste très exigeante face à un joueur qui ne sait pas protéger ses cartes.
+- Parcours d'interface simulé : catalogue, détails, rôle, deck suggéré, difficulté, duel terminé, palmarès persisté, annulation des anciens callbacks IA lors d'une revanche, booster. Contrôles réussis dans un DOM factice ; pas de test graphique sur navigateur physique.
+- Création d'un outil reproductible `npm run balance` (9 confrontations par nombre de graines, trois difficultés × trois stratégies) et d'une version étendue `npm run balance:extended`.
+- GitHub Actions CI prévu dans la branche. **L'exécution distante du workflow et l'affichage dans Chrome, Firefox et Safari n'ont pas pu être certifiés pendant cette session.**
+
+**Prochaines priorités** : prévisualisation web sur un environnement dédié sans modifier `main`, tests manuels mobile et clavier, retours de vrais joueurs pour l'équilibrage, récupération du frontend et moteur d'origine, vidéos et droits, puis raccordement Supabase sécurisé.
+
 ## Avancement réalisé dans ce dossier
 - Branche GitHub de travail isolée pour ne pas modifier le site du dépôt existant.
 - Inventaire reproductible des **49 IDs existants** : 17 communes, 15 rares, 10 épiques, 4 légendaires, 3 secrètes.
