@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { CARDS } from "../data/cards.js";
-import { createMatch, applyAction, legalActions, chooseAiAction, cardStats, validateDeck, MAX_ENERGY, WIN_KOS } from "../game/engine.js";
+import { createMatch, applyAction, legalActions, chooseAiAction, cardStats, validateDeck, MAX_ENERGY, WIN_KOS, suggestBalancedDeck, ARCHETYPES } from "../game/engine.js";
 
 const playerDeck = ["standupper","matelas","rituels","fontaine","etalon","mouette","chemise","fauxbras"];
 const aiDeck = ["costume","touriste","arnaque","regent","igne","otage","moules","entite"];
@@ -88,5 +88,14 @@ test("100 deterministic complete matches terminate with three knockouts", () => 
     assert.equal(state.sides[state.winner].knockouts, WIN_KOS);
     assert.equal(state.turn, null);
     assert.deepEqual(legalActions(state, "player"), []);
+  }
+});
+
+test("suggestion de deck : deux cartes de chaque rôle et résultats reproductibles", () => {
+  const deck = suggestBalancedDeck();
+  assert.equal(validateDeck(deck).valid, true);
+  assert.deepEqual(deck, suggestBalancedDeck());
+  for (const role of ARCHETYPES) {
+    assert.equal(deck.filter(id => cardStats(id).role === role).length, 2);
   }
 });
