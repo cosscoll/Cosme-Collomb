@@ -1,0 +1,25 @@
+name: Independent live website URL check
+on:
+  push:
+    branches: ['dev/check-public-site-url']
+permissions:
+  contents: read
+jobs:
+  public-http:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check actual live homepage and script are HTTP 200
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://cosscoll.github.io/Cosme-Collomb/'
+          echo "Verified URL candidate: $base"
+          echo "Live page HTTP status and actual final address:"
+          curl --max-time 30 -fsSL -w 'HTTP %{http_code} / redirect %{url_effective} / bytes %{size_download}\\n' -o /tmp/public-index.html "$base"
+          grep -q 'Cosme Collomb' /tmp/public-index.html
+          echo "HTML title exists."
+          asset=$(grep -o '/Cosme-Collomb/assets/index.source-[^"]*js' /tmp/public-index.html | head -1)
+          echo "Found script $asset"
+          curl --max-time 30 -fsSL -w 'Script HTTP %{http_code} / bytes %{size_download}\\n' -o /tmp/public-script.js "https://cosscoll.github.io$asset"
+          test -s /tmp/public-script.js
+          echo "CHECK PASSED, use $base or ${base}#/projets"
