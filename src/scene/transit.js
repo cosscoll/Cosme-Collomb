@@ -97,10 +97,26 @@ export function sampleTransit(from,to,initialT,progress){
       mode:from.mode,index:from.index,phase:'approach'}
   }
   if(p<TRANSIT_MID){
-    return {path:from.path,t:hub.fromT,reverse:false,
+    return {path:from.path,t:hub.fromT,reverse:hub.fromT<initialT,
       mode:from.mode,index:from.index,phase:'assemble'}
   }
   const f=ease((p-TRANSIT_MID)/(1-TRANSIT_MID))
-  return {path:to.path,t:hub.toT+(end-hub.toT)*f,
+  // Closest sampled points on independently interpolated splines are not
+  // mathematically identical. The old camera jumped up to 0.7 m at p=.52.
+  // Carry the small junction mismatch into the incoming spline and fade it
+  // away gradually *inside* the corridor as the new branch extends.
+  const keepOffset=1-ease((p-TRANSIT_MID)/.21)
+  const offset=keepOffset>0?
+    from.path.getPointAt(hub.fromT).sub(to.path.getPointAt(hub.toT))
+      .multiplyScalar(keepOffset):null
+  return {path:to.path,t:hub.toT+(end-hub.toT)*f,offset,
     reverse:end<hub.toT,mode:to.mode,index:to.index,phase:'cross'}
+}
+// Use this for all physical transit positions, including look-ahead and
+// regression tests. Reading sample.path directly would ignore hub alignment.
+export function samplePosition(sample,target){
+  const t=Math.max(.001,Math.min(.998,sample.t))
+  const point=sample.path.getPointAt(t,target)
+  if(sample.offset)point.add(sample.offset)
+  return point
 }
