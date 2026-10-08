@@ -290,7 +290,14 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
     // caused by asynchronous DOM/3D mesh handoffs and frame jitter.
     // The target remains exactly on the spline, within the tube radius.
     if(first.current)camera.position.copy(goal)
-    else camera.position.lerp(goal,1-Math.exp(-dt*(transit?16:13)))
+    else {
+      const remaining=camera.position.distanceTo(goal)
+      const easing=1-Math.exp(-dt*(transit?16:13))
+      // Also cap the displayed eye movement: scroll restoration and delayed
+      // React mounts cannot pull the camera through a wall in one frame.
+      camera.position.lerp(goal,remaining>0?
+        Math.min(easing,1.10/remaining):1)
+    }
 
     // The projects page is an open atrium, not the closed mouth of the trunk.
     // Keep looking through the physical junction toward its five corridors,
@@ -313,7 +320,12 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       camera.quaternion.copy(rotation)
       first.current=false
     }else{
-      camera.quaternion.slerp(rotation,1-Math.exp(-dt*(transit?7:5)))
+      // A path switch can rotate the desired tangent sharply at a junction.
+      // Do not show that as a sudden 90/180-degree snap to the visitor.
+      const angle=camera.quaternion.angleTo(rotation)
+      const easing=1-Math.exp(-Math.min(dt,.05)*(transit?6:5))
+      camera.quaternion.slerp(rotation,angle>0?
+        Math.min(easing,.22/angle):1)
     }
     const boost=transit?2.3*Math.sin(Math.PI*visualProgress):0
     camera.fov=THREE.MathUtils.damp(camera.fov,45+boost,4,dt)
