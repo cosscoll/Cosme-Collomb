@@ -338,12 +338,35 @@ function Philosophy() {
 
 function Closing() {
   return (
-    <Chapter index="final" className="closing" label="Prendre contact">
-      <span className="micro-label">04 / LA SUITE</span>
-      <h2>Et si on faisait<br/><em>quelque chose</em><br/>ensemble ?</h2>
-      <Link to="/contact" className="big-circle-link"><span>PARLONS-EN ↗</span></Link>
-      <p className="closing-caption">Chaque beau projet commence par une conversation.</p>
-    </Chapter>
+    <section id="contact-final" className="contact-destination" aria-label="Espace contact en fin de parcours">
+      <div className="contact-destination-topline">
+        <span className="micro-label">04 / DESTINATION FINALE</span>
+        <span className="micro-label">VOUS ÊTES ARRIVÉ AU BOUT DU PARCOURS</span>
+      </div>
+      <div className="contact-destination-main">
+        <motion.div initial={{opacity:0,y:50}} whileInView={{opacity:1,y:0}}
+          viewport={{once:true,amount:.2}} transition={{duration:.9,ease:[.16,1,.3,1]}}>
+          <p className="micro-label">UNE IDÉE À CONSTRUIRE ?</p>
+          <h2>Et maintenant,<br/><em>la suite ?</em></h2>
+          <p className="contact-destination-lead">Vous avez parcouru mon univers. Le prochain projet pourrait être le nôtre.</p>
+          <div className="contact-destination-actions">
+            <Link to="/contact" className="contact-destination-cta">Prendre contact <span>↗</span></Link>
+            <a href="https://github.com/cosscoll" target="_blank" rel="noopener noreferrer"
+              className="contact-destination-github">Mes réalisations sur GitHub <span>↗</span></a>
+          </div>
+        </motion.div>
+        <div className="contact-destination-seal" aria-hidden="true">
+          <span className="contact-seal-outer"><span className="contact-seal-inner">C<span>.</span></span></span>
+          <span>LE VOYAGE CONTINUE</span>
+        </div>
+      </div>
+      <nav className="contact-destination-bottom" aria-label="Continuer le parcours">
+        <span>FIN DU PARCOURS PRINCIPAL</span>
+        <button type="button" onClick={()=>window.scrollTo({top:0,behavior:'smooth'})}>
+          Revenir au début <span aria-hidden="true">↑</span>
+        </button>
+      </nav>
+    </section>
   )
 }
 
@@ -502,30 +525,29 @@ function RouteView({ pathname, setHovered }) {
 }
 
 // Navigation is intercepted before React Router replaces the page.
-const TRANSIT_MS=2500
-const TRANSIT_MIDPOINT=1250
+const TRANSIT_MS=3000
+const TRANSIT_MIDPOINT=1500
 function TransitionCurtain({ transit }) {
-  if(!transit) return null
-  const name=(path)=>{
-    const project=PROJECTS.find(p=>path==='/projets/'+p.slug)
-    if(project)return project.title
-    return path==='/projets'?'LES PROJETS':
-      path==='/parcours'||path==='/experience'?'LE PARCOURS':
-      path==='/contact'?'CONTACT':'L’ACCUEIL'
-  }
-  return <div key={transit.id} className="transition-portal" aria-live="polite"
-    aria-label={'Traversée vers '+name(transit.to)}>
-    <div className="portal-inset" aria-hidden="true">
-      <span className="portal-ring portal-ring-one"/>
-      <span className="portal-ring portal-ring-two"/>
-      <span className="portal-ring portal-ring-three"/>
-      <span className="portal-horizon"/>
+  if(!transit)return null
+  const project=PROJECTS.find(p=>transit.to==='/projets/'+p.slug)
+  const destination=project?.title||
+    (transit.to==='/projets'?'Les projets':
+    transit.to==='/parcours'||transit.to==='/experience'?'Mon parcours':
+    transit.to==='/contact'?'Contact':'Accueil')
+  // No opaque screen or white flash: the actual bridge is built inside WebGL.
+  // These quiet wayfinding labels stay above it as the camera travels.
+  return <div key={transit.id} className="bridge-transition-hud" role="status"
+    aria-label={'Construction du passage vers '+destination}>
+    <div className="bridge-transition-heading">
+      <span className="bridge-transition-dot" aria-hidden="true"/>
+      <div>
+        <span className="bridge-transition-kicker">CONSTRUCTION DU PASSAGE</span>
+        <strong>{destination}</strong>
+      </div>
+      <span className="bridge-transition-arrow" aria-hidden="true">↗</span>
     </div>
-    <div className="portal-caption">
-      <span>ESPACE / TRANSITION</span>
-      <strong>{name(transit.to)}</strong>
-      <span className="portal-progress"><i/></span>
-    </div>
+    <div className="bridge-transition-track" aria-hidden="true"><span/></div>
+    <span className="bridge-transition-note">Le chemin se dessine devant vous</span>
   </div>
 }
 
@@ -553,7 +575,12 @@ function Shell() {
         destination.pathname!==window.location.pathname ||
         !destination.hash.startsWith('#/'))return
       const next=decodeURI(destination.hash.slice(1)).split('?')[0]
-      if(next===pathname || transitRef.current)return
+      if(transitRef.current){
+        event.preventDefault()
+        event.stopPropagation()
+        return
+      }
+      if(next===pathname)return
       event.preventDefault()
       event.stopPropagation()
       setMenuOpen(false)

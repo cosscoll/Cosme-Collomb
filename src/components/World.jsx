@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { routeInfo, scrollT, sampleTransit } from '../scene/transit.js'
+import { routeInfo, scrollT, arrivalT } from '../scene/transit.js'
+import { createBridgeCurve, bridgeGrowth, bridgeTravel, bridgeDrawCount } from '../scene/bridge.js'
 import {
   PATHS, PROJECT_BRANCH_COLORS, PROJECT_FORK_OPEN, PROJECT_FORK_CLOSE,
   createSkin, createSeam, detailReturning
@@ -12,7 +13,7 @@ const FORWARD=new THREE.Vector3(0,0,1)
 const clamp=n=>Math.min(1,Math.max(0,n))
 const smooth=n=>{const v=clamp(n);return v*v*(3-2*v)}
 
-function Shell({path,branch=false}) {
+function Shell({path,branch=false,transit=null}) {
   // Closed 360° surface, with no overlapping opaque walls inside the hub.
   const start=branch?PROJECT_FORK_OPEN:0
   const end=branch?PROJECT_FORK_CLOSE:1
@@ -23,6 +24,13 @@ function Shell({path,branch=false}) {
   const geometry=useMemo(()=>createSkin(path,{
     radius,lengthSegments:divisions,radialSegments:radial,start,end
   }),[path,branch])
+  const material=useRef(null)
+  useFrame(({clock},delta)=>{
+    if(!material.current)return
+    const p=transit?Math.min(1,Math.max(0,(performance.now()-transit.startedAt)/transit.duration)):0
+    const fade=p<.12?1:p<.36?1-(p-.12)/.24*.84:p<.70?.16:.16+(p-.70)/.30*.84
+    material.current.opacity=THREE.MathUtils.damp(material.current.opacity,fade,9,Math.min(delta,.05))
+  })
   useEffect(()=>()=>geometry.dispose(),[geometry])
   const seams=useMemo(()=>
     Array.from({length:seamsCount},(_,i)=>
@@ -32,7 +40,7 @@ function Shell({path,branch=false}) {
   return (
     <group>
       <mesh geometry={geometry}>
-        <meshPhysicalMaterial vertexColors side={THREE.BackSide}
+        <meshPhysicalMaterial ref={material} transparent opacity={1} depthWrite vertexColors side={THREE.BackSide}
           metalness={.58} roughness={.29}
           clearcoat={.88} clearcoatRoughness={.17}
           emissive="#514962" emissiveIntensity={.2}/>
@@ -134,8 +142,7 @@ function Sparkles() {
 function CameraFlight({route,hovered,transit}) {
   const {camera}=useThree()
   const current=useRef(null)
-  const transitId=useRef(null)
-  const departure=useRef(null)
+  const wasTransiting=useRef(false)
   const pointer=useRef({x:0,y:0})
   const softPointer=useRef({x:0,y:0})
   const first=useRef(true)
@@ -168,34 +175,23 @@ function CameraFlight({route,hovered,transit}) {
     if(work)scrollPositions.current.works=work.offsetTop
     if(projectFork)scrollPositions.current.fork=projectFork.offsetTop+projectFork.offsetHeight*.35
 
-    let sample
-    if(transit){
-      if(transitId.current!==transit.id){
-        transitId.current=transit.id
-        // Capture the exact position in the existing 3D corridor, BEFORE
-        // React Router exchanges the content, even midway through a scroll.
-        departure.current=current.current===null?
-          scrollT(route,{scrollY:y,total,
-            junction:scrollPositions.current.junction,
-            works:scrollPositions.current.works,
-            projectFork:scrollPositions.current.fork}):
-          current.current
-      }
-      const p=Math.min(1,Math.max(0,(performance.now()-transit.startedAt)/transit.duration))
-      sample=sampleTransit(routeInfo(transit.from),routeInfo(transit.to),departure.current,p)
-      current.current=sample.t
+    // Camera ownership moves to BridgeFlight for the ENTIRE transfer.
+    // Leaving the ordinary scroll rig active caused the old teleportation.
+    if(transit){wasTransiting.current=true;return}
+    const nextT=scrollT(route,{
+      scrollY:y,total,junction:scrollPositions.current.junction,
+      works:scrollPositions.current.works,projectFork:scrollPositions.current.fork
+    })
+    if(wasTransiting.current){
+      current.current=nextT
+      wasTransiting.current=false
     }else{
-      transitId.current=null
-      const nextT=scrollT(route,{
-        scrollY:y,total,junction:scrollPositions.current.junction,
-        works:scrollPositions.current.works,projectFork:scrollPositions.current.fork
-      })
       current.current=current.current===null?nextT:
         THREE.MathUtils.damp(current.current,nextT,3.4,dt)
-      sample={path:route.path,t:current.current,
-        reverse:route.mode==='detail'&&detailReturning(y/total),
-        mode:route.mode,index:route.index}
     }
+    const sample={path:route.path,t:current.current,
+      reverse:route.mode==='detail'&&detailReturning(y/total),
+      mode:route.mode,index:route.index}
 
     const t=Math.max(.001,Math.min(.998,sample.t))
     sample.path.getPointAt(t,position)
@@ -237,6 +233,81 @@ function CameraFlight({route,hovered,transit}) {
   return null
 }
 
+
+function BridgeFlight({transit}) {
+  const {camera}=useThree()
+  const bridge=useMemo(()=>{
+    const origin=camera.position.clone()
+    const heading=new THREE.Vector3(0,0,-1).applyQuaternion(camera.quaternion).normalize()
+    const from=routeInfo(transit.from)
+    const to=routeInfo(transit.to)
+    const endT=arrivalT(to,from)
+    const end=to.path.getPointAt(endT)
+    const endHeading=to.path.getTangentAt(endT).normalize()
+    const curve=createBridgeCurve(origin,heading,end,endHeading)
+    const radius=3.54
+    const radialSegments=48
+    const geometry=createSkin(curve,{
+      radius,lengthSegments:190,radialSegments
+    })
+    geometry.setDrawRange(0,0)
+    const rails=Array.from({length:5},(_,i)=>{
+      const line=createSeam(curve,i*Math.PI*2/5,{radius,segments:170})
+      const tube=new THREE.TubeGeometry(line,190,i%2===0?.025:.012,6,false)
+      tube.setDrawRange(0,0)
+      return tube
+    })
+    return {curve,geometry,rails,radialSegments}
+  },[transit.id,camera])
+  const cameraLook=useMemo(()=>new THREE.Vector3(),[])
+  const cameraPoint=useMemo(()=>new THREE.Vector3(),[])
+  const matrix=useMemo(()=>new THREE.Matrix4(),[])
+  const desiredRotation=useMemo(()=>new THREE.Quaternion(),[])
+  const started=useRef(false)
+
+  useEffect(()=>()=>{bridge.geometry.dispose();bridge.rails.forEach(g=>g.dispose())},[bridge])
+  useFrame((_,delta)=>{
+    const p=Math.max(0,Math.min(1,(performance.now()-transit.startedAt)/transit.duration))
+    bridge.geometry.setDrawRange(0,bridgeDrawCount(bridge.geometry,p,bridge.radialSegments))
+    const grown=bridgeGrowth(p)
+    bridge.rails.forEach(rail=>{
+      const rows=190
+      const verticesPerRow=6*6
+      rail.setDrawRange(0,Math.min(rail.index?.count||rows*verticesPerRow,
+        Math.floor(rows*grown)*verticesPerRow))
+    })
+    const t=Math.min(.998,bridgeTravel(p))
+    bridge.curve.getPointAt(t,cameraPoint)
+    bridge.curve.getPointAt(Math.min(.999,t+.025),cameraLook)
+    camera.position.copy(cameraPoint)
+    matrix.lookAt(camera.position,cameraLook,UP)
+    desiredRotation.setFromRotationMatrix(matrix)
+    if(!started.current){
+      // Keep the previously rendered angle at takeoff.
+      started.current=true
+    }
+    camera.quaternion.slerp(desiredRotation,1-Math.exp(-Math.min(delta,.05)*4.7))
+    const narrow=2.1*Math.sin(p*Math.PI)
+    camera.fov=THREE.MathUtils.damp(camera.fov,45+narrow,4,Math.min(delta,.05))
+    camera.updateProjectionMatrix()
+  })
+  return <group renderOrder={8}>
+    <mesh geometry={bridge.geometry} renderOrder={8}>
+      <meshPhysicalMaterial vertexColors side={THREE.BackSide}
+        metalness={.58} roughness={.24} clearcoat={.9}
+        clearcoatRoughness={.15} emissive="#65597f"
+        emissiveIntensity={.29} depthTest depthWrite/>
+    </mesh>
+    {bridge.rails.map((rail,i)=><mesh key={i} geometry={rail} renderOrder={9}>
+      <meshBasicMaterial color={i%2===0?'#f1ddd9':'#b5dbe3'}
+        transparent opacity={i%2===0?.64:.35}
+        depthWrite={false} toneMapped={false}/>
+    </mesh>)}
+    <pointLight position={bridge.curve.getPointAt(.65)}
+      color="#d8c5ef" intensity={55} distance={30} decay={2}/>
+  </group>
+}
+
 function Scene({pathname,hovered,transit}) {
   const route=routeInfo(pathname)
   const {mode,index,path}=route
@@ -250,9 +321,9 @@ function Scene({pathname,hovered,transit}) {
     <pointLight position={[3,3,-28]} color="#f1c9bb" intensity={42} distance={30} decay={2}/>
     <pointLight position={[-6,3,-53]} color="#a6cbd9" intensity={45} distance={32} decay={2}/>
     <pointLight position={[3,-2,-77]} color="#9996de" intensity={34} distance={27} decay={2}/>
-    <Shell key={mode+'-'+index} path={path}/>
+    <Shell key={mode+'-'+index} path={path} transit={transit}/>
     {mode==='projects' && PATHS.children.map((arm,i)=>(
-      <Shell key={'branch-'+i} path={arm} branch/>
+      <Shell key={'branch-'+i} path={arm} branch transit={transit}/>
     ))}
     {(mode==='projects'||mode==='detail') && PATHS.children.map((arm,i)=>(
       <ForkGuide key={'guide-'+i} path={arm}
@@ -261,6 +332,7 @@ function Scene({pathname,hovered,transit}) {
     <RouteMarkers mode={mode} hovered={hovered}/>
     <Sparkles/>
     <CameraFlight route={route} hovered={hovered} transit={transit}/>
+    {transit&&<BridgeFlight key={transit.id} transit={transit}/>}
   </>
 }
 

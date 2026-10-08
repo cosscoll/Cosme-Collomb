@@ -629,3 +629,137 @@ a:focus-visible,button:focus-visible{outline:2px solid #ffedce;outline-offset:5p
   .navigation-projects>.micro-label{margin-bottom:9px}
   .navigation-projects>a{padding:11px 0}
 }
+
+/* JOURNEY END — contact is a destination, not another disconnected page. */
+.contact-destination{
+  position:relative;z-index:2;min-height:115svh;
+  display:flex;flex-direction:column;justify-content:space-between;
+  padding:clamp(125px,16vh,210px) clamp(28px,8.7vw,145px) 38px;
+  background:radial-gradient(ellipse at 79% 48%,rgba(93,79,120,.25),transparent 58%),
+  linear-gradient(90deg,rgba(6,6,15,.77),rgba(8,8,19,.28) 80%);
+}
+.contact-destination:before{
+  content:'';position:absolute;inset:0 0 auto;height:1px;
+  background:linear-gradient(90deg,transparent,rgba(240,226,233,.38),transparent)
+}
+.contact-destination-topline,.contact-destination-bottom{
+  display:flex;justify-content:space-between;align-items:center;gap:28px;
+}
+.contact-destination-topline>span:last-child{color:#a9a3b6}
+.contact-destination-main{
+  display:flex;justify-content:space-between;align-items:center;gap:50px;
+  padding:65px 0;max-width:1480px;width:100%;margin:auto
+}
+.contact-destination-main>div:first-child{max-width:1050px}
+.contact-destination h2{
+  font-size:clamp(4.6rem,9.35vw,12.8rem);font-weight:500;
+  letter-spacing:-.092em;line-height:.9;margin:30px 0 48px
+}
+.contact-destination h2 em{color:#edd6ce}
+.contact-destination-lead{
+  color:#d5ccdc;font-size:clamp(17px,1.5vw,24px);
+  line-height:1.55;max-width:600px;margin-bottom:37px
+}
+.contact-destination-actions{display:flex;flex-wrap:wrap;gap:17px 35px;align-items:center}
+.contact-destination-cta{
+  display:inline-flex;align-items:center;justify-content:space-between;
+  gap:55px;padding:22px 31px;min-width:242px;
+  background:#eddbd5;color:#15121d;font-size:13px;font-weight:700;
+  transition:transform .4s,background .3s
+}
+.contact-destination-cta:hover{transform:translateY(-5px);background:#fff8f1}
+.contact-destination-cta span{font-size:23px}
+.contact-destination-github{
+  display:inline-flex;align-items:center;gap:29px;
+  border-bottom:1px solid rgba(236,219,225,.58);padding:10px 0;
+  font-size:12px;letter-spacing:.04em;color:#ebdfe8
+}
+.contact-destination-github:hover{color:#fff}
+.contact-destination-seal{
+  display:flex;flex-direction:column;align-items:center;gap:22px;
+  font-size:10px;letter-spacing:.22em;color:#b6a9bd;
+  flex-shrink:0
+}
+.contact-seal-outer{
+  display:grid;place-items:center;width:clamp(145px,18vw,250px);aspect-ratio:1;
+  border:1px solid rgba(232,213,227,.33);border-radius:50%;
+  box-shadow:0 0 70px rgba(204,186,220,.12),inset 0 0 60px rgba(223,191,215,.10)
+}
+.contact-seal-inner{
+  font-size:clamp(72px,10vw,137px);font-weight:600;letter-spacing:-.11em;color:#f1e8e9;
+  transform:translateX(-.1em)
+}
+.contact-seal-inner span{color:#d8bdae}
+.contact-destination-bottom{
+  border-top:1px solid rgba(245,230,239,.22);padding-top:25px;
+  font-size:10px;letter-spacing:.18em;color:#aaa3b4
+}
+.contact-destination-bottom button{
+  display:flex;align-items:center;gap:13px;border:0;background:none;
+  color:#eee5ec;cursor:pointer;font-size:11px;letter-spacing:.06em
+}
+.contact-destination-bottom button span{font-size:23px}
+.contact-destination-bottom button:hover{color:#fff}
+/* The transition overlay no longer hides the 3D world: the physical tunnel
+   is generated in WebGL and assembled ahead of the moving camera. */
+.bridge-transition-hud{
+  position:fixed;inset:0;z-index:72;isolation:isolate;
+  pointer-events:none;
+  background:linear-gradient(180deg,transparent 69%,rgba(4,4,13,.26));
+  animation:bridge-hud-appear .5s ease both
+}
+.bridge-transition-heading{
+  position:absolute;bottom:clamp(84px,12vh,146px);
+  left:clamp(25px,7vw,120px);display:flex;align-items:center;gap:22px;
+  min-width:min(400px,77vw);max-width:calc(100vw - 50px);
+  padding:20px 25px;
+  border:1px solid rgba(237,224,240,.25);
+  background:rgba(14,12,28,.44);backdrop-filter:blur(14px);
+  box-shadow:0 12px 70px rgba(4,3,14,.18)
+}
+.bridge-transition-heading>div{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1}
+.bridge-transition-heading strong{
+  font-size:clamp(20px,2.9vw,36px);font-weight:500;
+  letter-spacing:-.04em;color:#f1e5ec;line-height:1.1
+}
+.bridge-transition-kicker{font-size:9px;letter-spacing:.18em;color:#c7b8ce;font-weight:600}
+.bridge-transition-dot{
+  flex:0 0 11px;width:11px;height:11px;border-radius:50%;
+  border:1px solid #f6e2df;box-shadow:0 0 16px rgba(223,203,250,.78);
+  animation:bridge-pulse 1s ease-in-out infinite alternate
+}
+.bridge-transition-arrow{font-size:26px;color:#e9d9e4;align-self:flex-end}
+.bridge-transition-track{
+  position:absolute;bottom:clamp(67px,10.1vh,121px);
+  left:clamp(25px,7vw,120px);
+  width:min(460px,78vw);height:2px;background:rgba(224,213,231,.27)
+}
+.bridge-transition-track span{
+  display:block;height:100%;width:100%;
+  background:linear-gradient(90deg,#b9b3d9,#eee2da);
+  transform-origin:left;animation:bridge-progress 3s linear both
+}
+.bridge-transition-note{
+  position:absolute;bottom:clamp(42px,6vh,79px);
+  left:clamp(25px,7vw,120px);font-size:10px;color:#c9c2d4;letter-spacing:.06em
+}
+@keyframes bridge-hud-appear{from{opacity:0}to{opacity:1}}
+@keyframes bridge-pulse{from{opacity:.32;transform:scale(.7)}to{opacity:1;transform:scale(1.1)}}
+@keyframes bridge-progress{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@media(max-width:780px){
+  .contact-destination{padding:145px 25px 24px;min-height:105svh}
+  .contact-destination-topline>span:last-child{display:none}
+  .contact-destination-main{flex-direction:column;align-items:flex-start;padding:75px 0 55px}
+  .contact-destination h2{font-size:clamp(4.1rem,12vw,7.5rem);margin-bottom:32px}
+  .contact-destination-seal{align-self:flex-end;margin-top:45px}
+  .contact-seal-outer{width:148px}
+  .contact-seal-inner{font-size:84px}
+  .bridge-transition-heading{bottom:110px;left:20px;right:20px;min-width:0;padding:16px}
+  .bridge-transition-track{bottom:91px;left:20px;width:calc(100% - 40px)}
+  .bridge-transition-note{bottom:63px;left:20px}
+}
+@media(prefers-reduced-motion:reduce){
+ .bridge-transition-dot{animation:none}
+ .bridge-transition-track span{animation:none;transform:scaleX(1)}
+ .contact-destination-cta{transition:none}
+}

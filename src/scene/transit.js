@@ -2,7 +2,7 @@ import { PATHS, MAIN_HUBS, PROJECT_HUBS, PROJECT_FORK_POSITION,
   projectOutboundT, detailTravelT, closestT } from './geometry.js'
 import { PROJECTS_WITH_SLUGS as PROJECTS } from '../data/projects.js'
 
-export const TRANSIT_DURATION=2500
+export const TRANSIT_DURATION=3000
 export const TRANSIT_MID=.5
 export const ease=t=>{
   const v=Math.max(0,Math.min(1,t))

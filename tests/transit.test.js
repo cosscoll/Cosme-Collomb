@@ -10,7 +10,7 @@ import {
 const names=['/','/projets','/parcours','/contact',
   ...PROJECTS.map(p=>'/projets/'+p.slug)]
 test('Every page owns a valid continuous 3D flight route',()=>{
-  assert.equal(TRANSIT_DURATION,2500)
+  assert.equal(TRANSIT_DURATION,3000)
   for(const name of names){
     const route=routeInfo(name)
     assert.ok(route.path.getLength()>30,name)

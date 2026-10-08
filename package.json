@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test:geometry": "node --test tests/geometry.test.js tests/transit.test.js tests/navigation.test.js"
+    "test:geometry": "node --test tests/geometry.test.js tests/transit.test.js tests/navigation.test.js tests/bridge.test.js"
   },
   "dependencies": {
     "react": "^18.3.1",
