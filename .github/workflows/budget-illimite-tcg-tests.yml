@@ -1,0 +1,27 @@
+name: Budget Illimite TCG - Tests
+on:
+  push:
+    branches: [dev/thomas-deseur-tcg]
+    paths:
+      - "projects/budget-illimite-tcg/**"
+      - ".github/workflows/budget-illimite-tcg-tests.yml"
+  pull_request:
+    paths:
+      - "projects/budget-illimite-tcg/**"
+      - ".github/workflows/budget-illimite-tcg-tests.yml"
+permissions:
+  contents: read
+jobs:
+  validate:
+    name: Unit tests (Node.js)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects/budget-illimite-tcg
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Test game, cards and boosters
+        run: npm test
