@@ -85,7 +85,7 @@ export function junctionFor(from,to,initialT){
 }
 export function bridgeBuild(progress){
   const p=clamp(progress)
-  return ease((p-.12)/.62)
+  return ease((p-.10)/.41)
 }
 export function sampleTransit(from,to,initialT,progress){
   const p=clamp(progress)
