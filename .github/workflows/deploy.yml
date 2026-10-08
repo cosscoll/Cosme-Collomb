@@ -21,6 +21,14 @@ jobs:
       - run: npm install
       - run: npm run test:geometry
       - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-smoke-screenshots
+          path: test-output/
+          if-no-files-found: ignore
       - uses: actions/configure-pages@v4
       - uses: actions/upload-pages-artifact@v3
         with:
