@@ -216,3 +216,131 @@ a:focus-visible,button:focus-visible{outline:2px solid #ffedce;outline-offset:5p
 .scene-backdrop[data-hovered="contact"] .fallback-branch-right{
   opacity:1;filter:brightness(1.55) drop-shadow(0 0 28px rgba(235,211,255,.4));
 }
+
+/* PROJECT CROSSROADS / FIVE REAL PATHS */
+.project-crossroads {
+  position:relative;
+  z-index:3;
+  min-height:155svh;
+  padding:clamp(100px,14vh,210px) clamp(25px,8.7vw,145px) 120px;
+  background:linear-gradient(90deg,rgba(8,8,15,.80),rgba(8,8,15,.24) 75%);
+}
+.crossroads-top{display:flex;align-items:center;justify-content:space-between;gap:30px;
+  border-bottom:1px solid var(--stroke);padding-bottom:24px;}
+.crossroads-top p{margin:0;color:#c8bfd4;font-size:12px;line-height:1.55}
+.crossroads-heading{font-size:clamp(4.25rem,8vw,11rem);letter-spacing:-.085em;
+  line-height:.9;font-weight:500;margin:76px 0 70px;}
+.crossroads-heading em{color:#e7cabb}
+.fork-choices{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.fork-choice{display:flex;flex-direction:column;justify-content:space-between;
+  min-height:280px;padding:22px 17px 18px;position:relative;isolation:isolate;
+  border:1px solid rgba(226,220,239,.27);border-radius:150px 150px 10px 10px;
+  background:radial-gradient(ellipse at 50% 16%,rgba(209,194,240,.25),transparent 52%),
+  linear-gradient(160deg,rgba(37,33,52,.63),rgba(7,7,16,.58));
+  backdrop-filter:blur(12px);
+  transition:transform .5s cubic-bezier(.16,1,.3,1),border-color .35s,background .35s,box-shadow .4s}
+.fork-choice:before{content:'';position:absolute;inset:8px 8px auto;height:49%;border-radius:50% 50% 10% 10%;
+  border:1px solid rgba(242,232,246,.28);pointer-events:none;
+  box-shadow:inset 0 0 38px rgba(176,162,217,.10)}
+.fork-choice:hover,.fork-choice:focus-visible{transform:translateY(-23px);
+  border-color:rgba(255,235,220,.95);box-shadow:0 0 50px rgba(175,158,220,.17);
+  background:radial-gradient(ellipse at 50% 18%,rgba(226,200,244,.40),transparent 58%),rgba(31,26,49,.77)}
+.fork-choice-1{--branch:#9cdae3}
+.fork-choice-2{--branch:#f5c5b2}
+.fork-choice-3{--branch:#d8c8a4}
+.fork-choice-4{--branch:#b0dbca}
+.fork-number{font-size:11px;letter-spacing:.2em;color:#e9dbe8}
+.fork-title{display:block;font-size:clamp(16px,1.7vw,26px);font-weight:500;line-height:1.13;
+  letter-spacing:-.045em;word-break:normal;position:relative}
+.fork-title small{display:block;margin-top:13px;color:#beb4ca;letter-spacing:.05em;
+  font-size:10px;line-height:1.45;font-weight:400}
+.fork-direction{align-self:flex-end;font-size:27px;line-height:1}
+.crossroads-footnote{margin:35px 0 0;color:#c6c1d0;font-size:13px;line-height:1.7;max-width:540px}
+.project-crossroads .underlined-link{margin-top:55px}
+
+/* Journey: the 3D camera follows the chosen fork as the story unfolds,
+   then retraces the seamless tube to the projects intersection. */
+.journey-entrance,.journey-station,.journey-return{position:relative;z-index:2;
+  min-height:110svh;display:flex;align-items:center;padding:17vh clamp(25px,8.7vw,145px);
+  background:linear-gradient(90deg,rgba(7,7,16,.76) 0%,rgba(7,7,16,.30) 63%,rgba(7,7,16,.08) 100%)}
+.journey-entrance{min-height:106svh;align-items:center}
+.journey-entrance>div{max-width:1020px}
+.journey-entrance h1{font-size:clamp(4.4rem,9.6vw,12rem);font-weight:500;
+  letter-spacing:-.09em;line-height:.92;margin:28px 0 30px}
+.journey-intro{max-width:630px;color:#ebd8dc;line-height:1.45;font-size:clamp(20px,2.2vw,32px)}
+.journey-instructions{display:flex;align-items:center;gap:20px;margin-top:85px;
+  color:#d8cfdc;font-size:12px;line-height:1.6;letter-spacing:.04em}
+.journey-instructions-icon{display:grid;place-items:center;width:60px;height:60px;
+  border-radius:50%;border:1px solid rgba(255,255,255,.47);font-size:27px;flex-shrink:0}
+.journey-back{position:absolute;right:clamp(25px,8.7vw,145px);bottom:75px;
+  font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  color:#e0d3e0;border-bottom:1px solid rgba(255,255,255,.4);padding-bottom:10px}
+.journey-station{min-height:118svh}
+.journey-station.journey-right{justify-content:flex-end;text-align:right;
+  background:linear-gradient(-90deg,rgba(7,7,16,.8),rgba(7,7,16,.12) 85%)}
+.journey-content{width:100%;max-width:780px}
+.journey-station h2{font-size:clamp(3.8rem,7.4vw,9.6rem);line-height:.93;
+  font-weight:500;letter-spacing:-.09em;margin:38px 0 35px}
+.journey-station p{font-size:clamp(19px,2vw,29px);line-height:1.54;
+  max-width:730px;color:#f0e9ed;letter-spacing:-.015em}
+.journey-station .journey-secondary{font-size:clamp(13px,1.17vw,17px);line-height:1.7;
+  color:#bdb6c8;margin-top:33px;max-width:670px}
+.journey-right .journey-content{margin-left:auto}
+.journey-right p{margin-left:auto}
+.journey-rail{position:absolute;right:clamp(26px,3.5vw,65px);bottom:45px;
+  display:flex;align-items:center;gap:23px;color:#d1bdca;font-size:10px;letter-spacing:.16em}
+.journey-features{border-top:1px solid var(--stroke);max-width:760px}
+.journey-features>div{display:flex;align-items:baseline;gap:30px;
+  border-bottom:1px solid var(--stroke);padding:22px 0}
+.journey-features span{font-size:11px;color:#d1bfce;flex:0 0 35px}
+.journey-features strong{font-weight:500;line-height:1.2;font-size:clamp(19px,2.2vw,30px);letter-spacing:-.04em}
+.journey-actions{display:flex;align-items:center;flex-wrap:wrap;gap:25px 38px;margin-top:45px}
+.journey-actions .underlined-link{margin:0}
+.journey-station .journey-actions~p{margin-top:35px}
+.journey-return{min-height:125svh;background:linear-gradient(90deg,rgba(9,8,19,.85),rgba(11,9,24,.46));
+  padding-top:135px;padding-bottom:140px}
+.journey-return>div{width:100%;max-width:1300px}
+.journey-return h2{font-size:clamp(3.8rem,7.8vw,10rem);font-weight:500;
+  letter-spacing:-.09em;line-height:.93;margin:35px 0}
+.journey-return h2 em{color:#e9cfc1}
+.journey-return p:not(.micro-label){font-size:clamp(15px,1.4vw,20px);color:#cfc8d6;line-height:1.5}
+.return-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;margin-top:70px;max-width:1080px}
+.return-choices a{display:flex;align-items:center;justify-content:space-between;gap:20px;
+  padding:25px 23px;min-height:95px;border:1px solid rgba(242,237,255,.26);
+  background:rgba(27,24,40,.55);backdrop-filter:blur(9px);font-size:clamp(17px,1.9vw,27px);
+  letter-spacing:-.04em;transition:background .3s,transform .3s}
+.return-choices a span:last-child{font-size:27px}
+.return-choices a:hover{background:rgba(115,103,148,.37);transform:translateY(-5px)}
+@media(max-width:1000px){
+  .fork-choices{grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+  .fork-choice{min-height:245px}
+}
+@media(max-width:680px){
+  .project-crossroads{padding:110px 24px;min-height:120svh}
+  .crossroads-top{display:block}
+  .crossroads-top p{margin-top:12px}
+  .crossroads-heading{font-size:clamp(3.5rem,12vw,6.8rem);margin:75px 0 55px}
+  .fork-choices{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .fork-choice{min-height:205px;padding:17px 14px;border-radius:90px 90px 7px 7px}
+  .fork-title{font-size:clamp(16px,4.5vw,24px)}
+  .fork-title small{font-size:9px}
+  .journey-entrance,.journey-station,.journey-return{min-height:100svh;padding:150px 25px 115px}
+  .journey-entrance h1{font-size:clamp(3.75rem,12vw,7.5rem)}
+  .journey-intro{font-size:19px}
+  .journey-instructions{margin-top:60px}
+  .journey-instructions-icon{width:50px;height:50px}
+  .journey-back{bottom:35px;right:25px}
+  .journey-station h2{font-size:clamp(3.5rem,11vw,6.6rem)}
+  .journey-station p{font-size:19px}
+  .journey-station.journey-right{text-align:left;justify-content:flex-start}
+  .journey-right .journey-content{margin-left:0}
+  .journey-right p{margin-left:0}
+  .journey-rail{right:26px;bottom:23px}
+  .journey-features strong{font-size:19px}
+  .journey-return h2{font-size:clamp(3.3rem,10vw,6.4rem)}
+  .return-choices{grid-template-columns:1fr;gap:7px;margin-top:45px}
+  .return-choices a{min-height:74px;padding:16px;font-size:20px}
+}
+@media(prefers-reduced-motion:reduce){
+  .fork-choice,.return-choices a{transition:none}
+}

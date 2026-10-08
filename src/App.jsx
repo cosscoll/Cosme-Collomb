@@ -2,6 +2,7 @@ import { Component, Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { HashRouter, Link, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import { PROJECTS_WITH_SLUGS as PROJECTS } from './data/projects.js'
+import { PROJECT_STORIES } from './data/projectStories.js'
 import './styles/rebuilt.css'
 
 const World = lazy(() => import('./components/World.jsx'))
@@ -20,13 +21,23 @@ class Boundary extends Component {
 }
 
 function ScrollReset() {
-  const { pathname } = useLocation()
+  const { pathname, state } = useLocation()
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' })
-    document.documentElement.style.scrollBehavior = 'auto'
-    const id = requestAnimationFrame(() => { document.documentElement.style.scrollBehavior = '' })
-    return () => cancelAnimationFrame(id)
-  }, [pathname])
+    if(pathname === '/projets' && state?.fromJourney) {
+      // Framer Motion waits for the preceding page to exit before mounting.
+      // Locate the actual crossroads after that transition.
+      let attempts=0
+      let frame=0
+      const navigateToFork=()=>{
+        const target=document.getElementById('project-crossroads')
+        if(target)window.scrollTo({top:target.offsetTop,behavior:'instant'})
+        else if(attempts++<120)frame=requestAnimationFrame(navigateToFork)
+      }
+      frame=requestAnimationFrame(navigateToFork)
+      return ()=>cancelAnimationFrame(frame)
+    }
+  }, [pathname,state])
   return null
 }
 
@@ -244,38 +255,100 @@ function PageIntro({ kicker, title, italic, text }) {
 
 function ProjectIndex({ setHovered }) {
   return <>
-    <PageIntro kicker="EXPLORATION / PROJETS" title="Un projet." italic="Un univers." text="Interfaces interactives, outils utiles et expériences digitales conçues pour être explorées." />
-    <section className="interior-body">
-      <div className="section-topline"><span>INDEX DES PROJETS</span><span>{String(PROJECTS.length).padStart(2,'0')} EXPÉRIENCES</span></div>
-      <div className="all-projects">
-        {PROJECTS.map((p,i)=><Link to={'/projets/'+p.slug} className="project-line" key={p.slug}
-          onMouseEnter={()=>setHovered('project-'+i)} onMouseLeave={()=>setHovered('')}>
-          <span className="project-number">{String(i+1).padStart(2,'0')}</span>
-          <span className="project-line-main"><strong>{p.title}</strong><small>{p.tags?.slice(0,3).join('  /  ')}</small></span>
-          <span className="project-line-arrow">↗</span>
-        </Link>)}
+    <PageIntro kicker="LE CARREFOUR / CINQ DIRECTIONS" title="Cinq projets." italic="Cinq chemins."
+      text="À chaque embranchement, un projet. Choisissez votre direction, avancez dans son univers puis revenez ici en poursuivant votre exploration." />
+    <section id="project-crossroads" className="project-crossroads" aria-label="Carrefour des cinq projets">
+      <div className="crossroads-top">
+        <span className="micro-label">CARREFOUR 02 / 05 ACCÈS</span>
+        <p>Survolez un chemin pour le mettre en lumière. Cliquez pour entrer.</p>
       </div>
-      <Link to="/" className="underlined-link">← Revenir au carrefour</Link>
+      <h2 className="crossroads-heading">Quelle direction<br/><em>prendre ?</em></h2>
+      <nav className="fork-choices" aria-label="Choisir un tunnel projet">
+        {PROJECTS.map((p,i)=>(
+          <motion.div key={p.slug} initial={{opacity:0,y:40}} whileInView={{opacity:1,y:0}}
+            viewport={{once:true,amount:.2}} transition={{duration:.65,delay:i*.055}}>
+            <Link to={'/projets/'+p.slug} className={'fork-choice fork-choice-'+i}
+              onMouseEnter={()=>setHovered('project-'+i)} onMouseLeave={()=>setHovered('')}
+              onFocus={()=>setHovered('project-'+i)} onBlur={()=>setHovered('')}>
+              <span className="fork-number">{String(i+1).padStart(2,'0')}</span>
+              <span className="fork-title">{p.title}<small>{p.tags?.slice(0,2).join(' / ')}</small></span>
+              <span className="fork-direction">↗</span>
+            </Link>
+          </motion.div>
+        ))}
+      </nav>
+      <p className="crossroads-footnote">Chaque chemin est une exploration au scroll. À la fin, vous reviendrez à cette intersection.</p>
+      <Link to="/" className="underlined-link">← Retour à l'accueil</Link>
     </section>
   </>
+}
+
+function JourneyStation({number,kicker,title,children,align=''}) {
+  return <section className={'journey-station '+align} aria-label={kicker}>
+    <motion.div className="journey-content" initial={{opacity:0,y:45}}
+      whileInView={{opacity:1,y:0}} viewport={{once:false,amount:.35}}
+      transition={{duration:.8,ease:[.16,1,.3,1]}}>
+      <span className="micro-label">{number} / {kicker}</span>
+      <h2>{title}</h2>
+      {children}
+    </motion.div>
+    <div className="journey-rail" aria-hidden="true"><span>{number}</span><span>↓</span></div>
+  </section>
 }
 
 function ProjectDetail({slug}) {
   const i=PROJECTS.findIndex(p=>p.slug===slug)
   const p=PROJECTS[i]
   if(!p)return <PageIntro kicker="ERREUR" title="Projet" italic="introuvable." />
-  const next=PROJECTS[(i+1)%PROJECTS.length]
+  const story=PROJECT_STORIES[i]
   return <>
-    <PageIntro kicker={'PROJET / '+String(i+1).padStart(2,'0')} title={p.title} italic="" text={p.description} />
-    <section className="interior-body detail-body">
-      <div className="section-topline"><span>EXPLORATION</span><span>UNE RÉALISATION DE COSME COLLOMB</span></div>
-      <div className="detail-metadata"><span>DOMAINES</span><p>{p.tags?.join(' — ')}</p></div>
-      <div className="detail-buttons">
-        {p.link && <a className="detail-primary" href={p.link} target="_blank" rel="noopener noreferrer">Explorer le projet <span>↗</span></a>}
-        {p.repoLink && <a className="underlined-link" href={p.repoLink} target="_blank" rel="noopener noreferrer">Voir le code source <span>↗</span></a>}
+    <section className="journey-entrance">
+      <motion.div initial={{opacity:0,y:70}} animate={{opacity:1,y:0}}
+        transition={{duration:1.1,ease:[.16,1,.3,1]}}>
+        <p className="micro-label">CHEMIN {String(i+1).padStart(2,'0')} / {String(PROJECTS.length).padStart(2,'0')} — VOYAGE INTERACTIF</p>
+        <h1>{p.title}</h1>
+        <p className="journey-intro">{story.introduction}</p>
+        <div className="journey-instructions"><span className="journey-instructions-icon">↓</span>
+          Faites défiler pour avancer dans ce tunnel et découvrir le projet.
+        </div>
+      </motion.div>
+      <Link className="journey-back" to="/projets" state={{fromJourney:true}}>← Les cinq chemins</Link>
+    </section>
+    <JourneyStation number="01" kicker="LE POINT DE DÉPART" title="L'idée." >
+      <p>{story.idea}</p>
+      <p className="journey-secondary">{p.description}</p>
+    </JourneyStation>
+    <JourneyStation number="02" kicker="DANS L'EXPÉRIENCE" title="À explorer." align="journey-right">
+      <p>{story.experience}</p>
+    </JourneyStation>
+    <JourneyStation number="03" kicker="LES FONCTIONNALITÉS" title="Ce qui prend vie.">
+      <div className="journey-features">
+        {story.features.map((feature,index)=><div key={feature}><span>{String(index+1).padStart(2,'0')}</span><strong>{feature}</strong></div>)}
       </div>
-      <Link to={'/projets/'+next.slug} className="next-project">PROCHAIN PROJET <strong>{next.title} ↗</strong></Link>
-      <Link to="/projets" className="underlined-link">← Tous les projets</Link>
+    </JourneyStation>
+    <JourneyStation number="04" kicker="VOIR LA RÉALISATION" title="Le projet, en vrai." align="journey-right">
+      <p>Le meilleur moyen de découvrir cette réalisation reste de l'utiliser.</p>
+      <div className="journey-actions">
+        {p.link && <a className="detail-primary" href={p.link} target="_blank" rel="noopener noreferrer">Ouvrir le projet <span>↗</span></a>}
+        {p.repoLink && <a className="underlined-link" href={p.repoLink} target="_blank" rel="noopener noreferrer">Explorer le code ↗</a>}
+      </div>
+      <p className="journey-secondary">Continuez à descendre : le tunnel vous ramène maintenant à l'intersection.</p>
+    </JourneyStation>
+    <section className="journey-return" id="return-to-projects" aria-label="Retour au carrefour des projets">
+      <motion.div initial={{opacity:0,y:40}} whileInView={{opacity:1,y:0}}
+        viewport={{once:false,amount:.25}} transition={{duration:.9}}>
+        <p className="micro-label">05 / RETOUR AU CARREFOUR</p>
+        <h2>De retour.<br/><em>Quel autre chemin ?</em></h2>
+        <p>Vous avez parcouru {p.title}. Choisissez une nouvelle direction.</p>
+        <nav className="return-choices" aria-label="Explorer un autre projet">
+          {PROJECTS.filter(project=>project.slug!==p.slug).map((other)=>(
+            <Link key={other.slug} to={'/projets/'+other.slug}>
+              <span>{other.title}</span><span>↗</span>
+            </Link>
+          ))}
+        </nav>
+        <Link to="/projets" state={{fromJourney:true}} className="underlined-link">Voir les cinq chemins <span>↗</span></Link>
+      </motion.div>
     </section>
   </>
 }

@@ -3,8 +3,9 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { PROJECTS_WITH_SLUGS as PROJECTS } from '../data/projects.js'
 import {
-  PATHS, MAIN_HUBS, PROJECT_HUBS, TUNNEL_RADIUS,
-  createSkin, createSeam
+  PATHS, MAIN_HUBS, PROJECT_HUBS,
+  PROJECT_BRANCH_COLORS, PROJECT_FORK_OPEN, PROJECT_FORK_CLOSE,
+  createSkin, createSeam, detailTravelT, detailReturning
 } from '../scene/geometry.js'
 
 const UP=new THREE.Vector3(0,1,0)
@@ -12,13 +13,22 @@ const FORWARD=new THREE.Vector3(0,0,1)
 const clamp=n=>Math.min(1,Math.max(0,n))
 const smooth=n=>{const v=clamp(n);return v*v*(3-2*v)}
 
-function Shell({path}) {
-  // One closed manifold, not three overlapping surface strips.
-  const geometry=useMemo(()=>createSkin(path),[path])
+function Shell({path,branch=false}) {
+  // Closed 360° surface, with no overlapping opaque walls inside the hub.
+  const start=branch?PROJECT_FORK_OPEN:0
+  const end=branch?PROJECT_FORK_CLOSE:1
+  const radius=branch?2.85:4.25
+  const divisions=branch?104:300
+  const radial=branch?40:64
+  const seamsCount=branch?3:7
+  const geometry=useMemo(()=>createSkin(path,{
+    radius,lengthSegments:divisions,radialSegments:radial,start,end
+  }),[path,branch])
   useEffect(()=>()=>geometry.dispose(),[geometry])
   const seams=useMemo(()=>
-    Array.from({length:7},(_,i)=>createSeam(path,i*Math.PI*2/7)),
-    [path]
+    Array.from({length:seamsCount},(_,i)=>
+      createSeam(path,i*Math.PI*2/seamsCount,{radius,segments:branch?100:140,start,end})),
+    [path,branch]
   )
   return (
     <group>
@@ -84,9 +94,9 @@ function RouteMarkers({mode,hovered}) {
     ))}
     {(mode==='projects'||mode==='detail') && PATHS.children.map((path,i)=>(
       <DirectionGate key={'sub'+i} path={path}
-        color={i%2?'#b6dae3':'#c6b0ec'}
+        color={PROJECT_BRANCH_COLORS[i]}
         hovered={hovered==='project-'+i}
-        at={.92} radius={1.6}/>
+        at={.55} radius={2.45}/>
     ))}
   </group>
 }
@@ -108,7 +118,7 @@ function Sparkles() {
   </points>
 }
 
-function CameraFlight({path,mode,hub,hovered}) {
+function CameraFlight({path,mode,hub,hovered,projectIndex=0}) {
   const {camera}=useThree()
   const current=useRef(null)
   const target=new THREE.Vector3()
@@ -153,7 +163,7 @@ function CameraFlight({path,mode,hub,hovered}) {
         targetT=hub+.037+phase*(.955-hub-.037)
       }
     }else if(mode==='detail'){
-      targetT=hub+.008+smooth(scrollY/total)*(.955-hub-.008)
+      targetT=detailTravelT(projectIndex,scrollY/total)
     }else{
       targetT=hub+.008+smooth(scrollY/total)*(.955-hub-.008)
     }
@@ -164,7 +174,9 @@ function CameraFlight({path,mode,hub,hovered}) {
     const t=current.current
 
     path.getPointAt(t,target)
-    path.getPointAt(Math.min(.999,t+.023),ahead)
+    const returning=mode==='detail'&&detailReturning(scrollY/total)
+    // Rotate naturally at the last station, then look towards the intersection.
+    path.getPointAt(returning?Math.max(.001,t-.023):Math.min(.999,t+.023),ahead)
     path.getTangentAt(t,direction)
     right.crossVectors(direction,UP).normalize()
     softMouse.current.x=THREE.MathUtils.damp(softMouse.current.x,mouse.current.x,3.3,dt)
@@ -175,6 +187,12 @@ function CameraFlight({path,mode,hub,hovered}) {
 
     // Target and mesh are sampled on the same spline. Clearance >= 4 units.
     camera.position.copy(goal)
+    if(mode==='projects'&&hovered.startsWith('project-')&&scrollY>window.innerHeight*.45){
+      const idx=Number(hovered.slice(8))
+      if(Number.isInteger(idx)&&idx>=0&&idx<PATHS.children.length){
+        ahead.lerp(PATHS.children[idx].getPointAt(.56),.085)
+      }
+    }
     if(mode==='home'&&hovered&&scrollY>window.innerHeight*.8){
       const index=['projects','experience','contact'].indexOf(hovered)
       if(index>=0){
@@ -212,9 +230,12 @@ function Scene({pathname,hovered}) {
     <pointLight position={[-6,3,-53]} color="#a6cbd9" intensity={45} distance={32} decay={2}/>
     <pointLight position={[3,-2,-77]} color="#9996de" intensity={34} distance={27} decay={2}/>
     <Shell key={mode+'-'+index} path={path}/>
+    {mode==='projects' && PATHS.children.map((arm,i)=>(
+      <Shell key={'branch-'+i} path={arm} branch/>
+    ))}
     <RouteMarkers mode={mode} hovered={hovered}/>
     <Sparkles/>
-    <CameraFlight key={mode+'-'+index} path={path} mode={mode} hub={hub} hovered={hovered}/>
+    <CameraFlight key={mode+'-'+index} path={path} mode={mode} hub={hub} hovered={hovered} projectIndex={index}/>
   </>
 }
 

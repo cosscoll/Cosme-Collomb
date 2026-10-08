@@ -3,7 +3,9 @@ import assert from 'node:assert/strict'
 import * as THREE from 'three'
 import {
   PATHS, MAIN_HUBS, PROJECT_HUBS,
-  TUNNEL_RADIUS, RADIAL_SEGMENTS, createSkin, createSeam
+  TUNNEL_RADIUS, RADIAL_SEGMENTS, createSkin, createSeam,
+  PROJECT_FORK_OPEN, PROJECT_FORK_CLOSE,
+  detailTravelT, detailReturning, projectOutboundT
 } from '../src/scene/geometry.js'
 
 const everyPath=[...PATHS.routes,...PATHS.details]
@@ -67,5 +69,50 @@ test('Navigation hubs and decorative seams are based on the flight paths',()=>{
   for(const t of [0,1]){
     const distance=seam.getPointAt(t).distanceTo(PATHS.routes[0].getPointAt(t))
     assert.ok(distance>3.9 && distance<4.6)
+  }
+})
+
+test('Five project branches are open, distinct and have actual 3D walls',()=>{
+  assert.equal(PATHS.children.length,5)
+  assert.ok(PROJECT_FORK_OPEN>.1 && PROJECT_FORK_CLOSE<1)
+  for(let i=0;i<5;i++){
+    const arm=PATHS.children[i]
+    const geometry=createSkin(arm,{
+      radius:2.85,lengthSegments:90,radialSegments:40,
+      start:PROJECT_FORK_OPEN,end:PROJECT_FORK_CLOSE
+    })
+    assert.equal(geometry.index.count,90*40*6)
+    const positions=geometry.getAttribute('position')
+    for(let row=0;row<=90;row+=10){
+      const a=row*41,b=a+40
+      const pa=new THREE.Vector3().fromBufferAttribute(positions,a)
+      const pb=new THREE.Vector3().fromBufferAttribute(positions,b)
+      assert.ok(pa.distanceTo(pb)<.0001,'A project branch has a hole')
+    }
+    geometry.dispose()
+  }
+  for(const t of [PROJECT_FORK_OPEN,.55,.7,.85,PROJECT_FORK_CLOSE]){
+    for(let i=0;i<4;i++){
+      const a=PATHS.children[i].getPointAt(t)
+      const b=PATHS.children[i+1].getPointAt(t)
+      assert.ok(a.distanceTo(b)>5.7,'Two adjacent project tunnels collide at '+t)
+    }
+  }
+})
+test('Each journey returns to the same physical intersection after its story',()=>{
+  for(let i=0;i<5;i++){
+    const hub=projectOutboundT(i)
+    const start=detailTravelT(i,0)
+    const outbound=detailTravelT(i,.63)
+    const turning=detailTravelT(i,.7)
+    const final=detailTravelT(i,1)
+    assert.ok(Math.abs(start-hub)<.000001)
+    assert.ok(outbound>.94 && outbound<.99)
+    assert.equal(turning,outbound)
+    assert.ok(Math.abs(final-start)<.000001,'Journey did not return to its junction')
+    assert.ok(PATHS.details[i].getPointAt(final).distanceTo(
+      PATHS.details[i].getPointAt(start))<.001)
+    assert.equal(detailReturning(.4),false)
+    assert.equal(detailReturning(.8),true)
   }
 })
