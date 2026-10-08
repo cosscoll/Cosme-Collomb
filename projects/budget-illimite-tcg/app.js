@@ -246,11 +246,15 @@ function renderSide(key) {
     const unit = cardStats(side.active.id);
     byId(key + "HpText").textContent = side.active.hp + " / " + unit.maxHp + " PV";
     byId(key + "HpBar").style.width = (side.active.hp / unit.maxHp * 100).toFixed(1) + "%";
+    byId(key + "HpBar").setAttribute("aria-valuenow", side.active.hp);
+    byId(key + "HpBar").setAttribute("aria-valuemax", unit.maxHp);
     byId(key + "Energy").textContent = side.energy + " / 5 énergie";
     byId(key + "Guard").textContent = side.guard ? "Protection : " + side.guard : "Aucune protection";
   } else {
     byId(key + "HpText").textContent = "— PV";
     byId(key + "HpBar").style.width = "0%";
+    byId(key + "HpBar").setAttribute("aria-valuenow", 0);
+    byId(key + "HpBar").setAttribute("aria-valuemax", 100);
     byId(key + "Energy").textContent = "— énergie";
     byId(key + "Guard").textContent = "Aucune protection";
   }
