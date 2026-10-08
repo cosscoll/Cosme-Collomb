@@ -65,13 +65,15 @@ function Tunnel({ curve, color, radius = 3.55, length = 130, wire = true }) {
     <group>
       <mesh>
         <tubeGeometry args={[curve, length, radius, 28, false]} />
-        <meshStandardMaterial
+        <meshPhysicalMaterial
           side={THREE.BackSide}
-          color="#11111d"
-          metalness={0.38}
-          roughness={0.32}
+          color="#181727"
+          metalness={0.72}
+          roughness={0.26}
+          clearcoat={0.85}
+          clearcoatRoughness={0.15}
           emissive={color}
-          emissiveIntensity={0.095}
+          emissiveIntensity={0.11}
         />
       </mesh>
       {wire && (
@@ -166,6 +168,40 @@ function RingSeries({ curve, color, radius = 3.35, count = 11, active = false })
     return <Ring key={index} curve={curve} color={color} radius={radius}
       index={index} t={t} major={index === 0 || index === count - 1} active={active} />
   })
+}
+
+/**
+ * Structural metal ribs following the actual spline. Light is embedded
+ * in the architecture instead of adding floating geometric objects.
+ */
+function ArchitecturalRibs({ curve, color, radius, count = 8 }) {
+  const supports = useMemo(() => Array.from({ length: count }, (_, i) => {
+    const t = 0.085 + i * 0.82 / Math.max(1, count - 1)
+    return {
+      position: curve.getPointAt(t),
+      quaternion: new THREE.Quaternion().setFromUnitVectors(FORWARD, curve.getTangentAt(t).normalize()),
+      rotation: i % 2 ? Math.PI * 0.17 : -Math.PI * 0.17,
+    }
+  }), [curve, count])
+
+  return (
+    <group>
+      {supports.map((support, i) => (
+        <group key={i} position={support.position} quaternion={support.quaternion}>
+          <mesh rotation={[0, 0, support.rotation]}>
+            <torusGeometry args={[radius - 0.15, 0.13, 12, 160, Math.PI * 1.67]} />
+            <meshStandardMaterial color="#313047" metalness={0.93} roughness={0.19}
+              emissive={color} emissiveIntensity={0.13} side={THREE.DoubleSide} />
+          </mesh>
+          <mesh rotation={[0, 0, support.rotation]}>
+            <torusGeometry args={[radius - 0.21, 0.014, 8, 160, Math.PI * 1.67]} />
+            <meshBasicMaterial color={color} transparent opacity={0.76}
+              depthWrite={false} blending={THREE.AdditiveBlending} />
+          </mesh>
+        </group>
+      ))}
+    </group>
+  )
 }
 
 function Gate({ curve, color, radius, active, title, index }) {
@@ -338,6 +374,7 @@ function Scene({ mode, projectIndex, hovered, veilRef }) {
       <Tunnel curve={world.trunk} radius={4.3} color="#9890ff" length={220} />
       <Rails curve={world.trunk} color="#a8a0ff" radius={4.05} count={6} />
       <RingSeries curve={world.trunk} color="#aaa5ff" radius={4.06} count={12} />
+      <ArchitecturalRibs curve={world.trunk} color="#a79eff" radius={4.08} count={10} />
       <Junction world={world} activeChoice={activeMain} />
 
       {world.main.map((curve, index) => {
@@ -350,6 +387,7 @@ function Scene({ mode, projectIndex, hovered, veilRef }) {
             <Tunnel curve={curve} radius={3.24} color={color} length={120} />
             <Rails curve={curve} radius={3.04} color={color} count={3} />
             <RingSeries curve={curve} color={color} radius={3.04} count={8} active={active} />
+            <ArchitecturalRibs curve={curve} color={color} radius={3.05} count={6} />
             <Gate curve={curve} color={color} radius={3.03} title={key} active={active} index={index} />
           </group>
         )
