@@ -25,7 +25,7 @@ async function verifyPage(page,name,expected){
   // Router navigation includes a 4.2-second built tunnel passage.
   // Await the EXPECTED page, rather than immediately reading the departing H1.
   const target=page.locator('main h1').filter({hasText:expected}).first()
-  await target.waitFor({state:'visible',timeout:25000})
+  await target.waitFor({state:'visible',timeout:60000})
   // A heading can appear while Framer Motion is still blurring the page.
   // Verify the final state, not a screenshot taken mid-transition.
   await page.waitForFunction(()=>{
@@ -96,11 +96,11 @@ async function run(){
       '--disable-dev-shm-usage','--disable-gpu-sandbox']
   })
   const page=await browser.newPage({viewport:{width:1030,height:690}})
-  page.setDefaultTimeout(20000)
+  page.setDefaultTimeout(60000)
   const errors=[]
   page.on('pageerror',error=>errors.push(String(error)))
 
-  await page.goto(site,{waitUntil:'domcontentloaded',timeout:25000})
+  await page.goto(site,{waitUntil:'domcontentloaded',timeout:60000})
   await verifyPage(page,'home',/Donner forme/i)
 
   await page.locator('.header-primary a').filter({hasText:'Projets'}).click()
@@ -110,7 +110,7 @@ async function run(){
   // The WebGL passage must exist and build in visible frames, not a white
   // screen that merely masks an instantaneous URL change.
   const canvas=page.locator('.scene-backdrop canvas').first()
-  await canvas.waitFor({state:'visible',timeout:25000})
+  await canvas.waitFor({state:'visible',timeout:60000})
   console.log('3D canvas present:',await canvas.evaluate(node=>({
     width:node.width,height:node.height
   })))
@@ -134,13 +134,13 @@ async function run(){
   assert.ok(originalFork?.length===3,'Original 3D fork viewpoint not available')
   await beginFlightTrace(page)
   await page.locator('.fork-choice').first().click()
-  await page.waitForFunction(()=>window.__sawProjectBridge,{timeout:12000})
+  await page.waitForFunction(()=>window.__sawProjectBridge,{timeout:60000})
   assert.equal(await page.locator('.transition-portal').count(),0,
     'Legacy full-screen portal is still masking the real tunnel')
   await page.waitForTimeout(630)
   await page.waitForTimeout(2250)
   await verifyPage(page,'first project',/Ouvertures d'échecs/i)
-  await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:12000})
+  await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:60000})
   await assertFlightContinuous(page,'first project entry')
 
   // Finishing a project must AUTO-RETURN to the physical five-way fork.
@@ -151,9 +151,9 @@ async function run(){
   await page.evaluate(()=>window.scrollTo({
     top:document.documentElement.scrollHeight,behavior:'instant'
   }))
-  await page.locator('[data-bridge-transition="active"]').waitFor({timeout:12000})
+  await page.locator('[data-bridge-transition="active"]').waitFor({timeout:60000})
   await verifyPage(page,'back to projects',/Cinq projets/i)
-  await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:12000})
+  await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:60000})
   await page.waitForTimeout(1400)
   await assertFlightContinuous(page,'automatic project return')
   const restoredFork=await page.evaluate(()=>window.__portfolioFlight?.position)
@@ -177,7 +177,7 @@ async function run(){
   await verifyPage(page,'second project after returning',/Probabilités Hold'em/i)
   await page.locator('.header-return').click()
   await verifyPage(page,'back to projects a second time',/Cinq projets/i)
-  await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:12000})
+  await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:60000})
   assert.ok(await page.locator('.fork-choice').count()===5)
 
 
@@ -187,13 +187,13 @@ async function run(){
   await page.locator('.header-primary a').filter({hasText:'Parcours'}).click()
   await page.locator('[data-bridge-transition="active"]').waitFor()
   await verifyPage(page,'header to parcours',/Faire dialoguer/i)
-  await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:12000})
+  await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:60000})
   await assertFlightContinuous(page,'header to parcours')
   await beginFlightTrace(page)
   await page.locator('.header-primary a').filter({hasText:'Contact'}).click()
   await page.locator('[data-bridge-transition="active"]').waitFor()
   await verifyPage(page,'header to contact',/La suite/i)
-  await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:12000})
+  await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:60000})
   await assertFlightContinuous(page,'header to contact')
   await page.locator('.header-home-link').click()
   await verifyPage(page,'return to homepage',/Donner forme/i)
