@@ -87,8 +87,34 @@ async function run(){
   await verifyPage(page,'first project',/Ouvertures d'échecs/i)
   await page.screenshot({path:'test-output/detail.png'})
 
+  // Project return is the previously broken case: inspect the 3D transition
+  // and assert that the actual five-way crossroads and its scroll position
+  // have been restored, with no last-frame camera teleport.
   await page.locator('.header-return').click()
+  await page.locator('[data-bridge-transition="active"]').waitFor()
+  await page.waitForTimeout(2750)
+  await page.screenshot({path:'test-output/return-bridge-middle.png'})
   await verifyPage(page,'back to projects',/Cinq projets/i)
+  await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:12000})
+  await page.waitForTimeout(260)
+  await page.screenshot({path:'test-output/return-five-open-paths.png'})
+  const crossroads=await page.evaluate(()=>{
+    const target=document.querySelector('#project-crossroads')
+    return {scrollY:window.scrollY,top:target?.offsetTop,choices:
+      document.querySelectorAll('.fork-choice').length,
+      bridgeGone:!document.querySelector('[data-bridge-transition="active"]')}
+  })
+  assert.equal(crossroads.choices,5,'The five project choices disappeared on return')
+  assert.ok(crossroads.bridgeGone,'Old bridge still overlays the restored crossroads')
+  assert.ok(Math.abs(crossroads.scrollY-crossroads.top)<30,
+    'Return failed to restore the actual 5-project crossroads: '+JSON.stringify(crossroads))
+  await page.locator('.fork-choice').nth(1).click()
+  await verifyPage(page,'second project after returning',/Probabilités Hold'em/i)
+  await page.locator('.header-return').click()
+  await verifyPage(page,'back to projects a second time',/Cinq projets/i)
+  await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:12000})
+  assert.ok(await page.locator('.fork-choice').count()===5)
+
 
   await page.locator('.header-home-link').click()
   await verifyPage(page,'return to homepage',/Donner forme/i)
