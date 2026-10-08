@@ -36,6 +36,8 @@ function openDetails(card) {
   selected = card;
   byId("detailTitle").textContent = card.name;
   byId("detailId").textContent = "ID technique : " + card.id;
+  const demo = cardStats(card.id);
+  byId("detailCombat").textContent = demo.role + " · " + demo.maxHp + " PV · " + demo.quick + " frappe · " + demo.burst + " capacité. " + demo.description + " Valeurs provisoires.";
   byId("detailRarity").textContent = rarityLabels[card.rarity] + " · non vérifiée";
   byId("detailArt").style.borderColor = RARITIES.find(r => r.id === card.rarity).color;
   markButton.textContent = marked.has(card.id) ? "Retirer le repère" : "Marquer comme repérée";
