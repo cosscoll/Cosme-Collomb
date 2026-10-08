@@ -604,10 +604,29 @@ function Shell() {
     // timers. This is essential when an expensive GPU frame stalls rendering:
     // a delayed frame may not skip 20 metres down the corridor.
     const has3D=Boolean(document.querySelector('.scene-backdrop canvas'))
-    const halfwayDelay=has3D?35000:TRANSIT_MIDPOINT
-    const finishDelay=has3D?42000:TRANSIT_MS
-    timers.current.push(window.setTimeout(()=>commitMidpoint(journey),halfwayDelay))
-    timers.current.push(window.setTimeout(()=>finishTrip(journey),finishDelay))
+    if(!has3D){
+      // CSS-only fallback has no real camera to emit flight milestones.
+      timers.current.push(window.setTimeout(()=>commitMidpoint(journey),TRANSIT_MIDPOINT))
+      timers.current.push(window.setTimeout(()=>finishTrip(journey),TRANSIT_MS))
+    }else{
+      // Never let an arbitrary wall-clock timeout teleport a still-rendering
+      // 3D camera. Slow laptops / background tabs legitimately take longer.
+      // Only recover navigation if the WebGL scene has actually STOPPED
+      // rendering for more than 12 seconds.
+      const watchdog=()=>{
+        if(transitRef.current?.id!==journey.id)return
+        const flight=window.__portfolioFlight
+        const age=performance.now()-(flight?.updatedAt||0)
+        const alive=flight?.flightId===journey.id&&age<12000
+        if(!alive){
+          commitMidpoint(journey)
+          finishTrip(journey)
+          return
+        }
+        timers.current.push(window.setTimeout(watchdog,5000))
+      }
+      timers.current.push(window.setTimeout(watchdog,15000))
+    }
     return true
   },[pathname,commitMidpoint,finishTrip])
 

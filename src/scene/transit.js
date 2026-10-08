@@ -46,7 +46,7 @@ export function arrivalT(info,from){
   if(info.mode==='projects' && ['projects','detail'].includes(from.mode))
     return PROJECT_LOOKOUT_T
   if(info.mode==='projects') return info.mainHub+MAIN_ENTRY_OFFSET
-  if(info.mode==='home')return .035
+  if(info.mode==='home')return .025
   return info.mainHub+MAIN_ENTRY_OFFSET
 }
 export function scrollT(info,{scrollY=0,total=1,junction=1,works=2,projectFork=2}={}){
@@ -85,7 +85,7 @@ export function junctionFor(from,to,initialT){
 }
 export function bridgeBuild(progress){
   const p=clamp(progress)
-  return ease((p-.12)/.62)
+  return ease((p-.10)/.41)
 }
 export function sampleTransit(from,to,initialT,progress){
   const p=clamp(progress)
@@ -97,10 +97,31 @@ export function sampleTransit(from,to,initialT,progress){
       mode:from.mode,index:from.index,phase:'approach'}
   }
   if(p<TRANSIT_MID){
-    return {path:from.path,t:hub.fromT,reverse:false,
+    return {path:from.path,t:hub.fromT,reverse:hub.fromT<initialT,
       mode:from.mode,index:from.index,phase:'assemble'}
   }
   const f=ease((p-TRANSIT_MID)/(1-TRANSIT_MID))
+  // Both routes belong to the same intersection, but their independent
+  // Catmull–Rom splines can differ by decimetres at the sampled joint.
+  // Align the *physical* camera position exactly there and gently remove
+  // that alignment as the destination corridor begins. No position filter
+  // or "catch-up" lag is needed, so finishing a trip cannot snap again.
+  const join=from.path.getPointAt(Math.max(.001,Math.min(.998,hub.fromT)))
+    .sub(to.path.getPointAt(Math.max(.001,Math.min(.998,hub.toT))))
+  // Drive the correction by DISTANCE along the new branch, rather than
+  // time. The assembled 3D wall can then use the same offset per section,
+  // so the viewer is moving down the true centre of the bridge.
+  const alignment=1-ease(f/.35)
   return {path:to.path,t:hub.toT+(end-hub.toT)*f,
+    offset:join.multiplyScalar(alignment),
     reverse:end<hub.toT,mode:to.mode,index:to.index,phase:'cross'}
+}
+
+// Physical camera world position: the interpolation belongs to the route,
+// NOT a second, independently damped camera that can lag behind a page swap.
+export function transitPoint(sample,target){
+  const t=Math.max(.001,Math.min(.998,sample.t))
+  const point=sample.path.getPointAt(t,target)
+  if(sample.offset)point.add(sample.offset)
+  return point
 }

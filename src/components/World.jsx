@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
-import { routeInfo, scrollT, sampleTransit, junctionFor, arrivalT, bridgeBuild, PROJECT_LOOKOUT_T } from '../scene/transit.js'
+import { routeInfo, scrollT, sampleTransit, transitPoint, junctionFor, arrivalT, bridgeBuild, PROJECT_LOOKOUT_T } from '../scene/transit.js'
 import {
   PATHS, PROJECT_BRANCH_COLORS, PROJECT_FORK_OPEN, PROJECT_FORK_CLOSE, PROJECT_FORK_FOCUS,
   createSkin, createSeam, detailReturning
@@ -11,6 +11,25 @@ const UP=new THREE.Vector3(0,1,0)
 const FORWARD=new THREE.Vector3(0,0,1)
 const clamp=n=>Math.min(1,Math.max(0,n))
 const smooth=n=>{const v=clamp(n);return v*v*(3-2*v)}
+
+// Camera heading always remains upright when reversing or turning around a
+// tunnel junction. Interpolating unnormalised look-at targets can pass through
+// the eye and produce a visible 180-degree twitch.
+function blendHeading(a,b,weight,target){
+  const t=smooth(weight)
+  const start=Math.atan2(a.x,-a.z)
+  const end=Math.atan2(b.x,-b.z)
+  let yawDelta=Math.atan2(Math.sin(end-start),Math.cos(end-start))
+  // A nearly opposite heading can fluctuate between +π and -π as the
+  // animated camera moves. Always turn around the SAME side of the fork.
+  if(Math.abs(yawDelta)>Math.PI-.14)yawDelta=Math.abs(yawDelta)
+  const pitchA=Math.asin(THREE.MathUtils.clamp(a.y,-1,1))
+  const pitchB=Math.asin(THREE.MathUtils.clamp(b.y,-1,1))
+  const yaw=start+yawDelta*t
+  const pitch=pitchA+(pitchB-pitchA)*t
+  target.set(Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch))
+  return target
+}
 
 function Shell({path,branch=false,transit=null,arrival=false}) {
   // Closed 360° surface, with no overlapping opaque walls inside the hub.
@@ -37,7 +56,7 @@ function Shell({path,branch=false,transit=null,arrival=false}) {
     // transparency overdraw here looked like broken walls / clipping.
     // Switch at the actual common junction while the building branch persists.
     if(root.current)root.current.visible=!transit||
-      (arrival?p>=.52:p<.52)
+      (arrival?(branch?p>=.52:p>=.90):p<.52)
     surface.current.opacity=1
     seamMaterials.current.forEach((material,i)=>{
       if(material)material.opacity=i%2===0?.46:.24
@@ -165,6 +184,10 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
   const position=useMemo(()=>new THREE.Vector3(),[])
   const ahead=useMemo(()=>new THREE.Vector3(),[])
   const direction=useMemo(()=>new THREE.Vector3(),[])
+  const capturedHeading=useRef(new THREE.Vector3(0,0,-1))
+  const sourceHeading=useMemo(()=>new THREE.Vector3(),[])
+  const destinationHeading=useMemo(()=>new THREE.Vector3(),[])
+  const forkHeading=useMemo(()=>new THREE.Vector3(),[])
   const right=useMemo(()=>new THREE.Vector3(),[])
   const matrix=useMemo(()=>new THREE.Matrix4(),[])
   const rotation=useMemo(()=>new THREE.Quaternion(),[])
@@ -191,6 +214,9 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
         flight.p=0
         flight.mid=false
         flight.done=false
+        // Take the actual visible eye direction, so the first animation
+        // frame cannot suddenly reverse the camera on header navigation.
+        camera.getWorldDirection(capturedHeading.current)
       }
       // The spatial step is calculated after the departure spline is known.
     }else{
@@ -225,12 +251,12 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       // changes pages from the far end of a long corridor via the header.
       // This also prevents crossing an opaque wall after a GPU stall.
       const last=sampleTransit(from,to,departure.current,flight.p)
-      const lastPoint=last.path.getPointAt(clamp(last.t))
+      const lastPoint=transitPoint(last)
       let nextP=Math.min(1,flight.p+dt/(transit.duration/1000))
       for(let attempt=0;attempt<10;attempt++){
         const next=sampleTransit(from,to,departure.current,nextP)
-        const point=next.path.getPointAt(clamp(next.t))
-        if(lastPoint.distanceTo(point)<=1.4)break
+        const point=transitPoint(next)
+        if(lastPoint.distanceTo(point)<=.42)break
         nextP=(flight.p+nextP)*.5
       }
       flight.p=nextP
@@ -238,6 +264,12 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       visualProgress=nextP
       sample=sampleTransit(from,to,departure.current,visualProgress)
       current.current=sample.t
+      // Keep the bridge and camera on the SAME navigation graph even if a
+      // header click is queued before the preceding flight has fully ended.
+      if(flightPosition)flightPosition.current={
+        t:sample.t,
+        pathName:sample.path===to.path?transit.to:transit.from
+      }
     }else{
       transitId.current=null
       const nextT=scrollT(route,{
@@ -253,29 +285,39 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
     }
 
     const t=Math.max(.001,Math.min(.998,sample.t))
-    sample.path.getPointAt(t,position)
-    sample.path.getPointAt(
-      sample.reverse?Math.max(.001,t-.024):Math.min(.999,t+.024),ahead
-    )
+    transitPoint(sample,position)
     if(transit){
       const p=visualProgress
       const from=routeInfo(transit.from),to=routeInfo(transit.to)
-      if(p>.29 && p<.56){
-        const junction=junctionFor(from,to,departure.current)
-        const destT=arrivalT(to,from)
-        const lookT=Math.max(.003,Math.min(.997,junction.toT+(destT>=junction.toT?.075:-.075)))
-        const destinationLook=to.path.getPointAt(lookT)
-        const weight=smooth((p-.29)/.17)*(1-smooth((p-.51)/.05))
-        ahead.lerp(destinationLook,weight)
+      const junction=junctionFor(from,to,departure.current)
+      const endT=arrivalT(to,from)
+      from.path.getTangentAt(clamp(junction.fromT),sourceHeading)
+      sourceHeading.multiplyScalar(junction.fromT<departure.current?-1:1).normalize()
+      to.path.getTangentAt(clamp(p<.52?junction.toT:t),destinationHeading)
+      destinationHeading.multiplyScalar(endT<junction.toT?-1:1).normalize()
+      if(p<.35) {
+        // Begin at the actual orientation the visitor was already seeing.
+        blendHeading(capturedHeading.current,sourceHeading,p/.31,direction)
+      }else if(p<.52){
+        // Turn WHILE the 3D connecting tunnel is constructed at the fork,
+        // not instantaneously when the destination spline becomes active.
+        blendHeading(sourceHeading,destinationHeading,(p-.35)/.17,direction)
+      }else{
+        direction.copy(destinationHeading)
       }
-      // Look OUT through the open crossroads, not backwards into the trunk.
-      // This turn begins while still approaching the junction, and finishes
-      // before the destination shell replaces the temporary bridge.
       if(to.mode==='projects'&&from.mode==='detail'){
-        ahead.lerp(PROJECT_FORK_FOCUS,smooth((p-.62)/.25))
+        // Back gently out of the visited corridor while recovering the exact
+        // original view of the five tunnel mouths (no last-frame spin).
+        forkHeading.copy(PROJECT_FORK_FOCUS).sub(position).normalize()
+        if(p>.56)blendHeading(direction,forkHeading,(p-.56)/.35,direction)
       }
+      ahead.copy(position).addScaledVector(direction,12)
+    }else{
+      sample.path.getPointAt(
+        sample.reverse?Math.max(.001,t-.024):Math.min(.999,t+.024),ahead
+      )
+      sample.path.getTangentAt(t,direction)
     }
-    sample.path.getTangentAt(t,direction)
     right.crossVectors(direction,UP).normalize()
     softPointer.current.x=THREE.MathUtils.damp(softPointer.current.x,pointer.current.x,3.2,dt)
     softPointer.current.y=THREE.MathUtils.damp(softPointer.current.y,pointer.current.y,3.2,dt)
@@ -306,7 +348,12 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       camera.quaternion.copy(rotation)
       first.current=false
     }else{
-      camera.quaternion.slerp(rotation,1-Math.exp(-dt*(transit?7:5)))
+      const angle=camera.quaternion.angleTo(rotation)
+      const smoothing=1-Math.exp(-Math.min(dt,.07)*(transit?7:5))
+      // Only limit angular movement, never damp world position. The older
+      // camera-position filter caused another visible catch-up teleport.
+      camera.quaternion.slerp(rotation,angle>0?
+        Math.min(smoothing,.20/angle):1)
     }
     const boost=transit?2.3*Math.sin(Math.PI*visualProgress):0
     camera.fov=THREE.MathUtils.damp(camera.fov,45+boost,4,dt)
@@ -315,10 +362,14 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
     // tests (DOM-only route tests cannot detect a 3D position teleport).
     window.__portfolioFlight={
       position:[camera.position.x,camera.position.y,camera.position.z],
+      bridgeProgress:transit?bridgeBuild(visualProgress):null,
+      quaternion:[camera.quaternion.x,camera.quaternion.y,camera.quaternion.z,camera.quaternion.w],
       direction:[ahead.x-camera.position.x,ahead.y-camera.position.y,ahead.z-camera.position.z],
       mode:sample.mode,t,forkTarget:PROJECT_LOOKOUT_T,transiting:Boolean(transit),
       phase:sample.phase||'scroll',
       currentRoute:route.pathName,from:transit?.from,to:transit?.to,
+      flightId:transit?.id??null,
+      updatedAt:performance.now(),
       progress:transit?visualProgress:null,
       samplePath:transit?(sample.path===routeInfo(transit.to).path?'destination':'source'):route.pathName
     }
@@ -357,23 +408,73 @@ function BuildingBranch({transit,flightPosition}) {
       flightPosition.current.t:.35)
     const arrival=arrivalT(to,from)
     const reverse=arrival<hub.toT
-    const margin=.022
+    const margin=0
     let start,end
     if(reverse){
       start=Math.max(.005,arrival-.09)
-      end=Math.max(start+.03,hub.toT-margin)
+      end=Math.min(.998,Math.max(start+.03,hub.toT-margin))
     }else{
       start=Math.min(.985,hub.toT+margin)
       end=Math.min(.998,Math.max(start+.115,arrival+.075))
     }
     const lengthSegments=206,radialSegments=48,radius=4.18
+    // The two route splines differ very slightly at the shared control point.
+    // Bend the FIRST metres of the *actual tunnel mesh* to meet the outgoing
+    // shell, using precisely the same distance-based correction as transitPoint.
+    // Merely moving the eye while leaving this mesh behind creates a visibly
+    // disconnected mouth — the reported "fake bridge" / wall teleport.
+    const hubFrom=from.path.getPointAt(Math.max(.001,Math.min(.998,hub.fromT)))
+    const hubTo=to.path.getPointAt(Math.max(.001,Math.min(.998,hub.toT)))
+    const joinShift=hubFrom.clone().sub(hubTo)
+    const joinWeight=(t)=>{
+      const travel=Math.max(0,(t-hub.toT)/(arrival-hub.toT))
+      return 1-smooth(travel/.35)
+    }
     const skin=createSkin(to.path,{
       start,end,radius,lengthSegments,radialSegments
     })
+    const positions=skin.getAttribute('position')
+    for(let row=0;row<=lengthSegments;row++){
+      const t=start+(end-start)*row/lengthSegments
+      const weight=joinWeight(t)
+      for(let j=0;j<=radialSegments;j++){
+        const index=row*(radialSegments+1)+j
+        positions.setXYZ(index,
+          positions.getX(index)+joinShift.x*weight,
+          positions.getY(index)+joinShift.y*weight,
+          positions.getZ(index)+joinShift.z*weight)
+      }
+    }
+    positions.needsUpdate=true
+    skin.computeVertexNormals()
+    const normals=skin.getAttribute('normal')
+    for(let row=0;row<=lengthSegments;row++){
+      const a=row*(radialSegments+1),b=a+radialSegments
+      const n=new THREE.Vector3().fromBufferAttribute(normals,a)
+        .add(new THREE.Vector3().fromBufferAttribute(normals,b)).normalize()
+      normals.setXYZ(a,n.x,n.y,n.z)
+      normals.setXYZ(b,n.x,n.y,n.z)
+    }
+    normals.needsUpdate=true
+    skin.computeBoundingSphere()
+    // Measure the real, deformed opening in 3D for the browser regression.
+    const hubRow=reverse?lengthSegments:0
+    const mouthCentre=new THREE.Vector3()
+    for(let j=0;j<radialSegments;j++){
+      const index=hubRow*(radialSegments+1)+j
+      mouthCentre.x+=positions.getX(index)/radialSegments
+      mouthCentre.y+=positions.getY(index)/radialSegments
+      mouthCentre.z+=positions.getZ(index)/radialSegments
+    }
+    const mouthGap=mouthCentre.distanceTo(hubFrom)
     skin.setDrawRange(0,0)
     const guides=Array.from({length:3},(_,i)=>{
       const curve=createSeam(to.path,i*Math.PI*2/3,{
         start,end,radius,segments:156
+      })
+      curve.points.forEach((point,j)=>{
+        const t=start+(end-start)*j/(curve.points.length-1)
+        point.addScaledVector(joinShift,joinWeight(t))
       })
       const geom=new THREE.TubeGeometry(curve,206,.018,6,false)
       geom.setDrawRange(0,0)
@@ -383,13 +484,14 @@ function BuildingBranch({transit,flightPosition}) {
       const fraction=(i+.65)/16
       const t=reverse?end-(end-start)*fraction:start+(end-start)*fraction
       const position=to.path.getPointAt(t)
+        .addScaledVector(joinShift,joinWeight(t))
       const tangent=to.path.getTangentAt(t).normalize()
       const rotation=new THREE.Quaternion().setFromUnitVectors(
         new THREE.Vector3(0,0,1),tangent
       )
       return {fraction,position,rotation}
     })
-    return {skin,guides,rings,reverse,lengthSegments,radialSegments}
+    return {skin,guides,rings,reverse,lengthSegments,radialSegments,mouthGap}
   },[transit.id])
   const ringGeometry=useMemo(()=>new THREE.TorusGeometry(4.10,.028,7,82),[])
   const ringMeshes=useRef([])
@@ -404,7 +506,7 @@ function BuildingBranch({transit,flightPosition}) {
   useFrame((_,dt)=>{
     const p=transit.progress??0
     const built=bridgeBuild(p)
-    const visibility=1-smooth((p-.76)/.22)
+    const visibility=1-smooth((p-.90)/.095)
     if(bridgeMaterial.current){
       bridgeMaterial.current.opacity=visibility
       // Depth-test the fully constructed wall normally. Otherwise several
@@ -418,6 +520,12 @@ function BuildingBranch({transit,flightPosition}) {
     const rows=Math.min(journey.lengthSegments,
       Math.floor(journey.lengthSegments*built))
     const triangles=rows*rowWidth
+    // Browser regression checks inspect the actual animated index buffer,
+    // not merely the appearance of a “bridge” HTML label.
+    window.__portfolioBridgeMesh={
+      id:transit.id,progress:p,rows,totalRows:journey.lengthSegments,
+      opacity:visibility,triangles,mouthGap:journey.mouthGap
+    }
     if(journey.reverse)journey.skin.setDrawRange(
       journey.skin.index.count-triangles,triangles)
     else journey.skin.setDrawRange(0,triangles)
@@ -471,6 +579,9 @@ function Scene({pathname,hovered,transit}) {
     <pointLight position={[3,3,-28]} color="#f1c9bb" intensity={42} distance={30} decay={2}/>
     <pointLight position={[-6,3,-53]} color="#a6cbd9" intensity={45} distance={32} decay={2}/>
     <pointLight position={[3,-2,-77]} color="#9996de" intensity={34} distance={27} decay={2}/>
+    {/* Camera updates the shared progress BEFORE wall and bridge draw ranges.
+        Rendering the walls first caused a one-frame mismatch at the handoff. */}
+    <CameraFlight route={route} hovered={hovered} transit={transit} flightPosition={flightPosition}/>
     <Shell key={mode+'-'+index} path={path} transit={transit}/>
     {mode==='projects' && PATHS.children.map((arm,i)=>(
       <Shell key={'branch-'+i} path={arm} branch transit={transit}/>
@@ -487,7 +598,6 @@ function Scene({pathname,hovered,transit}) {
     ))}
     {!transit&&<RouteMarkers mode={mode} hovered={hovered}/>}
     {!transit&&<Sparkles/>}
-    <CameraFlight route={route} hovered={hovered} transit={transit} flightPosition={flightPosition}/>
     {transit&&<BuildingBranch key={transit.id} transit={transit} flightPosition={flightPosition}/>}
   </>
 }

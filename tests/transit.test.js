@@ -4,7 +4,7 @@ import * as THREE from 'three'
 import { PROJECTS_WITH_SLUGS as PROJECTS } from '../src/data/projects.js'
 import { createSkin, PATHS, PROJECT_FORK_FOCUS, PROJECT_FORK_POSITION } from '../src/scene/geometry.js'
 import {
-  routeInfo, sampleTransit, junctionFor, arrivalT, scrollT,
+  routeInfo, sampleTransit, transitPoint, junctionFor, arrivalT, scrollT,
   bridgeBuild, TRANSIT_DURATION, PROJECT_INDEX_HUB, PROJECT_LOOKOUT_T, TRANSIT_MID
 } from '../src/scene/transit.js'
 
@@ -164,4 +164,49 @@ test('Finishing a project cannot display an invented four-choice return junction
  assert.ok(app.includes("beginTrip('/projets')"))
  assert.ok(!app.includes('className="return-choices"'))
  assert.ok(app.includes('document.documentElement.scrollHeight-window.innerHeight'))
+})
+
+
+test('Every pair joins in continuous real 3D without an invisible camera translation',()=>{
+  let routesChecked=0
+  for(const a of names)for(const b of names){
+    if(a===b)continue
+    const from=routeInfo(a),to=routeInfo(b)
+    for(const initialT of [.025,.37,.87,.965]){
+      const before=transitPoint(sampleTransit(from,to,initialT,TRANSIT_MID-1e-8))
+      const after=transitPoint(sampleTransit(from,to,initialT,TRANSIT_MID))
+      const gap=before.distanceTo(after)
+      assert.ok(gap<.003,a+' → '+b+': '+gap.toFixed(4)+'m jump at real tunnel join')
+      const end=transitPoint(sampleTransit(from,to,initialT,1))
+      const arrival=to.path.getPointAt(arrivalT(to,from))
+      assert.ok(end.distanceTo(arrival)<.01,
+        a+' → '+b+': finishing camera does not match destination')
+      let previous=after
+      for(let frame=1;frame<=100;frame++){
+        const sample=sampleTransit(from,to,initialT,TRANSIT_MID+(.48*frame/100))
+        const current=transitPoint(sample)
+        assert.ok(current.distanceTo(previous)<2,
+          a+' → '+b+': lost physical path continuity at '+frame)
+        previous=current
+      }
+      routesChecked++
+    }
+  }
+  assert.ok(routesChecked>=280)
+})
+test('All destinations match their own reset-scroll camera pose at flight completion',()=>{
+  const fromRoutes=names.map(name=>routeInfo(name))
+  for(const from of fromRoutes)for(const targetName of names){
+    if(targetName===from.pathName)continue
+    const to=routeInfo(targetName)
+    const end=arrivalT(to,from)
+    let targetScroll
+    if(to.mode==='projects' && (from.mode==='projects'||from.mode==='detail')){
+      targetScroll=scrollT(to,{scrollY:1200,total:4800,projectFork:1200})
+    }else{
+      targetScroll=scrollT(to,{scrollY:0,total:4800,projectFork:1200})
+    }
+    assert.ok(Math.abs(end-targetScroll)<1e-6,
+      from.pathName+' → '+targetName+': a hard camera jump at React route completion')
+  }
 })
