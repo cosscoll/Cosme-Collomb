@@ -1,0 +1,30 @@
+/* Studio-inspired pacing: 3D remains the hero, copy stays readable. */
+.hero-editorial{align-items:flex-end;min-height:116svh;padding-bottom:clamp(8rem,15vh,11rem)}
+.hero-editorial .hero-copy{width:min(900px,82vw);margin-top:0}
+.hero-editorial .hero-copy h1{font-size:clamp(3.1rem,6vw,7rem);max-width:850px;font-weight:510;letter-spacing:-.065em;line-height:.99}
+.hero-editorial .hero-copy h1 span{color:transparent;-webkit-text-stroke:1px rgba(236,235,255,.75)}
+.hero-editorial .hero-tagline{font-size:clamp(.88rem,1.13vw,1rem);color:rgba(245,244,250,.75);letter-spacing:-.01em;max-width:360px}
+.hero-editorial .eyebrow{color:rgba(233,232,250,.68);font-size:.67rem}
+.hero-editorial .hero-branch-cta{margin-top:2.25rem;padding:.9rem 0;letter-spacing:.075em;font-size:.72rem;text-transform:uppercase}
+.hero-editorial::after{content:'';position:absolute;z-index:-1;inset:auto 0 0;height:68%;pointer-events:none;background:linear-gradient(0deg,rgba(5,5,8,.42),transparent 55%)}
+.fork-content{position:relative;z-index:2}
+.fork-heading{font-weight:510;letter-spacing:-.062em;max-width:1100px}
+.fork-section{min-height:112svh;align-items:center}
+.fork-options{gap:1.5rem;margin-top:clamp(2.5rem,8vh,6rem)}
+.fork-link{min-height:210px;padding:1.3rem 1.55rem;background:linear-gradient(160deg,rgba(10,10,20,.76),rgba(16,12,36,.14));border-top:1px solid rgba(207,205,255,.52);border-radius:1px;backdrop-filter:blur(9px)}
+.fork-link:hover,.fork-link:focus-visible{background:linear-gradient(160deg,rgba(25,21,60,.71),rgba(10,11,19,.36))}
+.fork-name small{opacity:.85}
+.quiet-section{position:relative}
+.quiet-section:before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(6,6,8,.44),transparent 70%);pointer-events:none}
+.quiet-content{position:relative;z-index:1}
+.scene-veil{background:linear-gradient(90deg,rgba(5,5,9,.32),rgba(5,5,9,.04) 42%,transparent 65%),linear-gradient(to bottom,rgba(5,5,9,.05),transparent 30%,rgba(5,5,9,.22))}
+.background-layer{background:#07070c}
+@media(max-width:720px){
+.hero-editorial{min-height:100svh;padding-bottom:8rem;align-items:flex-end}
+.hero-editorial .hero-copy{width:100%;margin:0}
+.hero-editorial .hero-copy h1{font-size:clamp(3.2rem,12vw,5.5rem);max-width:100%}
+.hero-editorial .hero-tagline{margin-top:1.3rem;max-width:290px}
+.fork-section{min-height:auto;padding-block:10rem 8rem}
+.fork-link{min-height:120px;padding:1rem}
+.fork-heading{font-size:clamp(2.8rem,11vw,5rem)}
+}

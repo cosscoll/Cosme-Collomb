@@ -1,0 +1,20 @@
+.architectural-fallback{position:absolute;inset:0;overflow:hidden;pointer-events:none;background:radial-gradient(ellipse at 58% 47%,#20203c 0%,#0c0c1b 36%,#05050a 80%)}
+.architecture-haze{position:absolute;inset:-20%;background:radial-gradient(ellipse at 55% 48%,rgba(133,126,255,.23),transparent 31%);filter:blur(35px)}
+.architecture-scenery{position:absolute;inset:0;perspective:850px;perspective-origin:56% 49%;transform-style:preserve-3d}
+.architecture-frame{position:absolute;left:56%;top:49%;width:min(93vmin,860px);height:min(73vmin,675px);border-radius:47% 47% 37% 37%/58% 58% 31% 31%;border:2px solid rgba(178,178,255,.75);transform-style:preserve-3d;box-shadow:0 0 22px rgba(109,102,225,.65),inset 0 0 22px rgba(108,104,207,.25),0 0 1px 1px rgba(240,245,255,.24);will-change:transform;transition:opacity .35s}
+.architecture-frame-main{border-color:rgba(242,241,255,.9);border-width:3px;box-shadow:0 0 32px rgba(156,147,255,.85),0 0 90px rgba(94,89,211,.24),inset 0 0 31px rgba(181,181,255,.23)}
+.architecture-frame-edge{position:absolute;inset:2.6%;border-radius:inherit;border:1px solid rgba(230,224,255,.19)}
+.architecture-frame-line{position:absolute;width:86%;height:1px;bottom:8%;left:7%;background:linear-gradient(90deg,transparent,rgba(179,175,255,.5),transparent);box-shadow:0 0 18px rgba(160,151,255,.6)}
+.architecture-horizon{position:absolute;top:49%;left:56%;width:11vmin;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,#e4e4ff 0%,#9899ff 6%,rgba(123,112,254,.8) 18%,rgba(98,85,233,.15) 48%,transparent 72%);filter:blur(3px);box-shadow:0 0 70px 18px rgba(133,125,244,.15)}
+.architecture-ray{position:absolute;top:48%;left:50%;height:1px;width:95vw;background:linear-gradient(90deg,transparent,rgba(199,192,255,.5),transparent);transform-origin:center;filter:blur(1px);opacity:.27}
+.architecture-ray-a{transform:rotate(28deg)}
+.architecture-ray-b{transform:rotate(-26deg)}
+.architecture-forks{position:absolute;inset:0;transform-style:preserve-3d;animation:architectural-appear 1s ease both}
+.architecture-fork{position:absolute;top:56%;left:56%;width:min(38vw,460px);height:min(60vh,500px);border-radius:49% 49% 36% 36% / 52% 52% 25% 25%;border:3px solid var(--fork-color);box-shadow:0 0 22px var(--fork-color),inset 0 0 35px rgba(98,90,210,.25);opacity:.65;transition:filter .6s,opacity .6s}
+.architecture-fork-active{opacity:1;filter:brightness(1.7)}
+.architecture-fork-ring{position:absolute;inset:11%;border:1px solid var(--fork-color);border-radius:inherit;opacity:.6}
+.architecture-fork-line{position:absolute;top:50%;left:50%;width:2px;height:80%;transform:translate(-50%,-50%);background:linear-gradient(transparent,var(--fork-color),transparent);opacity:.5}
+.architecture-vignette{position:absolute;inset:0;background:linear-gradient(90deg,rgba(5,5,9,.7),transparent 45%,rgba(5,5,9,.24)),radial-gradient(ellipse at center,transparent 35%,rgba(4,4,8,.6) 100%)}
+@keyframes architectural-appear{from{opacity:0;filter:blur(10px)}to{opacity:1;filter:blur(0)}}
+@media(max-width:720px){.architecture-scenery{perspective:550px;perspective-origin:50% 45%}.architecture-frame{left:50%;top:45%;width:105vmin;height:115vmin}.architecture-horizon{left:50%;top:45%}.architecture-fork{height:48vh;top:45%}}
+@media(prefers-reduced-motion:reduce){.architecture-frame,.architecture-fork{will-change:auto;transition:none}.architecture-forks{animation:none}}

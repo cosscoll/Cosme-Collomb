@@ -9,3 +9,5 @@ import './styles/branching.css'
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode><App /></React.StrictMode>,
 )
+
+import './styles/studio.css'

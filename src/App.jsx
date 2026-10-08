@@ -2,6 +2,7 @@ import { Component, Suspense, lazy, useEffect, useRef, useState } from 'react'
 import { HashRouter, Link, Route, Routes, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import CursorGlow from './components/CursorGlow.jsx'
+import ImmersiveFallback from './components/ImmersiveFallback.jsx'
 import ScrollToTop from './components/ScrollToTop.jsx'
 import Home from './pages/Home.jsx'
 import Projects from './pages/Projects.jsx'
@@ -33,37 +34,11 @@ class SceneErrorBoundary extends Component {
   }
 
   render() {
-    if (this.state.failed) return <FallbackTunnel />
+    if (this.state.failed) return null
     return this.props.children
   }
 }
 
-
-function FallbackTunnel() {
-  return (
-    <div className="tunnel-fallback" aria-hidden="true">
-      <svg viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice">
-        <defs>
-          <radialGradient id="tunnel-a"><stop stopColor="#36316c" stopOpacity=".6"/><stop offset=".56" stopColor="#10101c" stopOpacity=".65"/><stop offset="1" stopColor="#060608"/></radialGradient>
-          <linearGradient id="tunnel-b"><stop stopColor="#9c94ff"/><stop offset=".48" stopColor="#d5d3ff"/><stop offset="1" stopColor="#7b8ff4"/></linearGradient>
-          <filter id="tunnel-glow"><feGaussianBlur stdDeviation="5"/></filter>
-        </defs>
-        <rect width="1200" height="800" fill="url(#tunnel-a)"/>
-        <g stroke="url(#tunnel-b)" fill="none">
-          <ellipse cx="610" cy="410" rx="430" ry="290" strokeOpacity=".16" strokeWidth="7"/>
-          <ellipse cx="610" cy="410" rx="340" ry="230" strokeOpacity=".23" strokeWidth="5"/>
-          <ellipse cx="610" cy="410" rx="258" ry="177" strokeOpacity=".37" strokeWidth="5"/>
-          <ellipse cx="610" cy="410" rx="185" ry="125" strokeOpacity=".58" strokeWidth="5"/>
-          <ellipse cx="610" cy="410" rx="116" ry="77" strokeOpacity=".84" strokeWidth="5"/>
-          <ellipse cx="610" cy="410" rx="62" ry="42" strokeOpacity=".95" strokeWidth="3"/>
-          <path d="M180 410L548 410 M1040 410L672 410 M610 120L610 368 M610 700L610 452" strokeOpacity=".27" strokeWidth="3"/>
-          <path d="M610 410 Q465 375 190 185 M610 410 Q755 370 1015 180 M610 410 Q610 490 610 745" strokeOpacity=".35" strokeWidth="4"/>
-        </g>
-        <ellipse cx="610" cy="410" rx="185" ry="125" fill="none" stroke="#9487ff" strokeOpacity=".28" strokeWidth="18" filter="url(#tunnel-glow)"/>
-      </svg>
-    </div>
-  )
-}
 
 function WebGLScene({ veilRef, pathname, hovered }) {
   const [supported, setSupported] = useState(null)
@@ -77,12 +52,12 @@ function WebGLScene({ veilRef, pathname, hovered }) {
     }
   }, [])
 
-  if (supported === false) return <FallbackTunnel />
-  if (supported === null) return <FallbackTunnel />
+  if (supported === false) return null
+  if (supported === null) return null
 
   return (
     <SceneErrorBoundary>
-      <Suspense fallback={<FallbackTunnel />}>
+      <Suspense fallback={null}>
         <BackgroundScene veilRef={veilRef} pathname={pathname} hovered={hovered} />
       </Suspense>
     </SceneErrorBoundary>
@@ -139,6 +114,7 @@ function BackgroundLayer({ pathname, hovered }) {
 
   return (
     <div className="background-layer" aria-hidden="true">
+      <ImmersiveFallback pathname={pathname} hovered={hovered} />
       <WebGLScene veilRef={veilRef} pathname={pathname} hovered={hovered} />
       <div ref={veilRef} className="scene-veil" />
     </div>

@@ -2,7 +2,7 @@ import { useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { motion, useScroll, useTransform } from 'framer-motion'
 import Reveal from '../components/Reveal.jsx'
-import { TAGLINE, BIO } from '../data/site.js'
+import { NAME, TAGLINE, BIO } from '../data/site.js'
 import { PROJECTS_WITH_SLUGS } from '../data/projects.js'
 import { EXPERIENCE } from '../data/experience.js'
 
@@ -13,7 +13,7 @@ function Hero() {
   const opacity = useTransform(scrollYProgress, [0, 0.62, 1], [1, 0.8, 0])
 
   return (
-    <section ref={section} className="hero-stage hero-minimal">
+    <section ref={section} className="hero-stage hero-minimal hero-editorial">
       <motion.div className="hero-copy minimal-copy" style={{ y, opacity }}>
         <motion.p
           className="eyebrow"
@@ -21,15 +21,15 @@ function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.05, duration: 0.7 }}
         >
-          Portfolio
+          {NAME} / Portfolio interactif
         </motion.p>
         <motion.h1
           initial={{ opacity: 0, y: 28, filter: 'blur(10px)' }}
           animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
           transition={{ delay: 1.15, duration: 0.95, ease: [0.16, 1, 0.3, 1] }}
         >
-          Créer moins.<br />
-          <span>Faire ressentir plus.</span>
+          Explorer le digital.<br />
+          <span>Autrement.</span>
         </motion.h1>
         <motion.p
           className="hero-tagline"
@@ -47,7 +47,7 @@ function Hero() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 1.7, duration: 0.7 }}
         >
-          Explorer les chemins <span aria-hidden="true">↓</span>
+          Entrer dans l'expérience <span aria-hidden="true">↓</span>
         </motion.button>
       </motion.div>
 
