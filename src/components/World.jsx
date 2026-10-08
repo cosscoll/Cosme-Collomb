@@ -417,13 +417,63 @@ function BuildingBranch({transit,flightPosition}) {
       end=Math.min(.998,Math.max(start+.115,arrival+.075))
     }
     const lengthSegments=206,radialSegments=48,radius=4.18
+    // The two route splines differ very slightly at the shared control point.
+    // Bend the FIRST metres of the *actual tunnel mesh* to meet the outgoing
+    // shell, using precisely the same distance-based correction as transitPoint.
+    // Merely moving the eye while leaving this mesh behind creates a visibly
+    // disconnected mouth — the reported "fake bridge" / wall teleport.
+    const hubFrom=from.path.getPointAt(Math.max(.001,Math.min(.998,hub.fromT)))
+    const hubTo=to.path.getPointAt(Math.max(.001,Math.min(.998,hub.toT)))
+    const joinShift=hubFrom.clone().sub(hubTo)
+    const joinWeight=(t)=>{
+      const travel=Math.max(0,(t-hub.toT)/(arrival-hub.toT))
+      return 1-smooth(travel/.35)
+    }
     const skin=createSkin(to.path,{
       start,end,radius,lengthSegments,radialSegments
     })
+    const positions=skin.getAttribute('position')
+    for(let row=0;row<=lengthSegments;row++){
+      const t=start+(end-start)*row/lengthSegments
+      const weight=joinWeight(t)
+      for(let j=0;j<=radialSegments;j++){
+        const index=row*(radialSegments+1)+j
+        positions.setXYZ(index,
+          positions.getX(index)+joinShift.x*weight,
+          positions.getY(index)+joinShift.y*weight,
+          positions.getZ(index)+joinShift.z*weight)
+      }
+    }
+    positions.needsUpdate=true
+    skin.computeVertexNormals()
+    const normals=skin.getAttribute('normal')
+    for(let row=0;row<=lengthSegments;row++){
+      const a=row*(radialSegments+1),b=a+radialSegments
+      const n=new THREE.Vector3().fromBufferAttribute(normals,a)
+        .add(new THREE.Vector3().fromBufferAttribute(normals,b)).normalize()
+      normals.setXYZ(a,n.x,n.y,n.z)
+      normals.setXYZ(b,n.x,n.y,n.z)
+    }
+    normals.needsUpdate=true
+    skin.computeBoundingSphere()
+    // Measure the real, deformed opening in 3D for the browser regression.
+    const hubRow=reverse?lengthSegments:0
+    const mouthCentre=new THREE.Vector3()
+    for(let j=0;j<radialSegments;j++){
+      const index=hubRow*(radialSegments+1)+j
+      mouthCentre.x+=positions.getX(index)/radialSegments
+      mouthCentre.y+=positions.getY(index)/radialSegments
+      mouthCentre.z+=positions.getZ(index)/radialSegments
+    }
+    const mouthGap=mouthCentre.distanceTo(hubFrom)
     skin.setDrawRange(0,0)
     const guides=Array.from({length:3},(_,i)=>{
       const curve=createSeam(to.path,i*Math.PI*2/3,{
         start,end,radius,segments:156
+      })
+      curve.points.forEach((point,j)=>{
+        const t=start+(end-start)*j/(curve.points.length-1)
+        point.addScaledVector(joinShift,joinWeight(t))
       })
       const geom=new THREE.TubeGeometry(curve,206,.018,6,false)
       geom.setDrawRange(0,0)
@@ -433,13 +483,14 @@ function BuildingBranch({transit,flightPosition}) {
       const fraction=(i+.65)/16
       const t=reverse?end-(end-start)*fraction:start+(end-start)*fraction
       const position=to.path.getPointAt(t)
+        .addScaledVector(joinShift,joinWeight(t))
       const tangent=to.path.getTangentAt(t).normalize()
       const rotation=new THREE.Quaternion().setFromUnitVectors(
         new THREE.Vector3(0,0,1),tangent
       )
       return {fraction,position,rotation}
     })
-    return {skin,guides,rings,reverse,lengthSegments,radialSegments}
+    return {skin,guides,rings,reverse,lengthSegments,radialSegments,mouthGap}
   },[transit.id])
   const ringGeometry=useMemo(()=>new THREE.TorusGeometry(4.10,.028,7,82),[])
   const ringMeshes=useRef([])
@@ -472,7 +523,7 @@ function BuildingBranch({transit,flightPosition}) {
     // not merely the appearance of a “bridge” HTML label.
     window.__portfolioBridgeMesh={
       id:transit.id,progress:p,rows,totalRows:journey.lengthSegments,
-      opacity:visibility,triangles
+      opacity:visibility,triangles,mouthGap:journey.mouthGap
     }
     if(journey.reverse)journey.skin.setDrawRange(
       journey.skin.index.count-triangles,triangles)
