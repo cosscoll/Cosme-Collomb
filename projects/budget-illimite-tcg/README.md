@@ -12,6 +12,8 @@ Les 49 identifiants/raretés ont été retranscrits du code de booster transmis.
 
 - `index.html`, `styles.css`, `app.js`, `data/cards.js` : prototype statique de l'inventaire des 49 cartes.
 - Recherche textuelle, filtre par rareté, fenêtre de détails, suivi local des cartes repérées, affichage adapté au mobile.
+- Simulation visuelle de booster 5 cartes avec 5e carte rare ou mieux, sans attribution ni débit. Règles et tests dans `game/booster.js` et `tests/booster.test.mjs`.
+- Proposition SQL non déployée pour restreindre les RPC critiques dans `security/restrict_booster_rpc.sql`.
 - Aucune carte réelle, photo, source vidéo ou donnée de combat n'a été inventée.
 - Les marqueurs « repérées » servent uniquement à organiser la documentation en local : **ce n'est pas une vraie collection possédée ni une monnaie virtuelle**.
 
