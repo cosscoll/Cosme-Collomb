@@ -39,6 +39,16 @@ function Hero() {
         >
           {TAGLINE}
         </motion.p>
+        <motion.button
+          type="button"
+          className="hero-branch-cta"
+          onClick={() => document.getElementById('embranchements')?.scrollIntoView({ behavior: 'smooth' })}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.7, duration: 0.7 }}
+        >
+          Explorer les chemins <span aria-hidden="true">↓</span>
+        </motion.button>
       </motion.div>
 
       <div className="scroll-cue" aria-hidden="true"><span /></div>

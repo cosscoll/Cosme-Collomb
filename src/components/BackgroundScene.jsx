@@ -60,11 +60,11 @@ function usePointer() {
   return pointer
 }
 
-function Tunnel({ curve, color, radius = 3.55, length = 200, wire = true }) {
+function Tunnel({ curve, color, radius = 3.55, length = 130, wire = true }) {
   return (
     <group>
       <mesh>
-        <tubeGeometry args={[curve, length, radius, 36, false]} />
+        <tubeGeometry args={[curve, length, radius, 28, false]} />
         <meshStandardMaterial
           side={THREE.BackSide}
           color="#11111d"
@@ -76,7 +76,7 @@ function Tunnel({ curve, color, radius = 3.55, length = 200, wire = true }) {
       </mesh>
       {wire && (
         <mesh>
-          <tubeGeometry args={[curve, length, radius - 0.07, 20, false]} />
+          <tubeGeometry args={[curve, length, radius - 0.07, 16, false]} />
           <meshBasicMaterial
             side={THREE.BackSide}
             wireframe
@@ -93,7 +93,7 @@ function Tunnel({ curve, color, radius = 3.55, length = 200, wire = true }) {
 
 function railCurve(curve, angle, radius) {
   const points = []
-  const count = 120
+  const count = 75
   const tangent = new THREE.Vector3()
   const side = new THREE.Vector3()
   const binormal = new THREE.Vector3()
@@ -118,7 +118,7 @@ function Rails({ curve, color, radius = 3.35, count = 4 }) {
   )
   return curves.map((line, i) => (
     <mesh key={i}>
-      <tubeGeometry args={[line, 230, i % 2 ? 0.012 : 0.027, 7, false]} />
+      <tubeGeometry args={[line, 145, i % 2 ? 0.012 : 0.025, 7, false]} />
       <meshBasicMaterial color={i % 2 ? '#d8e5ff' : color} transparent opacity={i % 2 ? 0.4 : 0.9}
         depthWrite={false} blending={THREE.AdditiveBlending} />
     </mesh>
@@ -262,7 +262,10 @@ function CameraRig({ world, mode, projectIndex, pointer }) {
     clockState.current.velocity += ((clockState.current.progress - former) - clockState.current.velocity) * 0.12
 
     let curve = world.trunk
-    let t = clamp(clockState.current.progress / 0.38) * 0.92
+    // Sync the first junction with the real navigation section, not total page height.
+    const forkOffset = document.getElementById('embranchements')?.offsetTop || window.innerHeight * 1.2
+    const junctionScroll = clamp(window.scrollY / Math.max(1, forkOffset))
+    let t = 0.03 + smooth(junctionScroll) * 0.9
 
     if (mode === 'projects') {
       curve = world.routes[0]
@@ -333,31 +336,34 @@ function Scene({ mode, projectIndex, hovered, veilRef }) {
       <pointLight color="#8cbcff" position={[-6, 0, -44]} intensity={10} distance={20} />
 
       <Tunnel curve={world.trunk} radius={4.3} color="#9890ff" length={220} />
-      <Rails curve={world.trunk} color="#a8a0ff" radius={4.05} count={8} />
-      <RingSeries curve={world.trunk} color="#aaa5ff" radius={4.06} count={14} />
+      <Rails curve={world.trunk} color="#a8a0ff" radius={4.05} count={6} />
+      <RingSeries curve={world.trunk} color="#aaa5ff" radius={4.06} count={12} />
       <Junction world={world} activeChoice={activeMain} />
 
       {world.main.map((curve, index) => {
         const key = ['projects', 'experience', 'contact'][index]
         const active = activeMain === key
         const color = MAIN_COLORS[index]
+        if (mode !== 'home' && !active) return null
         return (
           <group key={key}>
-            <Tunnel curve={curve} radius={3.24} color={color} length={200} />
-            <Rails curve={curve} radius={3.04} color={color} count={4} />
-            <RingSeries curve={curve} color={color} radius={3.04} count={12} active={active} />
+            <Tunnel curve={curve} radius={3.24} color={color} length={120} />
+            <Rails curve={curve} radius={3.04} color={color} count={3} />
+            <RingSeries curve={curve} color={color} radius={3.04} count={8} active={active} />
             <Gate curve={curve} color={color} radius={3.03} title={key} active={active} index={index} />
           </group>
         )
       })}
 
       {world.children.map((curve, index) => {
+        if (mode !== 'projects' && mode !== 'detail') return null
+        if (mode === 'detail' && index !== projectIndex) return null
         const active = (mode === 'detail' && index === projectIndex) || projectHover === index
         return (
           <group key={PROJECTS_WITH_SLUGS[index].slug}>
-            <Tunnel curve={curve} radius={1.63} color="#9187ff" length={160} wire={false} />
-            <Rails curve={curve} radius={1.51} color="#d2caff" count={3} />
-            <RingSeries curve={curve} radius={1.5} color="#ada4ff" count={7} active={active} />
+            <Tunnel curve={curve} radius={1.63} color="#9187ff" length={85} wire={false} />
+            <Rails curve={curve} radius={1.51} color="#d2caff" count={2} />
+            <RingSeries curve={curve} radius={1.5} color="#ada4ff" count={5} active={active} />
             <Gate curve={curve} radius={1.5} color={active ? '#ffffff' : '#a49aff'} active={active} index={index} />
           </group>
         )
@@ -385,8 +391,8 @@ export default function BackgroundScene({ veilRef, pathname = '/', hovered = '' 
 
   return (
     <Canvas camera={{ position: [0, 0, 8.8], fov: 45, near: 0.1, far: 115 }}
-      dpr={[1, 1.6]}
-      gl={{ antialias: true, alpha: true, powerPreference: 'high-performance' }}>
+      dpr={[0.8, 1.4]}
+      gl={{ antialias: false, alpha: true, powerPreference: 'high-performance' }}>
       <Scene mode={mode} projectIndex={projectIndex} hovered={hovered} veilRef={veilRef} />
     </Canvas>
   )

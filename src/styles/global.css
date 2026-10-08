@@ -72,3 +72,7 @@ h1,h2,h3{font-family:var(--font-display);letter-spacing:-.045em;line-height:.98}
 .text-link span{transition:.3s}
 .text-link:hover span{transform:translate(4px,-4px)}
 a:focus-visible{outline:2px solid #d8ebff;outline-offset:4px}
+
+.hero-branch-cta{margin-top:2.3rem;display:inline-flex;align-items:center;gap:1.5rem;padding:.7rem 0;border-bottom:1px solid rgba(214,209,255,.48);font-size:.78rem;letter-spacing:.03em;color:#ecebff;cursor:pointer;pointer-events:auto;transition:border-color .3s,transform .3s}
+.hero-branch-cta:hover{border-color:#fff;transform:translateY(-2px)}
+.hero-branch-cta span{font-size:1.2rem}
