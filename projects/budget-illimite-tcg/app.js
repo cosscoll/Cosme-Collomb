@@ -105,8 +105,9 @@ function previewBooster() {
   const cards = simulateBooster(CARDS);
   const result = byId("boosterResults");
   const content = document.createDocumentFragment();
-  for (const card of cards) {
+  for (const [index, card] of cards.entries()) {
     const item = el("article", "booster-result rarity-" + card.rarity);
+    item.style.animationDelay = (index * 0.10) + "s";
     const art = el("div", "booster-result-art", "?");
     const kind = el("small", "", rarityLabels[card.rarity]);
     const name = el("strong", "", card.name);
@@ -191,6 +192,10 @@ function renderDeck() {
   }
   list.replaceChildren(fragment);
   byId("deckCount").textContent = currentDeck.length + " / " + DECK_SIZE;
+  const roleCounts = ["Assaut", "Rempart", "Tacticien", "Chaos"].map(role =>
+    role + " : " + currentDeck.filter(id => cardStats(id).role === role).length
+  );
+  byId("deckComposition").textContent = "Composition du deck — " + roleCounts.join(" · ");
   byId("deckHint").textContent = validateDeck(currentDeck).valid ?
     "Deck prêt pour le mode solo. Les modifications ne changent pas une partie déjà commencée." :
     "Deck incomplet : ouvre les fiches du catalogue pour ajouter " + (DECK_SIZE - currentDeck.length) + " carte(s).";
@@ -356,7 +361,7 @@ function startSoloMatch() {
   const requested = byId("aiDifficulty").value;
   activeDifficulty = AI_DIFFICULTIES.includes(requested) ? requested : "normal";
   try { localStorage.setItem(DIFFICULTY_STORAGE_KEY, activeDifficulty); } catch {}
-  match = createMatch({ playerDeck: currentDeck, aiDeck: DEFAULT_AI_DECK, seed: Date.now() });
+  match = createMatch({ playerDeck: currentDeck, aiDeck: DEFAULT_AI_DECK, seed: Date.now() + matchEpoch });
   renderArena();
 }
 function playerAction(action) {
