@@ -60,7 +60,10 @@ async function beginFlightTrace(page){
     window.__flightTimer=setInterval(()=>{
       const f=window.__portfolioFlight
       if(f)window.__flightTrace.push({
-        at:performance.now(),...f
+        at:performance.now(),...f,
+        bridge:window.__portfolioBridgeMesh?.id===f?.fromTransitId?
+          window.__portfolioBridgeMesh:
+          (f.transiting?window.__portfolioBridgeMesh:null)
       })
     },40)
   })
@@ -97,6 +100,15 @@ async function assertFlightContinuous(page,label){
       previousProgress=b.progress
     }
   }
+  const bridgeSamples=data.filter(frame=>frame.transiting &&
+    frame.bridge && frame.bridge.progress>=.16 && frame.bridge.progress<.53)
+  assert.ok(bridgeSamples.some(frame=>frame.bridge.rows>0 &&
+      frame.bridge.triangles>0 && frame.bridge.opacity>.75),
+    label+': no actual constructed 3D tunnel geometry was visible before the crossing')
+  const crossing=data.filter(frame=>frame.transiting&&frame.progress>=.52&&frame.progress<.75)
+  assert.ok(crossing.some(frame=>frame.bridge &&
+      frame.bridge.rows===frame.bridge.totalRows && frame.bridge.opacity>.95),
+    label+': camera enters the destination before the 3D bridge is completed')
   console.log('Camera path continuous:',label,'samples:',data.length,
     'peak m/ms:',worst.toFixed(3),
     'peak camera turn degrees:',(worstTurn*180/Math.PI).toFixed(2))
