@@ -563,6 +563,7 @@ function Shell() {
   const [menuOpen,setMenuOpen]=useState(false)
   const [transit,setTransit]=useState(null)
   const transitRef=useRef(null)
+  const pendingTripRef=useRef(null)
   const timers=useRef([])
   const nextId=useRef(0)
 
@@ -583,7 +584,13 @@ function Shell() {
     setTransit(null)
   },[commitMidpoint])
   const beginTrip=useCallback((next)=>{
-    if(next===pathname || transitRef.current)return false
+    if(next===pathname)return false
+    if(transitRef.current){
+      // Header requests made during an inbound journey must never disappear.
+      // Queue them and travel as soon as the current 3D flight has landed.
+      pendingTripRef.current=next
+      return true
+    }
     const journey={
       id:++nextId.current,from:pathname,to:next,startedAt:performance.now(),
       duration:TRANSIT_MS,sourceScroll:window.scrollY,progress:0,
@@ -614,6 +621,13 @@ function Shell() {
     window.addEventListener('portfolio:flight-milestone',onMilestone)
     return ()=>window.removeEventListener('portfolio:flight-milestone',onMilestone)
   },[commitMidpoint,finishTrip])
+
+  useEffect(()=>{
+    if(transit || !pendingTripRef.current)return
+    const next=pendingTripRef.current
+    pendingTripRef.current=null
+    if(next!==pathname)beginTrip(next)
+  },[transit,pathname,beginTrip])
 
   useEffect(()=>{
     const capture=(event)=>{
