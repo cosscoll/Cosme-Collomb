@@ -108,7 +108,10 @@ export function sampleTransit(from,to,initialT,progress){
   // or "catch-up" lag is needed, so finishing a trip cannot snap again.
   const join=from.path.getPointAt(Math.max(.001,Math.min(.998,hub.fromT)))
     .sub(to.path.getPointAt(Math.max(.001,Math.min(.998,hub.toT))))
-  const alignment=1-ease((p-TRANSIT_MID)/.23)
+  // Drive the correction by DISTANCE along the new branch, rather than
+  // time. The assembled 3D wall can then use the same offset per section,
+  // so the viewer is moving down the true centre of the bridge.
+  const alignment=1-ease(f/.35)
   return {path:to.path,t:hub.toT+(end-hub.toT)*f,
     offset:join.multiplyScalar(alignment),
     reverse:end<hub.toT,mode:to.mode,index:to.index,phase:'cross'}
