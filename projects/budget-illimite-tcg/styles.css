@@ -96,3 +96,14 @@
 @media(max-width:850px){.topbar{height:auto;min-height:70px;flex-wrap:wrap;gap:10px;padding-top:11px;padding-bottom:11px}.topbar nav{display:flex;order:3;width:100%;margin:0;gap:18px;overflow-x:auto;padding:9px 0 3px}.topbar nav a{white-space:nowrap}.version{margin-left:auto}.arena-board{padding:13px}}
 @media(max-width:680px){.arena-board{display:flex;flex-direction:column;min-height:auto}.arena-board>.combatant{width:100%}.arena-center{flex-direction:row;justify-content:center}.arena-active-placeholder{min-height:180px}.arena-active-placeholder .fighter-tile{flex-direction:row;min-height:160px}.arena-active-placeholder .fighter-visual{min-height:auto;flex:1}.arena-active-placeholder .fighter-info{width:55%;justify-content:center}.arena-sidebar{display:flex}.deck-actions{flex-direction:column;align-items:start}.deck-counter strong{font-size:2rem}.deck-list{grid-template-columns:1fr 1fr}}
 @media(max-width:450px){.deck-list{grid-template-columns:1fr}.deck-panel{padding:13px}.arena-active-placeholder .fighter-info{width:60%}.combatant{padding:11px}.deck-buttons{width:100%;justify-content:space-between}}
+
+.rules-help{margin:0 0 18px;border:1px solid #a28cff45;border-radius:13px;background:#a28cff0b}
+.rules-help summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:15px;font-weight:850;padding:16px 19px}
+.rules-help summary::-webkit-details-marker{display:none}
+.rules-help[open] summary{border-bottom:1px solid var(--line)}
+.rules-help summary span{color:var(--gold)}
+.rules-help-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 25px;padding:8px 19px 17px}
+.rules-help-grid p{font-size:.8rem;line-height:1.6;color:var(--muted)}
+.rules-help-grid strong{color:var(--text)}
+.hero-catalogue{display:inline-flex;align-items:center;margin:0 0 0 12px;text-decoration:none}
+@media(max-width:680px){.rules-help-grid{grid-template-columns:1fr}.hero-catalogue{margin:12px 0 0}}
