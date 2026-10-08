@@ -1,5 +1,6 @@
 import { CARDS, RARITIES } from "./data/cards.js";
 import { simulateBooster } from "./game/booster.js";
+import { createMatch, applyAction, legalActions, chooseAiAction, validateDeck, cardStats, DECK_SIZE, WIN_KOS } from "./game/engine.js";
 
 const byId = id => document.getElementById(id);
 const search = byId("search");
@@ -38,6 +39,7 @@ function openDetails(card) {
   byId("detailRarity").textContent = rarityLabels[card.rarity] + " · non vérifiée";
   byId("detailArt").style.borderColor = RARITIES.find(r => r.id === card.rarity).color;
   markButton.textContent = marked.has(card.id) ? "Retirer le repère" : "Marquer comme repérée";
+  refreshDeckDetailButton();
   if (typeof modal.showModal === "function") modal.showModal();
   else modal.setAttribute("open", "");
 }
@@ -116,3 +118,212 @@ byId("simulateBooster").addEventListener("click", () => {
   else boosterDialog.setAttribute("open", "");
 });
 byId("rerollBooster").addEventListener("click", previewBooster);
+
+/* ---- Prototype solo : atelier et affrontement local contre Billy ---- */
+const DEFAULT_PLAYER_DECK = Object.freeze([
+  "standupper", "matelas", "rituels", "fontaine", "etalon", "mouette", "chemise", "fauxbras"
+]);
+const DEFAULT_AI_DECK = Object.freeze([
+  "costume", "touriste", "arnaque", "regent", "igne", "otage", "moules", "entite"
+]);
+const DECK_STORAGE_KEY = "budget-illimite:solo-deck:v1";
+const cardById = new Map(CARDS.map(card => [card.id, card]));
+let currentDeck = [...DEFAULT_PLAYER_DECK];
+let match = null;
+let matchEpoch = 0;
+
+try {
+  const savedDeck = JSON.parse(localStorage.getItem(DECK_STORAGE_KEY) || "null");
+  if (Array.isArray(savedDeck) && savedDeck.every(id => cardById.has(id)) && new Set(savedDeck).size === savedDeck.length && savedDeck.length <= DECK_SIZE) {
+    currentDeck = savedDeck;
+  }
+} catch { /* stockage optionnel */ }
+
+function saveDeck() {
+  try { localStorage.setItem(DECK_STORAGE_KEY, JSON.stringify(currentDeck)); } catch {}
+}
+
+function refreshDeckDetailButton() {
+  const button = byId("toggleDeckCard");
+  if (!selected) { button.disabled = true; return; }
+  const isInDeck = currentDeck.includes(selected.id);
+  button.disabled = !isInDeck && currentDeck.length >= DECK_SIZE;
+  button.textContent = isInDeck ? "Retirer du deck" :
+    currentDeck.length >= DECK_SIZE ? "Deck complet (retire une carte)" : "Ajouter au deck";
+}
+
+function renderDeck() {
+  const list = byId("deckList");
+  const fragment = document.createDocumentFragment();
+  for (const id of currentDeck) {
+    const card = cardById.get(id);
+    const chip = el("div", "deck-chip rarity-" + card.rarity);
+    chip.append(el("span", "deck-chip-symbol", "?"));
+    const label = el("div", "deck-chip-text");
+    label.append(el("strong", "", card.name), el("small", "", cardStats(id).role + " · " + rarityLabels[card.rarity]));
+    const remove = el("button", "deck-remove", "×");
+    remove.type = "button";
+    remove.setAttribute("aria-label", "Retirer " + card.name + " du deck");
+    remove.addEventListener("click", () => {
+      currentDeck = currentDeck.filter(item => item !== id);
+      saveDeck(); renderDeck();
+    });
+    chip.append(label, remove);
+    fragment.append(chip);
+  }
+  for (let n = currentDeck.length; n < DECK_SIZE; n++) {
+    const slot = el("div", "deck-empty", "+ Choisir une carte");
+    fragment.append(slot);
+  }
+  list.replaceChildren(fragment);
+  byId("deckCount").textContent = currentDeck.length + " / " + DECK_SIZE;
+  byId("deckHint").textContent = validateDeck(currentDeck).valid ?
+    "Deck prêt pour le mode solo. Les modifications ne changent pas une partie déjà commencée." :
+    "Deck incomplet : ouvre les fiches du catalogue pour ajouter " + (DECK_SIZE - currentDeck.length) + " carte(s).";
+  byId("startMatch").disabled = !validateDeck(currentDeck).valid;
+  refreshDeckDetailButton();
+}
+
+byId("toggleDeckCard").addEventListener("click", () => {
+  if (!selected) return;
+  if (currentDeck.includes(selected.id)) {
+    currentDeck = currentDeck.filter(id => id !== selected.id);
+  } else if (currentDeck.length < DECK_SIZE) {
+    currentDeck = [...currentDeck, selected.id];
+  } else return;
+  saveDeck(); renderDeck();
+});
+byId("resetDeck").addEventListener("click", () => {
+  currentDeck = [...DEFAULT_PLAYER_DECK];
+  saveDeck(); renderDeck();
+});
+
+function unitLabel(id) { return cardById.get(id)?.name || id; }
+function makeUnit(id, compact = false) {
+  const stats = cardStats(id);
+  const card = cardById.get(id);
+  const tile = el("div", compact ? "mini-fighter rarity-" + card.rarity : "fighter-tile rarity-" + card.rarity);
+  const visual = el("div", "fighter-visual", "?");
+  const info = el("div", "fighter-info");
+  info.append(el("small", "", stats.role), el("strong", "", unitLabel(id)));
+  if (!compact) info.append(el("span", "", stats.description));
+  tile.append(visual, info);
+  return tile;
+}
+function renderSide(key) {
+  const side = match?.sides[key] || null;
+  const isPlayer = key === "player";
+  const active = byId(key + "Active");
+  active.replaceChildren();
+  if (side?.active) active.append(makeUnit(side.active.id));
+  else active.append(el("span", "arena-empty-note", isPlayer ? "Prépare ton deck pour jouer." : "L'adversaire arrive..."));
+  byId(key + "Score").textContent = side ? side.knockouts + " / " + WIN_KOS + " KO" : "0 / " + WIN_KOS + " KO";
+  if (side?.active) {
+    const unit = cardStats(side.active.id);
+    byId(key + "HpText").textContent = side.active.hp + " / " + unit.maxHp + " PV";
+    byId(key + "HpBar").style.width = (side.active.hp / unit.maxHp * 100).toFixed(1) + "%";
+    byId(key + "Energy").textContent = side.energy + " / 5 énergie";
+    byId(key + "Guard").textContent = side.guard ? "Protection : " + side.guard : "Aucune protection";
+  } else {
+    byId(key + "HpText").textContent = "— PV";
+    byId(key + "HpBar").style.width = "0%";
+    byId(key + "Energy").textContent = "— énergie";
+    byId(key + "Guard").textContent = "Aucune protection";
+  }
+  const bench = byId(key + "Bench");
+  const benchItems = document.createDocumentFragment();
+  if (side) {
+    for (let i = 0; i < side.bench.length; i++) {
+      const unit = side.bench[i];
+      const canSwap = isPlayer && !match.winner && match.turn === "player";
+      if (canSwap) {
+        const button = el("button", "bench-select");
+        button.type = "button";
+        button.setAttribute("aria-label", "Échanger avec " + unitLabel(unit.id) + " (utilise le tour)");
+        button.append(makeUnit(unit.id, true));
+        button.append(el("small", "", unit.hp + " PV · Échanger"));
+        button.addEventListener("click", () => playerAction({ type: "swap", index: i }));
+        benchItems.append(button);
+      } else {
+        const holder = el("div", "bench-static");
+        holder.append(makeUnit(unit.id, true), el("small", "", unit.hp + " PV"));
+        benchItems.append(holder);
+      }
+    }
+  }
+  if (!side || !side.bench.length) benchItems.append(el("small", "bench-message", "Aucune carte en réserve"));
+  bench.replaceChildren(benchItems);
+}
+
+function renderArena() {
+  renderSide("player");
+  renderSide("ai");
+  const title = byId("turnInfo");
+  const hint = byId("actionHint");
+  const isReady = match && !match.winner && match.turn === "player";
+  title.textContent = !match ? "Prêt pour le duel ?" : match.winner ?
+    (match.winner === "player" ? "Victoire !" : "Billy remporte la partie") :
+    match.turn === "player" ? "C'est ton tour" : "Billy réfléchit...";
+  byId("roundInfo").textContent = match ? "Manche " + match.round : WIN_KOS + " KO pour gagner";
+  hint.textContent = !match ? "Lance une partie pour activer les actions." :
+    match.winner ? (match.winner === "player" ? "Bien joué ! Relance une partie pour rejouer." : "Retente ta chance contre Billy.") :
+    isReady ? "Choisis une action ou échange avec une carte de réserve. Chaque action termine ton tour." : "L'adversaire prépare son action.";
+  const options = isReady ? legalActions(match, "player") : [];
+  for (const [buttonId, type] of [["quickAction","quick"],["burstAction","burst"],["focusAction","focus"]]) {
+    byId(buttonId).disabled = !options.some(action => action.type === type);
+  }
+  if (match?.sides.player.active) {
+    const stats = cardStats(match.sides.player.active.id);
+    byId("quickDamage").textContent = stats.quick + " dégâts · gratuit";
+    byId("burstDamage").textContent = stats.burst + (stats.role === "Chaos" && match.sides.player.active.hp * 2 <= stats.maxHp ? 10 : 0) + " dégâts · 2 énergies";
+    byId("focusValue").textContent = "+2 énergie · +" + stats.focusGuard + " protection";
+  } else {
+    byId("quickDamage").textContent = "Attaque gratuite";
+    byId("burstDamage").textContent = "2 énergies";
+    byId("focusValue").textContent = "+2 énergie, +protection";
+  }
+  byId("startMatch").textContent = match ? "Recommencer le duel ↗" : "Lancer une partie ↗";
+  const lines = document.createDocumentFragment();
+  for (const message of [...(match?.history || [])].reverse().slice(0, 9)) lines.append(el("li", "", message));
+  byId("battleLog").replaceChildren(lines);
+}
+
+function startSoloMatch() {
+  const validation = validateDeck(currentDeck);
+  if (!validation.valid) {
+    byId("deckHint").textContent = validation.errors.join(" ");
+    document.getElementById("deckbuilder").scrollIntoView({ behavior: "smooth" });
+    return;
+  }
+  matchEpoch += 1;
+  match = createMatch({ playerDeck: currentDeck, aiDeck: DEFAULT_AI_DECK, seed: Date.now() });
+  renderArena();
+}
+function playerAction(action) {
+  if (!match || match.winner || match.turn !== "player") return;
+  try {
+    match = applyAction(match, "player", action);
+  } catch (error) {
+    byId("actionHint").textContent = error.message;
+    return;
+  }
+  renderArena();
+  if (!match.winner && match.turn === "ai") {
+    const scheduledFor = matchEpoch;
+    window.setTimeout(() => {
+      if (scheduledFor !== matchEpoch || !match || match.winner || match.turn !== "ai") return;
+      try { match = applyAction(match, "ai", chooseAiAction(match)); }
+      catch (error) {
+        byId("actionHint").textContent = "Le tour de Billy a échoué : " + error.message;
+        return;
+      }
+      renderArena();
+    }, 450);
+  }
+}
+byId("startMatch").addEventListener("click", startSoloMatch);
+byId("quickAction").addEventListener("click", () => playerAction({ type: "quick" }));
+byId("burstAction").addEventListener("click", () => playerAction({ type: "burst" }));
+byId("focusAction").addEventListener("click", () => playerAction({ type: "focus" }));
+renderDeck();
+renderArena();
