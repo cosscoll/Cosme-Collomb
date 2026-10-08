@@ -56,7 +56,7 @@ function Shell({path,branch=false,transit=null,arrival=false}) {
     // transparency overdraw here looked like broken walls / clipping.
     // Switch at the actual common junction while the building branch persists.
     if(root.current)root.current.visible=!transit||
-      (arrival?p>=.90:p<.52)
+      (arrival?(branch?p>=.52:p>=.90):p<.52)
     surface.current.opacity=1
     seamMaterials.current.forEach((material,i)=>{
       if(material)material.opacity=i%2===0?.46:.24
