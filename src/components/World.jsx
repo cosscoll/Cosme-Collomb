@@ -3,7 +3,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { routeInfo, scrollT, sampleTransit, junctionFor, arrivalT, bridgeBuild } from '../scene/transit.js'
 import {
-  PATHS, PROJECT_BRANCH_COLORS, PROJECT_FORK_OPEN, PROJECT_FORK_CLOSE,
+  PATHS, PROJECT_BRANCH_COLORS, PROJECT_FORK_OPEN, PROJECT_FORK_CLOSE, PROJECT_FORK_FOCUS,
   createSkin, createSeam, detailReturning
 } from '../scene/geometry.js'
 
@@ -17,11 +17,12 @@ function Shell({path,branch=false,transit=null,arrival=false}) {
   const start=branch?PROJECT_FORK_OPEN:0
   const end=branch?PROJECT_FORK_CLOSE:1
   const radius=branch?2.85:4.25
-  // Incoming preview uses a lighter shell; at the end the full-quality
-  // destination replaces it with precisely the same spline and radius.
-  const divisions=arrival?(branch?66:180):(branch?104:300)
-  const radial=arrival?(branch?28:48):(branch?40:64)
-  const seamsCount=arrival?(branch?2:4):(branch?3:7)
+  // The outgoing and incoming walls have EXACTLY the same tessellation.
+  // A lighter preview used to pop into a different full-quality mesh at the
+  // final frame, even though the camera itself had not moved.
+  const divisions=branch?104:300
+  const radial=branch?40:64
+  const seamsCount=branch?3:7
   const geometry=useMemo(()=>createSkin(path,{
     radius,lengthSegments:divisions,radialSegments:radial,start,end
   }),[path,branch,arrival])
@@ -31,18 +32,15 @@ function Shell({path,branch=false,transit=null,arrival=false}) {
   useFrame((_,dt)=>{
     if(!surface.current)return
     const p=transit?Math.max(0,Math.min(1,(performance.now()-transit.startedAt)/transit.duration)):0
-    // Avoid expensive transparent overdraw of dormant corridors in software
-    // WebGL. Reveal each 3D segment only when its animation has begun.
+    // Never draw two full overlapping opaque route shells at once. They
+    // share most of the trunk but have slightly different Frenet frames:
+    // transparency overdraw here looked like broken walls / clipping.
+    // Switch at the actual common junction while the building branch persists.
     if(root.current)root.current.visible=!transit||
-      (arrival?p>(branch?.78:.65):p<.72)
-    // Incoming corridor reaches full opacity BEFORE the departing corridor
-    // and temporary bridge are removed. This prevents the final-frame pop.
-    const target=!transit?1:arrival?
-      smooth((p-(branch?.78:.66))/(branch?.21:.29)):
-      1-smooth((p-.28)/.40)
-    surface.current.opacity=target
+      (arrival?p>=.52:p<.52)
+    surface.current.opacity=1
     seamMaterials.current.forEach((material,i)=>{
-      if(material)material.opacity=target*(i%2===0?.46:.24)
+      if(material)material.opacity=i%2===0?.46:.24
     })
   })
   useEffect(()=>()=>geometry.dispose(),[geometry])
@@ -55,7 +53,7 @@ function Shell({path,branch=false,transit=null,arrival=false}) {
     <group ref={root}>
       <mesh geometry={geometry}>
         <meshPhysicalMaterial ref={surface} vertexColors side={THREE.BackSide}
-          transparent opacity={arrival?0:1} depthWrite={false}
+          opacity={1} depthWrite
           metalness={.58} roughness={.29}
           clearcoat={.88} clearcoatRoughness={.17}
           emissive="#514962" emissiveIntensity={.2}/>
@@ -65,7 +63,7 @@ function Shell({path,branch=false,transit=null,arrival=false}) {
           <tubeGeometry args={[seam,160,index%2===0?.018:.009,6,false]}/>
           <meshBasicMaterial ref={el=>{seamMaterials.current[index]=el}}
             color={index%3===0?'#f2d9d0':'#d4d8ff'}
-            transparent opacity={arrival?0:index%2===0?.46:.24}
+            transparent opacity={index%2===0?.46:.24}
             depthWrite={false} toneMapped={false}/>
         </mesh>
       ))}
@@ -119,7 +117,7 @@ function RouteMarkers({mode,hovered}) {
       <DirectionGate key={'sub'+i} path={path}
         color={PROJECT_BRANCH_COLORS[i]}
         hovered={hovered==='project-'+i}
-        at={.55} radius={2.45}/>
+        at={.45} radius={2.1}/>
     ))}
   </group>
 }
@@ -242,9 +240,7 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       // This turn begins while still approaching the junction, and finishes
       // before the destination shell replaces the temporary bridge.
       if(to.mode==='projects'&&from.mode==='detail'){
-        const forkForward=to.path.getPointAt(.999)
-          .addScaledVector(to.path.getTangentAt(.997),12)
-        ahead.lerp(forkForward,smooth((p-.29)/.25))
+        ahead.lerp(PROJECT_FORK_FOCUS,smooth((p-.62)/.25))
       }
     }
     sample.path.getTangentAt(t,direction)
@@ -261,8 +257,7 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
     // Keep looking through the physical junction toward its five corridors,
     // including immediately after a completed-project return.
     if(!transit && route.mode==='projects' && y>=scrollPositions.current.fork*.68){
-      ahead.copy(route.path.getPointAt(.999))
-        .addScaledVector(route.path.getTangentAt(.997),12)
+      ahead.copy(PROJECT_FORK_FOCUS)
     }
     if(!transit && route.mode==='projects' && hovered.startsWith('project-') && y>window.innerHeight*.45){
       const idx=Number(hovered.slice(8))
@@ -285,6 +280,14 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       Math.max(0,(performance.now()-transit.startedAt)/transit.duration))):0
     camera.fov=THREE.MathUtils.damp(camera.fov,45+boost,4,dt)
     camera.updateProjectionMatrix()
+    // Expose physical flight telemetry for real camera-continuity regression
+    // tests (DOM-only route tests cannot detect a 3D position teleport).
+    window.__portfolioFlight={
+      position:[camera.position.x,camera.position.y,camera.position.z],
+      direction:[ahead.x-camera.position.x,ahead.y-camera.position.y,ahead.z-camera.position.z],
+      mode:sample.mode,t,transiting:Boolean(transit),
+      phase:sample.phase||'scroll'
+    }
   })
   return null
 }
