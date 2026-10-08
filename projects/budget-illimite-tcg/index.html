@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10101b">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Budget Illimité | Inventaire du TCG — Prototype</title>
+  <meta name="description" content="Prototype non officiel de l'inventaire des cartes TCG inspirées des apparitions de Thomas Deseur.">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#catalogue">Aller au catalogue</a>
+  <header class="topbar">
+    <div class="brand"><span class="brand-icon" aria-hidden="true">BI</span><span>Budget <strong>Illimité</strong></span></div>
+    <nav aria-label="Navigation principale"><a href="#catalogue">Les cartes</a><a href="#avancement">Le projet</a></nav>
+    <span class="version">Prototype de développement</span>
+  </header>
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow">Collection non officielle · Thomas Deseur</p>
+        <h1 id="hero-title">Un univers.<br><em>49 apparitions.</em><br>Un futur TCG.</h1>
+        <p>Chaque apparition mérite sa carte. Explore l'inventaire initial, retrouve les raretés et suis les personnages à documenter. Les visuels et origines restent à vérifier avant publication.</p>
+        <a class="main-cta" href="#catalogue">Explorer les cartes <span aria-hidden="true">↗</span></a>
+      </div>
+      <div class="hero-stage" aria-hidden="true">
+        <div class="showcase-card showcase-back"></div>
+        <div class="showcase-card showcase-front"><span class="showcase-id">BUDGET ILLIMITÉ / 001</span><div class="showcase-center">?</div><span class="showcase-caption">L'apparition mystère</span><span class="showcase-foot">CARTE EN COURS DE DOCUMENTATION</span></div>
+      </div>
+    </section>
+    <section class="stats" aria-label="Indicateurs du catalogue">
+      <div><strong id="totalCards">49</strong><span>Identifiants de cartes</span></div>
+      <div><strong id="verifiedCards">0</strong><span>Sources vérifiées</span></div>
+      <div><strong id="markedCards">0</strong><span>Cartes repérées localement</span></div>
+    </section>
+    <section id="catalogue" class="catalogue">
+      <div class="section-top"><div><p class="eyebrow">L'inventaire</p><h2>Les 49 apparitions</h2><p>Les noms ci-dessous proviennent d'identifiants provisoires. Les photographies et vidéos d'origine ne sont pas encore intégrées.</p></div><div id="resultsCount" class="result-count" aria-live="polite"></div></div>
+      <div class="filters">
+        <label for="search">Rechercher une carte<input id="search" type="search" placeholder="Nom ou identifiant..." autocomplete="off"></label>
+        <label for="rarity">Rareté<select id="rarity"><option value="all">Toutes les raretés</option><option value="commune">Commune</option><option value="rare">Rare</option><option value="epique">Épique</option><option value="legendaire">Légendaire</option><option value="secrete">Secrète</option></select></label>
+        <label class="marked-filter"><input id="onlyMarked" type="checkbox"> Cartes repérées</label>
+      </div>
+      <div id="cardGrid" class="card-grid" aria-live="polite"></div>
+      <p id="emptyResults" class="empty hidden">Aucune carte ne correspond à ces filtres.</p>
+    </section>
+    <section id="avancement" class="progress-section"><div><p class="eyebrow">Phase de construction</p><h2>Un catalogue d'abord, un jeu ensuite.</h2></div><p>Le système de combat existant n'était pas inclus dans l'archive reçue. Cette première version n'invente ni mécaniques, ni statistiques, ni sources : elle prépare une base de données à vérifier avant l'intégration du jeu complet.</p></section>
+  </main>
+  <footer>Budget Illimité — Prototype fan-made, non affilié à Thomas Deseur. Aucun usage officiel des images, noms ou marques revendiqué.</footer>
+  <dialog id="cardDialog" aria-labelledby="detailTitle">
+    <form method="dialog" class="dialog-close-form"><button class="dialog-close" aria-label="Fermer">×</button></form>
+    <div id="detailArt" class="detail-art"><span>?</span></div>
+    <div class="detail-body"><p id="detailRarity" class="eyebrow"></p><h2 id="detailTitle"></h2><p id="detailId" class="detail-id"></p><dl><dt>Apparition</dt><dd>À vérifier à partir des vidéos originales</dd><dt>Photographie</dt><dd>Non fournie</dd><dt>Capacités et statistiques</dt><dd>En attente du moteur de combat initial</dd></dl><button id="markCard" class="main-cta" type="button">Marquer comme repérée</button><p class="local-note">Ce marqueur est enregistré uniquement dans ton navigateur. Ce n'est pas une carte possédée en jeu.</p></div>
+  </dialog>
+</body>
+</html>
