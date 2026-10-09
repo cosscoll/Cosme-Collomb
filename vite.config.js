@@ -12,7 +12,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         portfolio: fileURLToPath(new URL('./index.source.html', import.meta.url)),
-        prototype3d: fileURLToPath(new URL('./prototype-3d/index.source.html', import.meta.url))
+        prototype3d: fileURLToPath(new URL('./prototype-3d/index.source.html', import.meta.url)),
+        prototypeV2: fileURLToPath(new URL('./prototype-3d/v2/index.source.html', import.meta.url))
       }
     }
   }

@@ -20,3 +20,12 @@ if(!demoHtml.includes('/Cosme-Collomb/assets/'))
 if(demoHtml.includes('src="/src/prototype-3d/main.js"'))
   throw new Error('3D demo still points to uncompiled source')
 console.log('Built isolated 3D proof:',prototypeOutput)
+const v2Source='dist/prototype-3d/v2/index.source.html'
+const v2Output='dist/prototype-3d/v2/index.html'
+if(!existsSync(v2Source))throw Error('Five-loop 3D V2 did not compile')
+renameSync(v2Source,v2Output)
+const v2Html=readFileSync(v2Output,'utf8')
+if(!v2Html.includes('/Cosme-Collomb/assets/')||
+  v2Html.includes('src="/src/prototype-3d/v2.js"'))
+  throw Error('Five-loop demo does not load compiled assets')
+console.log('Built five-loop V2 proof:',v2Output)

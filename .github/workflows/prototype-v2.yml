@@ -1,0 +1,31 @@
+name: Verify physical five-loop 3D V2
+on:
+  push:
+    branches: ['dev/prototype-3d-v2-five-loops']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  geometry-and-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - name: Test all five spatial bridge-loop topologies
+        run: node --test tests/prototype-v2-geometry.test.mjs
+      - name: Restore editable Vite homepage
+        run: cp site/index.source.html index.html
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Traverse and return through each of five real 3D loops
+        run: node tests/prototype-v2-browser.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: v2-five-loop-visual-checks
+          path: test-output/v2-*.jpg
+          if-no-files-found: ignore

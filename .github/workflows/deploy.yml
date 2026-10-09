@@ -20,12 +20,15 @@ jobs:
           node-version: 20
       - run: npm install
       - run: npm run test:geometry
+      - run: node --test tests/prototype-v2-geometry.test.mjs
       - name: Restore Vite HTML entrypoint
         run: cp site/index.source.html index.html
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
       - run: node tests/prototype-3d-smoke.mjs
+      - name: Check all five seamless 3D project loops
+        run: node tests/prototype-v2-browser.mjs
       - name: Publish compiled files to branch root
         if: github.ref == 'refs/heads/main'
         run: bash scripts/sync-published-root.sh
