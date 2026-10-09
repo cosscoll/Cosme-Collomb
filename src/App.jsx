@@ -524,32 +524,35 @@ function Contact() {
   async function submitContact(event) {
     event.preventDefault()
     if (sending) return
+
     const form = event.currentTarget
     const data = new FormData(form)
-    if (data.get('_honey')) return
+    if (data.get('botcheck')) return
+
     setSending(true)
     setStatus('idle')
     setErrorMessage('')
+
     try {
       const payload = Object.fromEntries(data.entries())
-      const response = await fetch('https://formsubmit.co/ajax/Pro.collomb@gmail.com', {
+      payload.subject = `Portfolio — ${String(data.get('subject') || 'Nouveau message').trim()}`
+      const response = await fetch('https://api.web3forms.com/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
         body: JSON.stringify(payload)
       })
       const result = await response.json()
-      if (!response.ok || (result.success !== true && result.success !== 'true')) {
-        throw new Error(`FormSubmit HTTP ${response.status}: ${String(result.message || 'envoi non confirmé').slice(0, 200)}`)
+      if (!response.ok || result.success !== true) {
+        throw new Error(String(result.message || 'Envoi refusé par le service.').slice(0, 220))
       }
       form.reset()
       setStatus('success')
     } catch (error) {
       setStatus('error')
-      const networkError = error instanceof TypeError
-      console.warn('Contact form delivery failed:', error)
-      setErrorMessage(networkError
-        ? "Connexion au service FormSubmit impossible (réseau, DNS ou navigateur). Aucun envoi confirmé."
-        : `Envoi non confirmé : ${error.message || 'réponse inconnue'}`)
+      console.warn('Portfolio contact delivery failed:', error)
+      setErrorMessage(error instanceof TypeError
+        ? "Connexion au service de messagerie impossible. Aucun envoi confirmé. Utilisez le lien e-mail ci-dessous."
+        : `Envoi non confirmé : ${error.message || 'réponse inconnue'}. Utilisez le lien e-mail ci-dessous.`)
     } finally {
       setSending(false)
     }
@@ -562,15 +565,15 @@ function Contact() {
         <div className="contact-details">
           <span className="micro-label">CONTACT DIRECT</span>
           <a className="contact-email" href="mailto:Pro.collomb@gmail.com">Pro.collomb@gmail.com <span aria-hidden="true">↗</span></a>
-          <p>Vous pouvez aussi me laisser un message. Votre message me sera transmis par e-mail lorsque le service est disponible.</p>
+          <p>Vous pouvez aussi m'écrire via ce formulaire. Une confirmation apparaît lorsque le service accepte le message.</p>
           <a href="https://github.com/cosscoll" className="underlined-link" target="_blank" rel="noopener noreferrer">Découvrir mon GitHub ↗</a>
         </div>
-        <form className="portfolio-contact-form" onSubmit={submitContact} method="POST">
+        <form className="portfolio-contact-form" data-service="web3forms" onSubmit={submitContact} method="POST">
           <span className="micro-label">ÉCRIVEZ-MOI</span>
-          <input type="hidden" name="_subject" value="Nouveau message depuis le Portfolio" />
-          <input type="hidden" name="_template" value="table" />
-          <input type="hidden" name="_url" value="https://cosscoll.github.io/Cosme-Collomb/#/contact" />
-          <div className="contact-honey" aria-hidden="true"><label htmlFor="contact-website">Ne pas remplir</label><input id="contact-website" type="text" name="_honey" tabIndex={-1} autoComplete="off" /></div>
+          <input type="hidden" name="access_key" value="fe42680f-e8d8-4d17-8404-022d7147c807" />
+          <input type="hidden" name="from_name" value="Portfolio Cosme Collomb" />
+          <input type="hidden" name="source" value="https://cosscoll.github.io/Cosme-Collomb/#/contact" />
+          <div className="contact-honey" aria-hidden="true"><label htmlFor="contact-website">Ne pas remplir</label><input id="contact-website" type="checkbox" name="botcheck" tabIndex={-1} autoComplete="off" /></div>
           <label htmlFor="contact-name">Nom et prénom</label>
           <input id="contact-name" name="name" type="text" placeholder="Votre nom" autoComplete="name" required maxLength={120} />
           <label htmlFor="contact-email">Adresse e-mail</label>
@@ -579,10 +582,10 @@ function Contact() {
           <input id="contact-subject" name="subject" type="text" placeholder="De quoi souhaitez-vous parler ?" required maxLength={180} />
           <label htmlFor="contact-message">Votre message</label>
           <textarea id="contact-message" name="message" rows={6} placeholder="Présentez votre projet ou votre demande…" minLength={10} maxLength={5000} required />
-          <p className="contact-privacy">Ces informations servent uniquement à répondre à votre demande. L'envoi passe par le service tiers FormSubmit.</p>
+          <p className="contact-privacy">Ces informations servent uniquement à répondre à votre demande. L'envoi passe par le service tiers Web3Forms.</p>
           <button className="contact-submit" type="submit" disabled={sending}>{sending ? 'Envoi en cours…' : 'Envoyer mon message'} <span aria-hidden="true">↗</span></button>
           <p role="status" aria-live="polite" style={{ marginTop: '1rem' }}>
-            {status === 'success' && 'Votre message a bien été transmis. Merci pour votre prise de contact.'}
+            {status === 'success' && 'Le service a accepté votre message. Merci pour votre prise de contact.'}
             {status === 'error' && errorMessage}
           </p>
           {status === 'error' && <a className="underlined-link" href={`mailto:Pro.collomb@gmail.com?subject=${encodeURIComponent('Contact depuis le portfolio')}`}>Envoyer directement depuis votre messagerie ↗</a>}
