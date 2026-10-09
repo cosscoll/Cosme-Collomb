@@ -16,7 +16,7 @@ export const PROJECT_INDEX_HUB=closestT(PATHS.routes[0],PROJECT_FORK_POSITION)
 // the five diverging paths.
 export const PROJECT_LOOKOUT_T=PROJECT_INDEX_HUB
 export const PROJECT_ENTRY_OFFSET=.035
-export const MAIN_ENTRY_OFFSET=.105
+export const MAIN_ENTRY_OFFSET=.018
 const detailMainHubs=PATHS.details.map(p=>closestT(p,[0,0,-30]))
 
 export function routeInfo(pathname='/'){

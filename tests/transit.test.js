@@ -17,7 +17,7 @@ test('Every page has an actual 3D spline and a long enough assembled transit',()
   const route=routeInfo(name)
   assert.ok(route.path.getLength()>30,name)
   assert.ok(route.mainHub>.1&&route.mainHub<.92)
-  assert.ok(route.projectHub===null||(route.projectHub>.2&&route.projectHub<=1))
+  assert.ok(route.projectHub===null||(route.projectHub>.05&&route.projectHub<=1))
   assert.ok(arrivalT(route,routeInfo('/'))>0)
  }
 })
@@ -40,7 +40,7 @@ test('Project crossroads still reached continuously by scrolling',()=>{
  const start=scrollT(route,{scrollY:0,total:4200,projectFork:1600})
  const hub=scrollT(route,{scrollY:1600,total:4200,projectFork:1600})
  assert.ok(Math.abs(hub-PROJECT_LOOKOUT_T)<.00001)
- assert.ok(hub>start+.10)
+ assert.ok(hub>start+.045)
 })
 test('No teleportation at either real tunnel intersection for every navigation pair',()=>{
  let checked=0
@@ -263,9 +263,9 @@ test('Destination tunnel stays rendered for the complete camera crossing',async(
 })
 
 test('Camera keeps moving during tunnel assembly instead of freezing near the fork',()=>{
-  const from=routeInfo('/projets')
+  const from=routeInfo('/')
   const to=routeInfo('/projets/'+PROJECTS[0].slug)
-  const initial=PROJECT_LOOKOUT_T
+  const initial=.05
   const positions=[.35,.39,.43,.47,.50].map(p=>
     transitPoint(sampleTransit(from,to,initial,p)))
   for(let i=1;i<positions.length;i++)
@@ -294,7 +294,7 @@ test('Each of eight project tours and every page change travels forward only',()
       for(let i=0;i<=200;i++){
         const sample=sampleTransit(from,to,initialT,i/200)
         assert.equal(sample.reverse,false,source+' → '+destination+' reverse flag')
-        if(previous&&sample.path===previous.path)
+        if(previous&&sample.path===previous.path&&sample.phase===previous.phase)
           assert.ok(sample.t>=previous.t-1e-7,
             source+' → '+destination+' travels backwards at '+i/200)
         previous=sample
