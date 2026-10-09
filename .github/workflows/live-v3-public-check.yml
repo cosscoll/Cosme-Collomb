@@ -1,0 +1,25 @@
+name: Check exact V3 immersive public link
+on:
+  push:
+    branches: ['check/v3-public-url']
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify public home, immersive scene and compiled resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://cosscoll.github.io/Cosme-Collomb/"
+          curl -fsSL --max-time 30 -o /tmp/home -w 'Portfolio HTTP %{http_code}\n' "$base"
+          grep -q 'Cosme Collomb' /tmp/home
+          curl -fsSL --max-time 30 -o /tmp/v3 -w 'V3 LIVE HTTP %{http_code} at %{url_effective}\n' "${base}prototype-3d/v3/"
+          grep -q "À l'intérieur" /tmp/v3
+          grep -q "/Cosme-Collomb/assets/prototypeV3-lf50qtcq.js" /tmp/v3
+          for file in prototypeV3-lf50qtcq.js prototypeV3-CeEUwByK.css three.module-DbYCB5bT.js projects-VjPwKz_2.js loopGeometry-B_LZ_4E2.js; do
+            curl -fsSL --max-time 30 -o /tmp/verified -w "Asset $file HTTP %{http_code}\n" "${base}assets/$file"
+            test -s /tmp/verified
+          done
+          echo "VERIFIED PUBLIC PREVIEW: ${base}prototype-3d/v3/"
