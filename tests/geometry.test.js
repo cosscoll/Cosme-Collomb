@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import * as THREE from 'three'
+import { PROJECTS_WITH_SLUGS as PROJECTS } from '../src/data/projects.js'
 import {
   PATHS, MAIN_HUBS, PROJECT_HUBS,
   TUNNEL_RADIUS, RADIAL_SEGMENTS, createSkin, createSeam,
@@ -11,7 +12,7 @@ import {
 const everyPath=[...PATHS.routes,...PATHS.details]
 test('All navigable journeys have one continuous centerline', () => {
   assert.equal(PATHS.routes.length,3)
-  assert.equal(PATHS.details.length,5)
+  assert.equal(PATHS.details.length,PROJECTS.length)
   for(const path of everyPath){
     const a=path.getPointAt(0),b=path.getPointAt(1)
     assert.ok(a.distanceTo(b)>30)
@@ -72,10 +73,10 @@ test('Navigation hubs and decorative seams are based on the flight paths',()=>{
   }
 })
 
-test('Five project branches are open, distinct and have actual 3D walls',()=>{
-  assert.equal(PATHS.children.length,5)
+test('All project branches are open, distinct and have actual 3D walls',()=>{
+  assert.equal(PATHS.children.length,PROJECTS.length)
   assert.ok(PROJECT_FORK_OPEN>.1 && PROJECT_FORK_CLOSE<1)
-  for(let i=0;i<5;i++){
+  for(let i=0;i<PROJECTS.length;i++){
     const arm=PATHS.children[i]
     const geometry=createSkin(arm,{
       radius:2.85,lengthSegments:90,radialSegments:40,
@@ -92,7 +93,7 @@ test('Five project branches are open, distinct and have actual 3D walls',()=>{
     geometry.dispose()
   }
   for(const t of [PROJECT_FORK_OPEN,.55,.7,.85,PROJECT_FORK_CLOSE]){
-    for(let i=0;i<4;i++){
+    for(let i=0;i<PROJECTS.length-1;i++){
       const a=PATHS.children[i].getPointAt(t)
       const b=PATHS.children[i+1].getPointAt(t)
       assert.ok(a.distanceTo(b)>5.7,'Two adjacent project tunnels collide at '+t)
@@ -100,7 +101,7 @@ test('Five project branches are open, distinct and have actual 3D walls',()=>{
   }
 })
 test('Each journey returns to the same physical intersection after its story',()=>{
-  for(let i=0;i<5;i++){
+  for(let i=0;i<PROJECTS.length;i++){
     const hub=projectOutboundT(i)
     const start=detailTravelT(i,0)
     const outbound=detailTravelT(i,.63)
@@ -129,6 +130,6 @@ test('Each project has grounded narrative stops and working exploration links',a
     assert.ok(story.introduction&&story.idea&&story.experience)
     assert.ok(story.features.length>=3)
     assert.ok(projects[i].slug)
-    assert.ok(projects[i].link?.startsWith('https://'))
+    assert.ok(!projects[i].link || projects[i].link.startsWith('https://'))
   }
 })

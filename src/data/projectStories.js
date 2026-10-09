@@ -29,5 +29,24 @@ export const PROJECT_STORIES = [
     idea: "Réunir les ressources utiles à une formation en soins infirmiers dans un seul environnement d'étude.",
     experience: "Naviguer entre les unités d'enseignement, les fiches de révision, les cartes mentales, l'anatomie et les simulations de cas cliniques.",
     features: ["Catalogue d'unités d'enseignement", "Révisions et répétition espacée", "Cas cliniques et suivi des tâches"]
+  },
+
+  {
+    introduction: "L’IA devient une compétence accessible.",
+    idea: "Proposer quatre parcours pour apprendre l’intelligence artificielle et ses usages concrets.",
+    experience: "Explorer une vitrine immersive, comparer les parcours et découvrir les bénéfices sans accéder aux contenus réservés aux apprenants.",
+    features: ["Quatre parcours IA", "Orientation et comparaison", "Vitrine immersive en pré-lancement"]
+  },
+  {
+    introduction: "Ouvrir, découvrir, collectionner.",
+    idea: "Transformer l’ouverture de boosters et la découverte de cartes en une expérience de collection numérique.",
+    experience: "Ouvrir des boosters de cinq cartes, découvrir les 49 cartes et suivre les doublons et la progression de son classeur local.",
+    features: ["Boosters de cinq cartes", "Catalogue de 49 cartes", "Classeur et suivi des raretés"]
+  },
+  {
+    introduction: "Chaque mise en relation doit être utile.",
+    idea: "Rapprocher particuliers et professionnels du BTP de façon transparente et sans commission.",
+    experience: "Décrire un besoin concret, trouver des professionnels adaptés et favoriser des échanges utiles dans le respect du travail de chacun.",
+    features: ["Demandes de travaux structurées", "Visibilité des professionnels", "Mise en relation sans commission"]
   }
 ]

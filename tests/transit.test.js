@@ -113,7 +113,7 @@ test('No full-screen white portal survives and 3D construction is rendered',asyn
  assert.ok(world.includes('meshStandardMaterial'))
 })
 
-test('Returning from every finished project lands at the same open five-way lookout',()=>{
+test('Returning from every finished project lands at the same open crossroads',()=>{
  const fork=routeInfo('/projets')
  for(const project of PROJECTS){
   const path='/projets/'+project.slug
@@ -123,18 +123,18 @@ test('Returning from every finished project lands at the same open five-way look
   assert.equal(arrived.path,fork.path)
   assert.ok(Math.abs(arrived.t-expected)<1e-9,'Camera snaps after '+project.title)
   assert.ok(arrived.t<PROJECT_INDEX_HUB-.045,
-    'Camera is parked against the terminal wall instead of viewing all five forks')
+    'Camera is parked against the terminal wall instead of viewing all project forks')
   // A full project must return to the very same point as a fresh project visit.
   assert.ok(fork.path.getPointAt(arrived.t).distanceTo(
     fork.path.getPointAt(expected))<1e-7)
  }
 })
 
-test('All five paths remain accessible when a project visit is complete',async()=>{
+test('All project paths remain accessible when a project visit is complete',async()=>{
  const fs=await import('node:fs/promises')
  const app=await fs.readFile(new URL('../src/App.jsx',import.meta.url),'utf8')
  const world=await fs.readFile(new URL('../src/components/World.jsx',import.meta.url),'utf8')
- assert.ok(app.includes('Revenir maintenant au carrefour des cinq projets'))
+ assert.ok(app.includes('Revenir maintenant au carrefour des projets'))
  assert.ok(app.includes('onJourneyFinished()'))
  assert.ok(!app.includes('PROJECTS.filter(project=>project.slug!==p.slug)'))
  assert.ok(app.includes('state={{fromJourney:true}}'))
@@ -146,18 +146,18 @@ test('All five paths remain accessible when a project visit is complete',async()
  assert.ok(world.includes('arrival?'))
 })
 
-test('All five physical tunnel mouths face the same stable fork camera viewpoint',()=>{
- assert.equal(PATHS.children.length,5)
+test('All physical tunnel mouths face the same stable fork camera viewpoint',()=>{
+ assert.equal(PATHS.children.length,PROJECTS.length)
  assert.ok(PROJECT_FORK_FOCUS.z<PROJECT_FORK_POSITION[2]-10)
  assert.ok(Math.abs(PROJECT_FORK_FOCUS.x-PROJECT_FORK_POSITION[0])<.01)
  assert.ok(Math.abs(PROJECT_FORK_FOCUS.y-PROJECT_FORK_POSITION[1])<.01)
  const mouths=PATHS.children.map(route=>route.getPointAt(.45))
  for(let i=0;i<mouths.length;i++)for(let j=i+1;j<mouths.length;j++){
   assert.ok(mouths[i].distanceTo(mouths[j])>4.2,
-   'Physical five-way gates overlap and obscure one another: '+i+' / '+j)
+   'Physical project gates overlap and obscure one another: '+i+' / '+j)
  }
 })
-test('Finishing a project cannot display an invented four-choice return junction',async()=>{
+test('Finishing a project cannot display an duplicate return junction',async()=>{
  const fs=await import('node:fs/promises')
  const app=await fs.readFile(new URL('../src/App.jsx',import.meta.url),'utf8')
  assert.ok(app.includes('onJourneyFinished()'))

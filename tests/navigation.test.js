@@ -17,8 +17,8 @@ test('Every secondary page has an explicit safe way back to the home page',()=>{
     assert.equal(context.trail.at(-1).to,path)
   }
 })
-test('All five project routes have clear breadcrumbs and a return to the project fork',()=>{
-  assert.equal(PROJECTS.length,5)
+test('All project routes have clear breadcrumbs and a return to the project fork',()=>{
+  assert.equal(PROJECTS.length,8)
   for(const project of PROJECTS){
     const path=projectHref(project)
     const context=navigationContext(path)
@@ -27,4 +27,14 @@ test('All five project routes have clear breadcrumbs and a return to the project
     assert.deepEqual(context.trail.map(p=>p.to),['/','/projets',path])
     assert.equal(context.current,project.title)
   }
+})
+
+test('The three added projects have unique 3D paths and grounded links',()=>{
+  for(const title of ['IAgile — Formations à l’IA','Budget Illimité — TCG Thomas Deseur','UnCoupDePouce'])
+    assert.ok(PROJECTS.some(p=>p.title===title),title+' is missing')
+  assert.equal(new Set(PROJECTS.map(p=>p.slug)).size,PROJECTS.length)
+  assert.equal(PROJECTS.find(p=>p.title.startsWith('IAgile')).repoLink,'https://github.com/cosscoll/IAgile')
+  assert.equal(PROJECTS.find(p=>p.title.startsWith('Budget Illimité')).repoLink,'https://github.com/cosscoll/TCG-Thomas-Deseur')
+  assert.equal(PROJECTS.find(p=>p.title==='UnCoupDePouce').link,'')
+  assert.equal(PROJECTS.find(p=>p.title==='UnCoupDePouce').repoLink,'')
 })

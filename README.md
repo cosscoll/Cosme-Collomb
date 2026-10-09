@@ -1,74 +1,30 @@
-# Portfolio 3D — Guide de mise en ligne (étape par étape)
+# Portfolio 3D — Cosme Collomb
 
-Ce projet est prêt à l'emploi. Voici comment le faire fonctionner et le mettre en ligne, même si tu n'as jamais fait ça.
+Portfolio React / Vite, avec parcours immersif WebGL et carrefour 3D à huit projets.
 
-## 1. Installer Node.js (une seule fois)
+**Site :** https://cosscoll.github.io/Cosme-Collomb/
 
-Télécharge et installe la version "LTS" sur https://nodejs.org (clique, suis l'installeur, next-next-next).
+## Les huit chemins
 
-## 2. Tester le site sur ton ordinateur
+1. Ouvertures d'échecs en 3D — `Chess-Openings`
+2. Probabilités Hold'em — `PokerStats`
+3. Brasserie virtuelle — `MyBeer`
+4. EuroRare — `Is-my-coin-rare-`
+5. Plateforme IFSI — `Berenice.ifsy`
+6. IAgile — Formations à l'IA — `IAgile` (vitrine en pré-lancement)
+7. Budget Illimité — TCG Thomas Deseur — `TCG-Thomas-Deseur` (collection locale en démonstration)
+8. UnCoupDePouce — plateforme de mise en relation BTP (en développement, sans URL publique confirmée)
 
-Ouvre un terminal dans le dossier du projet (sur Mac : clic droit sur le dossier → "Nouveau terminal au dossier" ; sur Windows : dans l'explorateur, tape `cmd` dans la barre d'adresse), puis tape :
+Les projets sont définis dans `src/data/projects.js` et `src/data/projectStories.js`. La géométrie 3D se construit en fonction de leur nombre. Le carrefour conserve des ouvertures entre les branches et les segments physiques communs des tunnels sont partagés pour éviter les traversées de paroi.
 
-```
+## Développer et valider
+
+```bash
 npm install
 npm run dev
+npm run test:geometry
+npm run build
+npm run test:browser
 ```
 
-Un lien va s'afficher (genre `http://localhost:5173`) — ouvre-le dans ton navigateur, c'est ton site en local.
-
-## 3. Personnaliser le contenu
-
-Ouvre `src/App.jsx` avec un éditeur de texte (VS Code recommandé, gratuit : https://code.visualstudio.com). Tout en haut du fichier tu trouveras :
-
-```js
-const NAME = 'Ton Nom'
-const TAGLINE = "..."
-const PROJECTS = [ ... ]
-```
-
-Remplace ces valeurs par les tiennes. Change aussi l'email dans `Contact()` un peu plus bas.
-
-## 4. Créer le repo GitHub
-
-1. Va sur https://github.com/new
-2. Donne un nom à ton repo (ex : `mon-portfolio`)
-3. Laisse-le public, ne coche rien d'autre, clique "Create repository"
-
-## 5. Adapter le chemin de base
-
-Ouvre `vite.config.js` et remplace `/mon-portfolio/` par `/nom-exact-de-ton-repo/` (avec les slashs).
-Exception : si ton repo s'appelle exactement `ton-pseudo-github.github.io`, mets `base: '/'`.
-
-## 6. Envoyer le code sur GitHub
-
-Dans le terminal, toujours dans le dossier du projet :
-
-```
-git init
-git add .
-git commit -m "premier envoi du portfolio"
-git branch -M main
-git remote add origin https://github.com/TON-PSEUDO/NOM-DU-REPO.git
-git push -u origin main
-```
-
-(remplace `TON-PSEUDO` et `NOM-DU-REPO` par les tiens — GitHub te montre cette commande exacte sur la page de ton repo vide)
-
-## 7. Activer GitHub Pages
-
-Sur GitHub, va dans ton repo → **Settings** → **Pages** (menu de gauche) → sous "Build and deployment", choisis **Source : GitHub Actions**.
-
-C'est tout. À chaque fois que tu fais `git push`, le site se reconstruit et se met à jour automatiquement (regarde l'onglet **Actions** de ton repo pour voir la progression). Ton site sera visible à l'adresse `https://TON-PSEUDO.github.io/NOM-DU-REPO/`.
-
-## Structure du projet
-
-- `src/components/HeroScene.jsx` — la scène 3D (sphère distordue + particules)
-- `src/components/Reveal.jsx` — animation de révélation au scroll
-- `src/components/CursorGlow.jsx` — halo lumineux qui suit la souris
-- `src/App.jsx` — toutes les sections du site (héro, à propos, projets, contact)
-- `src/styles/global.css` — couleurs et typographie
-
-## Pour aller plus loin
-
-Reviens me voir si tu veux : ajouter des vraies images/screenshots de projets, une page individuelle par projet, changer les couleurs, ajouter d'autres formes 3D, ou améliorer les performances mobile.
+Le workflow GitHub Actions compile, lance les vérifications et synchronise les actifs publiés sur GitHub Pages.

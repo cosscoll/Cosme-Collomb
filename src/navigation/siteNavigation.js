@@ -2,7 +2,7 @@ import { PROJECTS_WITH_SLUGS as PROJECTS } from '../data/projects.js'
 
 export const NAV_ITEMS=[
   {to:'/',label:'Accueil',number:'00',caption:'Revenir au début de l’exploration'},
-  {to:'/projets',label:'Projets',number:'01',caption:'Cinq chemins à explorer'},
+  {to:'/projets',label:'Projets',number:'01',caption:`${PROJECTS.length} chemins à explorer`},
   {to:'/parcours',label:'Parcours',number:'02',caption:'Mon approche et mes compétences'},
   {to:'/contact',label:'Contact',number:'03',caption:'Échanger et créer ensemble'}
 ]

@@ -217,7 +217,7 @@ a:focus-visible,button:focus-visible{outline:2px solid #ffedce;outline-offset:5p
   opacity:1;filter:brightness(1.55) drop-shadow(0 0 28px rgba(235,211,255,.4));
 }
 
-/* PROJECT CROSSROADS / FIVE REAL PATHS */
+/* PROJECT CROSSROADS / ONE REAL PATH PER PROJECT */
 .project-crossroads {
   position:relative;
   z-index:3;
@@ -231,7 +231,7 @@ a:focus-visible,button:focus-visible{outline:2px solid #ffedce;outline-offset:5p
 .crossroads-heading{font-size:clamp(4.25rem,8vw,11rem);letter-spacing:-.085em;
   line-height:.9;font-weight:500;margin:76px 0 70px;}
 .crossroads-heading em{color:#e7cabb}
-.fork-choices{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.fork-choices{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
 .fork-choice{display:flex;flex-direction:column;justify-content:space-between;
   min-height:280px;padding:22px 17px 18px;position:relative;isolation:isolate;
   border:1px solid rgba(226,220,239,.27);border-radius:150px 150px 10px 10px;
@@ -249,6 +249,9 @@ a:focus-visible,button:focus-visible{outline:2px solid #ffedce;outline-offset:5p
 .fork-choice-2{--branch:#f5c5b2}
 .fork-choice-3{--branch:#d8c8a4}
 .fork-choice-4{--branch:#b0dbca}
+.fork-choice-5{--branch:#dcb6f2}
+.fork-choice-6{--branch:#f0c5d8}
+.fork-choice-7{--branch:#a9c1f5}
 .fork-number{font-size:11px;letter-spacing:.2em;color:#e9dbe8}
 .fork-title{display:block;font-size:clamp(16px,1.7vw,26px);font-weight:500;line-height:1.13;
   letter-spacing:-.045em;word-break:normal;position:relative}

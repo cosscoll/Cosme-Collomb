@@ -368,7 +368,7 @@ function PageIntro({ kicker, title, italic, text }) {
 
 function ProjectIndex({ setHovered }) {
   const {state}=useLocation()
-  // Restore only AFTER this exact five-way crossroads has mounted. An earlier
+  // Restore only AFTER this exact project crossroads has mounted. An earlier
   // global scroll reset can run before Framer Motion swaps the detail DOM,
   // which left the camera twenty metres back in a closed-looking corridor.
   useLayoutEffect(()=>{
@@ -377,11 +377,11 @@ function ProjectIndex({ setHovered }) {
     if(target)window.scrollTo({top:target.offsetTop,behavior:'instant'})
   },[state])
   return <>
-    <PageIntro kicker="LE CARREFOUR / CINQ DIRECTIONS" title="Cinq projets." italic="Cinq chemins."
+    <PageIntro kicker={`LE CARREFOUR / ${PROJECTS.length} DIRECTIONS`} title="Huit projets." italic="Huit chemins."
       text="À chaque embranchement, un projet. Choisissez votre direction, avancez dans son univers puis revenez ici en poursuivant votre exploration." />
-    <section id="project-crossroads" className="project-crossroads" aria-label="Carrefour des cinq projets">
+    <section id="project-crossroads" className="project-crossroads" aria-label={`Carrefour des ${PROJECTS.length} projets`}>
       <div className="crossroads-top">
-        <span className="micro-label">CARREFOUR 02 / 05 ACCÈS</span>
+        <span className="micro-label">CARREFOUR 02 / {String(PROJECTS.length).padStart(2,'0')} ACCÈS</span>
         <p>Survolez un chemin pour le mettre en lumière. Cliquez pour entrer.</p>
       </div>
       <h2 className="crossroads-heading">Quelle direction<br/><em>prendre ?</em></h2>
@@ -422,7 +422,7 @@ function ProjectDetail({slug,onJourneyFinished}) {
   const i=PROJECTS.findIndex(p=>p.slug===slug)
   const p=PROJECTS[i]
   // The end of each project's scroll journey leads back to the SAME physical
-  // five-way junction, not a second UI containing only four alternatives.
+  // project junction, not a second artificial set of alternatives.
   useEffect(()=>{
     if(!p)return
     let travelled=false
@@ -465,7 +465,7 @@ function ProjectDetail({slug,onJourneyFinished}) {
           Faites défiler pour avancer dans ce tunnel et découvrir le projet.
         </div>
       </motion.div>
-      <Link className="journey-back" to="/projets" state={{fromJourney:true}}>← Les cinq chemins</Link>
+      <Link className="journey-back" to="/projets" state={{fromJourney:true}}>← Tous les chemins</Link>
     </section>
     <JourneyStation number="01" kicker="LE POINT DE DÉPART" title="L'idée." >
       <p>{story.idea}</p>
@@ -480,7 +480,7 @@ function ProjectDetail({slug,onJourneyFinished}) {
       </div>
     </JourneyStation>
     <JourneyStation number="04" kicker="VOIR LA RÉALISATION" title="Le projet, en vrai." align="journey-right">
-      <p>Le meilleur moyen de découvrir cette réalisation reste de l'utiliser.</p>
+      <p>{p.link ? 'Le meilleur moyen de découvrir cette réalisation reste de l’utiliser.' : 'Ce projet est en développement. Découvrez ici son concept et les fonctionnalités envisagées.'}</p>
       <div className="journey-actions">
         {p.link && <a className="detail-primary" href={p.link} target="_blank" rel="noopener noreferrer">Ouvrir le projet <span>↗</span></a>}
         {p.repoLink && <a className="underlined-link" href={p.repoLink} target="_blank" rel="noopener noreferrer">Explorer le code ↗</a>}
@@ -492,8 +492,8 @@ function ProjectDetail({slug,onJourneyFinished}) {
         viewport={{once:false,amount:.25}} transition={{duration:.9}}>
         <p className="micro-label">05 / RETOUR AU CARREFOUR</p>
         <h2>De retour.<br/><em>Quel autre chemin ?</em></h2>
-        <p>Vous avez parcouru {p.title}. Avancez jusqu'au bout : le tunnel vous reconduit automatiquement devant les cinq mêmes chemins.</p>
-        <Link to="/projets" state={{fromJourney:true}} className="underlined-link">← Revenir maintenant au carrefour des cinq projets <span>↗</span></Link>
+        <p>Vous avez parcouru {p.title}. Avancez jusqu'au bout : le tunnel vous reconduit automatiquement devant les mêmes chemins.</p>
+        <Link to="/projets" state={{fromJourney:true}} className="underlined-link">← Revenir maintenant au carrefour des projets <span>↗</span></Link>
       </motion.div>
     </section>
   </>

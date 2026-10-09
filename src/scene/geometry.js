@@ -13,17 +13,17 @@ export const BRANCHES = [
   [[0,0,-30],[1.1,-.2,-36],[3.5,-.6,-44],[7,-.4,-53],[9.2,-.2,-63]]
 ]
 export const CHILDREN = PROJECTS.map((_,i) => {
-  // Five corridors fan radially out of the common atrium, like flower petals.
+  // Project corridors fan radially out of the common atrium, like flower petals.
   // Their separation makes it impossible for the opaque shells to intersect.
   const angle=-Math.PI/2 + i*Math.PI*2/PROJECTS.length
   const x=Math.cos(angle),y=Math.sin(angle)
   const radial=(r,z)=>[-9.5+x*r,y*r,z]
   return [
     [-9.5,0,-61],
-    radial(2.7,-67),
-    radial(6.8,-76),
-    radial(8.7,-89),
-    radial(9.1,-103)
+    radial(8,-69),
+    radial(14,-80),
+    radial(18,-94),
+    radial(19,-110)
   ]
 })
 // A route is a chain of SHARED physical pieces. Previously each complete
@@ -172,15 +172,16 @@ export function createSeam(path, angle,{radius=TUNNEL_RADIUS,segments=140,start=
 }
 
 // The second junction belongs to the shared projects corridor.
-// Its five routes are actual independent splines (not decorative labels).
+// Its project routes are actual independent splines (not decorative labels).
 export const PROJECT_FORK_POSITION = [-9.5,0,-61]
-// Fixed shared view target: all five gateways are surveyed from the exact
+// Fixed shared view target: all project gateways are surveyed from the exact
 // same place and orientation before entering a project and after returning.
 export const PROJECT_FORK_FOCUS = PATHS.children.reduce(
   (sum,path)=>sum.add(path.getPointAt(.45)),new THREE.Vector3()
 ).multiplyScalar(1/PATHS.children.length)
 export const PROJECT_BRANCH_COLORS = [
-  '#c7b5ff', '#97dce5', '#f5c5b2', '#d8c8a4', '#b0dbca'
+  '#c7b5ff', '#97dce5', '#f5c5b2', '#d8c8a4', '#b0dbca',
+  '#dcb6f2', '#f0c5d8', '#a9c1f5'
 ]
 // Portals and physical corridor segments begin only after the paths diverge,
 // leaving the common atrium free of intersecting opaque walls.

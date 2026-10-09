@@ -143,7 +143,7 @@ function RouteMarkers({mode,hovered}) {
   </group>
 }
 
-// Light traces make the five-way split legible while keeping the atrium open:
+// Light traces make the project split legible while keeping the atrium open:
 // unlike five intersecting cylinders, these lines never obstruct the camera.
 function ForkGuide({path,color,active}) {
   const connector=useMemo(()=>{
@@ -308,7 +308,7 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       }
       if(to.mode==='projects'&&from.mode==='detail'){
         // Back gently out of the visited corridor while recovering the exact
-        // original view of the five tunnel mouths (no last-frame spin).
+        // original view of the project tunnel mouths (no last-frame spin).
         forkHeading.copy(PROJECT_FORK_FOCUS).sub(position).normalize()
         if(p>.56)blendHeading(direction,forkHeading,(p-.56)/.35,direction)
       }
@@ -338,7 +338,7 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
     camera.position.copy(goal)
 
     // The projects page is an open atrium, not the closed mouth of the trunk.
-    // Keep looking through the physical junction toward its five corridors,
+    // Keep looking through the physical junction toward its project corridors,
     // including immediately after a completed-project return.
     if(!transit && route.mode==='projects' && y>=scrollPositions.current.fork*.68){
       ahead.copy(PROJECT_FORK_FOCUS)

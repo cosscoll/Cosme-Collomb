@@ -132,8 +132,8 @@ async function run(){
   await verifyPage(page,'home',/Donner forme/i)
 
   await page.locator('.header-primary a').filter({hasText:'Projets'}).click()
-  await verifyPage(page,'projects',/Cinq projets/i)
-  assert.ok(await page.locator('.fork-choice').count()===5,'Missing one of five 3D project choices')
+  await verifyPage(page,'projects',/Huit projets/i)
+  assert.ok(await page.locator('.fork-choice').count()===8,'Missing one of eight 3D project choices')
 
   // The WebGL passage must exist and build in visible frames, not a white
   // screen that merely masks an instantaneous URL change.
@@ -176,7 +176,7 @@ async function run(){
   await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:60000})
   await assertFlightContinuous(page,'first project entry')
 
-  // Finishing a project must AUTO-RETURN to the physical five-way fork.
+  // Finishing a project must AUTO-RETURN to the physical eight-way fork.
   // A duplicate four-choice "return intersection" is explicitly forbidden.
   assert.equal(await page.locator('.return-choices').count(),0,
     'A second crossroads with only four projects still exists')
@@ -185,7 +185,7 @@ async function run(){
     top:document.documentElement.scrollHeight,behavior:'instant'
   }))
   await page.locator('[data-bridge-transition="active"]').waitFor({timeout:60000})
-  await verifyPage(page,'back to projects',/Cinq projets/i)
+  await verifyPage(page,'back to projects',/Huit projets/i)
   await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:60000})
   await page.waitForFunction(()=>{
     const f=window.__portfolioFlight
@@ -201,8 +201,8 @@ async function run(){
   const restoredFork=await page.evaluate(()=>window.__portfolioFlight?.position)
   const forkDrift=Math.hypot(...originalFork.map((v,i)=>v-restoredFork[i]))
   assert.ok(forkDrift<.7,
-    'Return is not the identical 3D camera location at the original five project gates: '+forkDrift)
-  console.log('Physical five-way fork restored, camera drift:',forkDrift.toFixed(3),'metres')
+    'Return is not the identical 3D camera location at the original eight project gates: '+forkDrift)
+  console.log('Physical eight-way fork restored, camera drift:',forkDrift.toFixed(3),'metres')
   // SwiftShader can stall on GPU readback after disposing the temporary 3D
   // bridge. The geometric/UI checks below remain mandatory if that happens.
   const crossroads=await page.evaluate(()=>{
@@ -211,16 +211,16 @@ async function run(){
       document.querySelectorAll('.fork-choice').length,
       bridgeGone:!document.querySelector('[data-bridge-transition="active"]')}
   })
-  assert.equal(crossroads.choices,5,'The five project choices disappeared on return')
+  assert.equal(crossroads.choices,8,'The eight project choices disappeared on return')
   assert.ok(crossroads.bridgeGone,'Old bridge still overlays the restored crossroads')
   assert.ok(Math.abs(crossroads.scrollY-crossroads.top)<30,
     'Return failed to restore the actual 5-project crossroads: '+JSON.stringify(crossroads))
   await page.locator('.fork-choice').nth(1).click()
   await verifyPage(page,'second project after returning',/Probabilités Hold'em/i)
   await page.locator('.header-return').click()
-  await verifyPage(page,'back to projects a second time',/Cinq projets/i)
+  await verifyPage(page,'back to projects a second time',/Huit projets/i)
   await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:60000})
-  assert.ok(await page.locator('.fork-choice').count()===5)
+  assert.ok(await page.locator('.fork-choice').count()===8)
 
 
   // Changing main pages with the header must animate through a physical
@@ -242,7 +242,7 @@ async function run(){
 
   await page.locator('.header-menu-toggle').click()
   await page.locator('.navigation-drawer').waitFor({state:'visible'})
-  assert.ok(await page.locator('.navigation-projects a').count()===5)
+  assert.ok(await page.locator('.navigation-projects a').count()===8)
   await page.keyboard.press('Escape')
   await page.locator('.navigation-drawer').waitFor({state:'hidden'})
   assert.deepEqual(errors,[],'Client-side JavaScript errors on desktop')
