@@ -531,20 +531,24 @@ function Contact() {
     setStatus('idle')
     setErrorMessage('')
     try {
+      const payload = Object.fromEntries(data.entries())
       const response = await fetch('https://formsubmit.co/ajax/Pro.collomb@gmail.com', {
         method: 'POST',
-        body: data,
-        headers: { Accept: 'application/json' }
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(payload)
       })
       const result = await response.json()
-      if (!response.ok || result.success === false || result.success === 'false') {
-        throw new Error('Le service de messagerie a refusé la demande.')
+      if (!response.ok || result.success !== true && result.success !== 'true') {
+        throw new Error(result.message || "FormSubmit n'a pas confirmé l'envoi.")
       }
       form.reset()
       setStatus('success')
-    } catch {
+    } catch (error) {
       setStatus('error')
-      setErrorMessage("Le message n'a pas pu être envoyé. Réessayez ou contactez-moi directement par e-mail.")
+      const networkError = error instanceof TypeError
+      setErrorMessage(networkError
+        ? "Impossible de joindre le service d'envoi. Vérifiez votre connexion ou utilisez l'adresse e-mail indiquée à gauche."
+        : "Le service n'a pas confirmé l'envoi du message. Vérifiez l'activation de l'adresse de réception ou contactez-moi directement par e-mail.")
     } finally {
       setSending(false)
     }
