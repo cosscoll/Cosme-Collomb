@@ -129,14 +129,39 @@ export function shellSpans(path,{start=0,end=1,clearance=6.8}={}){
   if(cursor<end-.001)spans.push([cursor,end])
   return spans.filter(([a,b])=>b-a>.001)
 }
-export const MAIN_HUBS=PATHS.routes.map(p=>closestT(p,MAIN_FORK_POSITION))
-export const PROJECT_HUBS=PATHS.details.map(p=>closestT(p,PROJECT_FORK_POSITION))
-export const PROJECT_RETURN_HUBS=PATHS.details.map((p,i)=>
-  closestTAfter(p,PROJECT_FORK_POSITION,PROJECT_HUBS[i]+.20))
-export const MAIN_RETURN_HUBS=PATHS.routes.map((p,i)=>
-  closestTAfter(p,MAIN_FORK_POSITION,MAIN_HUBS[i]+.17))
-export const DETAIL_MAIN_RETURN_HUBS=PATHS.details.map((p,i)=>
-  closestTAfter(p,MAIN_FORK_POSITION,PROJECT_RETURN_HUBS[i]+.07))
+// A complete loop crosses the SAME point more than once. Choosing the
+// globally nearest sample can accidentally select the RETURN junction as the
+// initial junction, producing a hidden 180° reversal. Resolve chronologically.
+export function crossingTimes(path,coord,radius=2.2){
+  const target=V(coord),v=new THREE.Vector3()
+  const visits=[]
+  let inside=false,bestT=0,bestDistance=Infinity
+  for(let i=0;i<=2400;i++){
+    const t=i/2400
+    path.getPointAt(t,v)
+    const distance=v.distanceTo(target)
+    if(distance<=radius){
+      if(!inside){inside=true;bestT=t;bestDistance=Infinity}
+      if(distance<bestDistance){bestDistance=distance;bestT=t}
+    }else if(inside){
+      visits.push(bestT)
+      inside=false
+    }
+  }
+  if(inside)visits.push(bestT)
+  return visits
+}
+const crossing=(path,coord,index)=>{
+  const visits=crossingTimes(path,coord)
+  if(visits.length<=index)
+    throw new Error('Missing physical hub crossing '+index+' at '+coord)
+  return visits[index]
+}
+export const MAIN_HUBS=PATHS.routes.map(p=>crossing(p,MAIN_FORK_POSITION,0))
+export const PROJECT_HUBS=PATHS.details.map(p=>crossing(p,PROJECT_FORK_POSITION,0))
+export const PROJECT_RETURN_HUBS=PATHS.details.map(p=>crossing(p,PROJECT_FORK_POSITION,1))
+export const MAIN_RETURN_HUBS=PATHS.routes.map(p=>crossing(p,MAIN_FORK_POSITION,1))
+export const DETAIL_MAIN_RETURN_HUBS=PATHS.details.map(p=>crossing(p,MAIN_FORK_POSITION,1))
 export const TUNNEL_RADIUS=4.25
 export const RADIAL_SEGMENTS=64
 const PI2=Math.PI*2
