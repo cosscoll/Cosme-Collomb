@@ -29,3 +29,12 @@ if(!v2Html.includes('/Cosme-Collomb/assets/')||
   v2Html.includes('src="/src/prototype-3d/v2.js"'))
   throw Error('Five-loop demo does not load compiled assets')
 console.log('Built five-loop V2 proof:',v2Output)
+const v3Source='dist/prototype-3d/v3/index.source.html'
+const v3Output='dist/prototype-3d/v3/index.html'
+if(!existsSync(v3Source))throw Error('V3 immersive scene not compiled')
+renameSync(v3Source,v3Output)
+const v3Html=readFileSync(v3Output,'utf8')
+if(!v3Html.includes('/Cosme-Collomb/assets/')||
+  v3Html.includes('src="/src/prototype-3d/v3.js"'))
+  throw Error('Immersive V3 still references uncompiled sources')
+console.log('Built immersive V3 preview:',v3Output)
