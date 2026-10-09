@@ -342,27 +342,14 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       }else{
         direction.copy(destinationHeading)
       }
-      if(to.mode==='projects'&&from.mode==='detail'){
-        // Back gently out of the visited corridor while recovering the exact
-        // original view of the project tunnel mouths (no last-frame spin).
-        forkHeading.copy(PROJECT_FORK_FOCUS).sub(position).normalize()
-        if(p>.56)blendHeading(direction,forkHeading,(p-.56)/.35,direction)
-      }
+      // Heading is derived from actual movement; never lock onto a fixed
+      // fork target while the eye is still moving in another direction.
       ahead.copy(position).addScaledVector(direction,12)
     }else{
       sample.path.getTangentAt(t,direction)
-      if(sample.mode==='detail'){
-        // The project story stops at its far end before returning. Rotate
-        // gradually DURING that stop rather than reversing the view in one
-        // frame or allowing a 180-degree look-at singularity.
-        sourceHeading.copy(direction)
-        destinationHeading.copy(direction).negate()
-        blendHeading(sourceHeading,destinationHeading,
-          smooth((y/Math.max(1,total)-.625)/.105),direction)
-        ahead.copy(position).addScaledVector(direction,12)
-      }else{
-        sample.path.getPointAt(Math.min(.999,t+.024),ahead)
-      }
+      // Facing always follows the increasing arc-length direction of the
+      // chosen loop. There is no artificial 180-degree reversal at its end.
+      ahead.copy(position).addScaledVector(direction,12)
     }
     right.crossVectors(direction,UP).normalize()
     softPointer.current.x=THREE.MathUtils.damp(softPointer.current.x,pointer.current.x,3.2,dt)

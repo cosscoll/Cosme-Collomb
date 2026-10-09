@@ -53,10 +53,9 @@ export function scrollT(info,{scrollY=0,total=1,junction=1,works=2,projectFork=2
   const fraction=clamp(scrollY/Math.max(1,total))
   if(info.mode==='detail'){
     const entrance=info.projectHub+PROJECT_ENTRY_OFFSET
-    const far=.965
-    if(fraction<=.63)return entrance+(far-entrance)*ease(fraction/.63)
-    if(fraction<=.73)return far
-    return far-(far-entrance)*ease((fraction-.73)/.27)
+    // The detail path already forms a wide one-way loop back to the fork.
+    // Never decrease the arc-length parameter (the previous code U-turned).
+    return entrance+(.987-entrance)*ease(fraction)
   }
   if(info.mode==='projects'){
     // Centre the camera precisely in the five-way atrium when its UI appears.
@@ -79,7 +78,7 @@ export function junctionFor(from,to,initialT){
     (to.mode!=='home'||from.mode==='projects')
   return {
     level:shortcut?'projects':'main',
-    fromT:shortcut?from.projectHub:from.mainHub,
+    fromT:shortcut?(from.mode==='detail'?1:from.projectHub):from.mainHub,
     toT:shortcut?to.projectHub:to.mainHub
   }
 }
@@ -94,7 +93,9 @@ export function sampleTransit(from,to,initialT,progress){
   // Approach the real intersection continuously until the bridge is ready.
   // The former .35-.52 pause froze the camera for ~700 ms mid-navigation.
   if(p<TRANSIT_MID){
-    const t=initialT+(hub.fromT-initialT)*ease(p/TRANSIT_MID)
+    const distance=Math.abs(hub.fromT-initialT)*from.path.getLength()
+    const ratio=distance>90?p/TRANSIT_MID:ease(p/TRANSIT_MID)
+    const t=initialT+(hub.fromT-initialT)*ratio
     return {path:from.path,t,reverse:hub.fromT<initialT,
       mode:from.mode,index:from.index,
       phase:p<.35?'approach':'assemble'}

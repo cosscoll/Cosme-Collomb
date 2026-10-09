@@ -184,7 +184,15 @@ async function run(){
   await page.evaluate(()=>window.scrollTo({
     top:document.documentElement.scrollHeight,behavior:'instant'
   }))
-  await page.locator('[data-bridge-transition="active"]').waitFor({timeout:60000})
+  // Scrolling the DOM directly to the end is NOT a physical teleport.
+  // The 3D camera must traverse the entire loop before it returns to
+  // the eight-gate crossroads.
+  await page.waitForFunction(()=>{
+    const f=window.__portfolioFlight
+    return f?.mode==='detail' && !f.transiting && f.t>=.985
+  },null,{timeout:180000})
+  console.log('Physical loop complete at',await page.evaluate(()=>window.__portfolioFlight?.t))
+  await page.locator('[data-bridge-transition="active"]').waitFor({timeout:45000})
   await verifyPage(page,'back to projects',/Huit projets/i)
   await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:60000})
   await page.waitForFunction(()=>{

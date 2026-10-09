@@ -135,13 +135,14 @@ test('All project paths remain accessible when a project visit is complete',asyn
  const app=await fs.readFile(new URL('../src/App.jsx',import.meta.url),'utf8')
  const world=await fs.readFile(new URL('../src/components/World.jsx',import.meta.url),'utf8')
  assert.ok(app.includes('Revenir maintenant au carrefour des projets'))
- assert.ok(app.includes('onJourneyFinished()'))
+ assert.ok(app.includes('finishRef.current?.()'))
+ assert.ok(app.includes('flight.t>=.985'))
  assert.ok(!app.includes('PROJECTS.filter(project=>project.slug!==p.slug)'))
  assert.ok(app.includes('state={{fromJourney:true}}'))
  assert.ok(world.includes("fork.offsetTop"))
  assert.ok(!world.includes("projectFork.offsetTop+projectFork.offsetHeight*.35"))
  assert.ok(world.includes("incoming.mode==='projects'&&PATHS.children.map"))
- assert.ok(world.includes("to.mode==='projects'&&from.mode==='detail'"))
+ assert.ok(world.includes('Heading is derived from actual movement'))
  assert.ok(world.includes('bridgeMaterial.current.opacity=visibility'))
  assert.ok(world.includes('arrival?'))
 })
@@ -160,7 +161,8 @@ test('All physical tunnel mouths face the same stable fork camera viewpoint',()=
 test('Finishing a project cannot display an duplicate return junction',async()=>{
  const fs=await import('node:fs/promises')
  const app=await fs.readFile(new URL('../src/App.jsx',import.meta.url),'utf8')
- assert.ok(app.includes('onJourneyFinished()'))
+ assert.ok(app.includes('finishRef.current?.()'))
+ assert.ok(app.includes('flight.t>=.985'))
  assert.ok(app.includes("beginTrip('/projets')"))
  assert.ok(!app.includes('className="return-choices"'))
  assert.ok(app.includes('document.documentElement.scrollHeight-window.innerHeight'))
@@ -281,4 +283,31 @@ test('Joining exactly at the end of a route never clamps the camera short of the
   assert.ok(hub.fromT>.998)
   const atHub=transitPoint(sampleTransit(source,destination,PROJECT_LOOKOUT_T,TRANSIT_MID))
   assert.ok(atHub.distanceTo(source.path.getPointAt(hub.fromT))<.0001)
+})
+
+test('All eight project tours advance around a separate return corridor without U-turns',()=>{
+  for(const project of PROJECTS){
+    const info=routeInfo('/projets/'+project.slug)
+    let previous=-1
+    for(let i=0;i<=240;i++){
+      const t=scrollT(info,{scrollY:i,total:240})
+      assert.ok(t>=previous-1e-9,'Reversal on '+project.title+' at '+i)
+      previous=t
+    }
+    assert.ok(info.path.getPointAt(1).distanceTo(new THREE.Vector3(-9.5,0,-61))<.05)
+    const junction=junctionFor(info,routeInfo('/projets'),.985)
+    assert.equal(junction.fromT,1,'Return must complete forward loop before leaving it')
+    const a=info.path.getPointAt(.70),b=info.path.getPointAt(.88)
+    assert.ok(a.distanceTo(b)>10,'Return corridor is not physically separate')
+  }
+})
+
+test('Every completed project reaches the automatic-return camera threshold',()=>{
+  const automaticReturnThreshold=.985
+  for(const project of PROJECTS){
+    const info=routeInfo('/projets/'+project.slug)
+    const finalPosition=scrollT(info,{scrollY:6000,total:6000})
+    assert.ok(finalPosition>=automaticReturnThreshold,
+      project.title+': automatic return cannot trigger at the end of the loop')
+  }
 })

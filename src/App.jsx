@@ -421,6 +421,10 @@ function JourneyStation({number,kicker,title,children,align=''}) {
 function ProjectDetail({slug,onJourneyFinished}) {
   const i=PROJECTS.findIndex(p=>p.slug===slug)
   const p=PROJECTS[i]
+  // Keep the callback fresh without restarting the journey observer every
+  // time the parent renders during a WebGL route transition.
+  const finishRef=useRef(onJourneyFinished)
+  finishRef.current=onJourneyFinished
   // The end of each project's scroll journey leads back to the SAME physical
   // project junction, not a second artificial set of alternatives.
   useEffect(()=>{
@@ -435,10 +439,17 @@ function ProjectDetail({slug,onJourneyFinished}) {
       if(window.scrollY>total*.45)travelled=true
       if(travelled && window.scrollY>=total-30 &&
         performance.now()-mountedAt>1100){
-        // A journey can reach the page bottom while its inbound 3D transit
-        // is still active. Only mark it complete once a NEW return flight
-        // has actually started, otherwise the user gets stranded at the end.
-        returned=Boolean(onJourneyFinished())
+        const hasCanvas=Boolean(document.querySelector('.scene-backdrop canvas'))
+        const flight=window.__portfolioFlight
+        // A page scroll can jump to its end in one event; the real camera
+        // MUST first complete the outbound and return lanes. Starting the
+        // route change when it was still at t=.4 forced a long, invisible
+        // re-traversal that looked like a frozen or blocked junction.
+        const atPhysicalExit=!hasCanvas || (flight &&
+          flight.mode==='detail' &&
+          flight.currentRoute==='/projets/'+slug &&
+          !flight.transiting && flight.t>=.985)
+        if(atPhysicalExit) returned=Boolean(finishRef.current?.())
       }
     }
     const poll=()=>{
@@ -451,7 +462,7 @@ function ProjectDetail({slug,onJourneyFinished}) {
       window.removeEventListener('scroll',followScroll)
       window.clearTimeout(pollTimer)
     }
-  },[slug,onJourneyFinished])
+  },[slug])
   if(!p)return <PageIntro kicker="ERREUR" title="Projet" italic="introuvable." />
   const story=PROJECT_STORIES[i]
   return <>
