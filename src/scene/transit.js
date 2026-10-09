@@ -1,5 +1,6 @@
-import { PATHS, MAIN_HUBS, PROJECT_HUBS, PROJECT_FORK_POSITION,
-  projectOutboundT, detailTravelT, closestT } from './geometry.js'
+import { PATHS, MAIN_HUBS, MAIN_RETURN_HUBS,
+  DETAIL_MAIN_RETURN_HUBS, PROJECT_HUBS, PROJECT_RETURN_HUBS,
+  PROJECT_FORK_POSITION, projectOutboundT, closestT } from './geometry.js'
 import { PROJECTS_WITH_SLUGS as PROJECTS } from '../data/projects.js'
 
 export const TRANSIT_DURATION=4200
@@ -13,8 +14,8 @@ export const PROJECT_INDEX_HUB=closestT(PATHS.routes[0],PROJECT_FORK_POSITION)
 // The lookout stays several metres before the open end of the main tunnel.
 // At the previous -.012 stop the camera saw the terminal wall rather than
 // the five diverging paths.
-export const PROJECT_LOOKOUT_T=PROJECT_INDEX_HUB-.065
-export const PROJECT_ENTRY_OFFSET=.105
+export const PROJECT_LOOKOUT_T=PROJECT_INDEX_HUB
+export const PROJECT_ENTRY_OFFSET=.035
 export const MAIN_ENTRY_OFFSET=.105
 const detailMainHubs=PATHS.details.map(p=>closestT(p,[0,0,-30]))
 
@@ -23,6 +24,8 @@ export function routeInfo(pathname='/'){
   if(detailIndex>=0)return {
     mode:'detail',index:detailIndex,path:PATHS.details[detailIndex],
     mainHub:detailMainHubs[detailIndex],projectHub:PROJECT_HUBS[detailIndex],
+    projectReturnHub:PROJECT_RETURN_HUBS[detailIndex],
+    mainReturnHub:DETAIL_MAIN_RETURN_HUBS[detailIndex],
     pathName:pathname
   }
   const idx=pathname==='/parcours'||pathname==='/experience'?1:
@@ -30,7 +33,9 @@ export function routeInfo(pathname='/'){
   return {
     mode:pathname==='/projets'?'projects':idx===1?'experience':idx===2?'contact':'home',
     index:idx,path:PATHS.routes[idx],mainHub:MAIN_HUBS[idx],
-    projectHub:idx===0?PROJECT_INDEX_HUB:null,pathName:pathname
+    projectHub:idx===0?PROJECT_INDEX_HUB:null,
+    projectReturnHub:idx===0?PROJECT_INDEX_HUB:null,
+    mainReturnHub:MAIN_RETURN_HUBS[idx],pathName:pathname
   }
 }
 export function usesProjectHub(from,to){
@@ -53,13 +58,12 @@ export function scrollT(info,{scrollY=0,total=1,junction=1,works=2,projectFork=2
   const fraction=clamp(scrollY/Math.max(1,total))
   if(info.mode==='detail'){
     const entrance=info.projectHub+PROJECT_ENTRY_OFFSET
-    const far=.965
-    if(fraction<=.63)return entrance+(far-entrance)*ease(fraction/.63)
-    if(fraction<=.73)return far
-    return far-(far-entrance)*ease((fraction-.73)/.27)
+    // A forward-only loop: the last page is reached on the distinct return
+    // lane at the same fork, without reversing the route parameter.
+    return entrance+(info.projectReturnHub-entrance)*ease(fraction)
   }
   if(info.mode==='projects'){
-    // Centre the camera precisely in the five-way atrium when its UI appears.
+    // Arrive at the actual eight-way atrium without looking through an end wall.
     const t=ease(scrollY/Math.max(1,projectFork))
     return info.mainHub+MAIN_ENTRY_OFFSET + t*(PROJECT_LOOKOUT_T-info.mainHub-MAIN_ENTRY_OFFSET)
   }
@@ -70,18 +74,24 @@ export function scrollT(info,{scrollY=0,total=1,junction=1,works=2,projectFork=2
   }
   return info.mainHub+MAIN_ENTRY_OFFSET+ease(fraction)*(.955-info.mainHub-MAIN_ENTRY_OFFSET)
 }
+// A route progresses monotonically to the next SHARED real crossing.
+// Main-branch exits have a separate return corridor; project branches are
+// physical one-way loops. Never travel backwards down the outbound tube.
 export function junctionFor(from,to,initialT){
   const projectModes=new Set(['home','projects','detail'])
-  // Every destination shares the trunk. Project-to-project shortcuts use
-  // the actual second junction instead of a fabricated Bézier connector.
-  const shortcut=projectModes.has(from.mode)&&projectModes.has(to.mode)&&
-    (from.mode!=='home'||initialT>(from.mainHub+PROJECT_INDEX_HUB)*.5)&&
-    (to.mode!=='home'||from.mode==='projects')
-  return {
-    level:shortcut?'projects':'main',
-    fromT:shortcut?from.projectHub:from.mainHub,
-    toT:shortcut?to.projectHub:to.mainHub
+  const canUseProjectFork=projectModes.has(from.mode)&&projectModes.has(to.mode)
+    &&to.mode!=='home'
+    &&(from.mode!=='home'||initialT<=PROJECT_INDEX_HUB)
+    &&(from.mode!=='projects'||initialT<=PROJECT_INDEX_HUB+.005)
+  if(canUseProjectFork){
+    const fromT=from.mode==='detail'?from.projectReturnHub:from.projectHub
+    const toT=to.mode==='detail'?to.projectHub:to.projectHub
+    return {level:'projects',fromT,toT}
   }
+  if(to.mode==='home'){
+    return {level:'home',fromT:1,toT:0}
+  }
+  return {level:'main',fromT:from.mainReturnHub,toT:to.mainHub}
 }
 export function bridgeBuild(progress){
   const p=clamp(progress)
@@ -95,7 +105,7 @@ export function sampleTransit(from,to,initialT,progress){
   // The former .35-.52 pause froze the camera for ~700 ms mid-navigation.
   if(p<TRANSIT_MID){
     const t=initialT+(hub.fromT-initialT)*ease(p/TRANSIT_MID)
-    return {path:from.path,t,reverse:hub.fromT<initialT,
+    return {path:from.path,t,reverse:false,
       mode:from.mode,index:from.index,
       phase:p<.35?'approach':'assemble'}
   }
@@ -113,7 +123,7 @@ export function sampleTransit(from,to,initialT,progress){
   const alignment=1-ease(f/.35)
   return {path:to.path,t:hub.toT+(end-hub.toT)*f,
     offset:join.multiplyScalar(alignment),
-    reverse:end<hub.toT,mode:to.mode,index:to.index,phase:'cross'}
+    reverse:false,mode:to.mode,index:to.index,phase:'cross'}
 }
 
 // Physical camera world position: the interpolation belongs to the route,
