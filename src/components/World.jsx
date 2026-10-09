@@ -314,24 +314,24 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
         scrollY:y,total,junction:scrollPositions.current.junction,
         works:scrollPositions.current.works,projectFork:scrollPositions.current.fork
       })
-      current.current=current.current===null?nextT:
-        followScrollT(current.current,nextT,pathLength,dt)
+      // Scrolling upwards rereads content; it never drives the eye backwards.
+      const forwardT=current.current===null?nextT:Math.max(current.current,nextT)
+      current.current=current.current===null?forwardT:
+        followScrollT(current.current,forwardT,pathLength,dt)
       sample={path:route.path,t:current.current,
         mode:route.mode,index:route.index}
       if(flightPosition)flightPosition.current={t:current.current,pathName:route.pathName}
     }
 
-    const t=Math.max(.001,Math.min(.998,sample.t))
+    const t=clamp(sample.t)
     transitPoint(sample,position)
     if(transit){
       const p=visualProgress
       const {from,to}=transitRoutes
       const junction=junctionFor(from,to,departure.current)
       const endT=arrivalT(to,from)
-      from.path.getTangentAt(clamp(junction.fromT),sourceHeading)
-      sourceHeading.multiplyScalar(junction.fromT<departure.current?-1:1).normalize()
-      to.path.getTangentAt(clamp(p<.52?junction.toT:t),destinationHeading)
-      destinationHeading.multiplyScalar(endT<junction.toT?-1:1).normalize()
+      from.path.getTangentAt(clamp(junction.fromT),sourceHeading).normalize()
+      to.path.getTangentAt(clamp(p<.52?junction.toT:t),destinationHeading).normalize()
       if(p<.35) {
         // Begin at the actual orientation the visitor was already seeing.
         blendHeading(capturedHeading.current,sourceHeading,p/.31,direction)
@@ -343,22 +343,15 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
         direction.copy(destinationHeading)
       }
       if(to.mode==='projects'&&from.mode==='detail'){
-        // Back gently out of the visited corridor while recovering the exact
-        // original view of the project tunnel mouths (no last-frame spin).
+        // The incoming loop meets the fork with a FORWARD tangent.
         forkHeading.copy(PROJECT_FORK_FOCUS).sub(position).normalize()
-        if(p>.56)blendHeading(direction,forkHeading,(p-.56)/.35,direction)
+        if(p>.60)blendHeading(direction,forkHeading,(p-.60)/.4,direction)
       }
       ahead.copy(position).addScaledVector(direction,12)
     }else{
       sample.path.getTangentAt(t,direction)
       if(sample.mode==='detail'){
-        // The project story stops at its far end before returning. Rotate
-        // gradually DURING that stop rather than reversing the view in one
-        // frame or allowing a 180-degree look-at singularity.
-        sourceHeading.copy(direction)
-        destinationHeading.copy(direction).negate()
-        blendHeading(sourceHeading,destinationHeading,
-          smooth((y/Math.max(1,total)-.625)/.105),direction)
+        // A complete physical loop replaces the old backwards portion.
         ahead.copy(position).addScaledVector(direction,12)
       }else{
         sample.path.getPointAt(Math.min(.999,t+.024),ahead)
