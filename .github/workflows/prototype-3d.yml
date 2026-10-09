@@ -1,0 +1,28 @@
+name: Verify isolated 3D bridge prototype
+on:
+  push:
+    branches: ['dev/prototype-3d-physical-bridge']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser-journey:
+    runs-on: ubuntu-latest
+    timeout-minutes: 14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - name: Restore editable Vite HTML
+        run: cp site/index.source.html index.html
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/prototype-3d-smoke.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: prototype-3d-images
+          path: test-output/3d-*.jpg
+          if-no-files-found: ignore
