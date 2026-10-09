@@ -298,8 +298,8 @@ function setStage(value){
   ui.hint.textContent=copy[2]
   ui.position.textContent=copy[3]
   ui.start.hidden=!(value==='idle'||value==='finished')
-  ui.return.hidden=value!=='arrived'
-  ui.return.disabled=value!=='arrived'
+  ui.back.hidden=value!=='arrived'
+  ui.back.disabled=value!=='arrived'
   ui.start.textContent=value==='finished'?'Rejouer la construction ↗':'Construire le pont ↗'
 }
 function showProgress(amount){
@@ -328,7 +328,7 @@ function requestReturn(){
   showProgress(0)
 }
 ui.start.addEventListener('click',start)
-ui.return.addEventListener('click',requestReturn)
+ui.back.addEventListener('click',requestReturn)
 function faceHeading(direction,dt){
   // Rotate at bounded angular velocity; the camera cannot spin instantly
   // at the end of either trip, or when the tangent changes near a curve.
