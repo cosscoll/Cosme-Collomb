@@ -20,14 +20,14 @@ export const CHILDREN = PROJECTS.map((_,i) => {
   const radial=(r,z)=>[-9.5+x*r,y*r,z]
   return [
     [-9.5,0,-61],
-    radial(8,-69),
-    radial(14,-80),
-    radial(18,-94),
-    radial(19,-110),
-    // Wide continuous bend: the return lane is a different physical corridor.
-    radial(23,-122),radial(35,-120),radial(38,-104),
-    radial(37,-85),radial(32,-66),radial(18,-57),
-    radial(7,-55),[-9.5,0,-61]
+    radial(8,-67),
+    radial(15,-76),
+    radial(20,-87),
+    radial(21,-96),
+    // A compact, distinct return lane keeps every project a forward-only loop.
+    radial(26,-102),radial(31,-95),radial(30,-79),
+    radial(24,-64),radial(14,-55),
+    radial(7,-54),[-9.5,0,-61]
   ]
 })
 // A route is a chain of SHARED physical pieces. Previously each complete
