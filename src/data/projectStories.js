@@ -38,12 +38,6 @@ export const PROJECT_STORIES = [
     features: ["Quatre parcours IA", "Orientation et comparaison", "Vitrine immersive en pré-lancement"]
   },
   {
-    introduction: "Ouvrir, découvrir, collectionner.",
-    idea: "Transformer l’ouverture de boosters et la découverte de cartes en une expérience de collection numérique.",
-    experience: "Ouvrir des boosters de cinq cartes, découvrir les 49 cartes et suivre les doublons et la progression de son classeur local.",
-    features: ["Boosters de cinq cartes", "Catalogue de 49 cartes", "Classeur et suivi des raretés"]
-  },
-  {
     introduction: "Une collection numérique à construire, carte après carte.",
     idea: "Créer un jeu de collection non officiel autour des personnages de Thomas Deseur, où la rareté des cartes et la progression du classeur donnent envie de revenir.",
     experience: "Découvrir des boosters de cinq cartes, consulter les raretés, retrouver ses doublons et suivre sa collection. L'application active est hébergée sur Floot ; le dépôt GitHub conserve aussi un prototype historique.",
