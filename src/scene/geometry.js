@@ -100,8 +100,8 @@ const BASE=[
 const tempColor=new THREE.Color()
 
 // The periodic function is identical at 0 and 2π; the shell has no gaps.
-export function radiusAt(t,angle,radius=TUNNEL_RADIUS) {
-  return radius*(1+.028*Math.sin(angle*3+phase*6)+.012*Math.sin(angle*7-t*11))
+export function radiusAt(phase,angle,radius=TUNNEL_RADIUS) {
+  return radius*(1+.028*Math.sin(angle*3+phase*6)+.012*Math.sin(angle*7-phase*11))
 }
 export function createSkin(path,{radius=TUNNEL_RADIUS,lengthSegments=300,radialSegments=RADIAL_SEGMENTS,start=0,end=1}={}) {
   const positions=new Float32Array((lengthSegments+1)*(radialSegments+1)*3)
