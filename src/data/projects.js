@@ -144,6 +144,7 @@ export const PROJECTS = [
   },
   {
     title: 'TCG Deseur — Jeu de collection',
+    slug: 'budget-illimite-tcg-thomas-deseur',
     description: "Jeu de collection numérique non officiel inspiré de Thomas Deseur : boosters de cinq cartes, cinq raretés et classeur de collection. L'application active est hébergée sur Floot ; la version GitHub Pages reste un prototype historique indépendant des comptes joueurs.",
     tags: ['Jeu de collection', 'Boosters', 'Application web'],
     year: '2026', role: 'Conception et pilotage du projet', duration: '',
