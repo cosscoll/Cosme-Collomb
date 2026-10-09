@@ -44,9 +44,16 @@ async function run(){
   ]})
   const page=await browser.newPage({viewport:{width:1060,height:680}})
   const errors=[]
-  page.on('pageerror',error=>errors.push(String(error)))
-  await page.goto(url,{waitUntil:'domcontentloaded',timeout:60000})
-  await page.waitForFunction(()=>Boolean(window.__prototypeProof),null,{timeout:40000})
+  page.on('pageerror',error=>{errors.push(String(error));console.error('DEMO JS PAGE ERROR:',String(error))})
+  page.on('console',message=>{
+    if(message.type()==='error')console.error('DEMO CONSOLE ERROR:',message.text())
+  })
+  page.on('requestfailed',request=>{
+    console.error('DEMO FAILED REQUEST:',request.url(),request.failure()?.errorText)
+  })
+  const response=await page.goto(url,{waitUntil:'domcontentloaded',timeout:60000})
+  console.log('3D demo HTTP:',response.status(),'loaded URL:',page.url())
+  await page.waitForFunction(()=>Boolean(window.__prototypeProof),null,{timeout:45000})
   const boot=await page.evaluate(()=>{
     const p=window.__prototypeProof
     return {state:p.state,collisions:p.collisions,pathLength:p.pathLength,
