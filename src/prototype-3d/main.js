@@ -349,6 +349,8 @@ function cameraAt(u,headingSign,dt){
   if(frameCount%10===0)traveledSamples.push({u:pathU,position:camera.position.toArray(),stage})
 }
 function centerlineCollisionCount(){
+  // Test using the fully updated world transforms of all physical 3D meshes.
+  scene.updateMatrixWorld(true)
   // An actual swept eye-line vs the deck and rails: the bridge is included
   // even while visually unbuilt. No mesh may cut through the camera route.
   const raycaster=new THREE.Raycaster()
