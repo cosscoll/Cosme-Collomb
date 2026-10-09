@@ -1,4 +1,4 @@
-name: Final published portfolio email delivery
+name: Revalidate live portfolio contact
 on:
   push:
     branches: [main]
