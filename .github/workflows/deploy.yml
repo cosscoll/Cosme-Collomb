@@ -6,9 +6,9 @@ on:
 permissions:
   contents: write
 concurrency:
-  # Delayed push webhooks from older commits must not cancel a newer verified build.
-  group: portfolio-build-${{ github.ref }}-${{ github.sha }}
-  cancel-in-progress: true
+  # Serialize writes for a branch; don't let a newer build cancel validation.
+  group: portfolio-build-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   verify-and-sync:
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
