@@ -91,14 +91,13 @@ export function sampleTransit(from,to,initialT,progress){
   const p=clamp(progress)
   const hub=junctionFor(from,to,initialT)
   const end=arrivalT(to,from)
-  if(p<.35){
-    const t=initialT+(hub.fromT-initialT)*ease(p/.35)
-    return {path:from.path,t,reverse:hub.fromT<initialT,
-      mode:from.mode,index:from.index,phase:'approach'}
-  }
+  // Approach the real intersection continuously until the bridge is ready.
+  // The former .35-.52 pause froze the camera for ~700 ms mid-navigation.
   if(p<TRANSIT_MID){
-    return {path:from.path,t:hub.fromT,reverse:hub.fromT<initialT,
-      mode:from.mode,index:from.index,phase:'assemble'}
+    const t=initialT+(hub.fromT-initialT)*ease(p/TRANSIT_MID)
+    return {path:from.path,t,reverse:hub.fromT<initialT,
+      mode:from.mode,index:from.index,
+      phase:p<.35?'approach':'assemble'}
   }
   const f=ease((p-TRANSIT_MID)/(1-TRANSIT_MID))
   // Both routes belong to the same intersection, but their independent
