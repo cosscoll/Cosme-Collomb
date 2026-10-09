@@ -10,6 +10,15 @@ import {
 } from '../src/scene/geometry.js'
 
 const everyPath=[...PATHS.routes,...PATHS.details]
+const diag=await import('../src/scene/geometry.js')
+const v=(p,t)=>p.getPointAt(t).toArray().map(x=>+x.toFixed(2))
+console.log('LOOP HUB DIAGNOSTICS',JSON.stringify({
+  main:PATHS.routes.map((p,i)=>({i,first:diag.MAIN_HUBS[i],second:diag.MAIN_RETURN_HUBS[i],
+    from:v(p,diag.MAIN_HUBS[i]),return:v(p,diag.MAIN_RETURN_HUBS[i]),length:p.getLength()})),
+  projects:PATHS.details.map((p,i)=>({i,first:diag.PROJECT_HUBS[i],return:diag.PROJECT_RETURN_HUBS[i],
+    mainReturn:diag.DETAIL_MAIN_RETURN_HUBS[i],in:v(p,diag.PROJECT_HUBS[i]),out:v(p,diag.PROJECT_RETURN_HUBS[i]),end:v(p,diag.DETAIL_MAIN_RETURN_HUBS[i]),length:p.getLength()}))
+}))
+
 test('All navigable journeys have one continuous centerline', () => {
   assert.equal(PATHS.routes.length,3)
   assert.equal(PATHS.details.length,PROJECTS.length)
