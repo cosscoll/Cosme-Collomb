@@ -25,6 +25,7 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
+      - run: node tests/prototype-3d-smoke.mjs
       - name: Publish compiled files to branch root
         if: github.ref == 'refs/heads/main'
         run: bash scripts/sync-published-root.sh
