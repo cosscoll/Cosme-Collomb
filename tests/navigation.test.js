@@ -30,11 +30,11 @@ test('All project routes have clear breadcrumbs and a return to the project fork
 })
 
 test('The three added projects have unique 3D paths and grounded links',()=>{
-  for(const title of ['IAgile — Formations à l’IA','Budget Illimité — TCG Thomas Deseur','UnCoupDePouce'])
+  for(const title of ['IAgile — Formations à l’IA','TCG Deseur — Jeu de collection','UnCoupDePouce'])
     assert.ok(PROJECTS.some(p=>p.title===title),title+' is missing')
   assert.equal(new Set(PROJECTS.map(p=>p.slug)).size,PROJECTS.length)
   assert.equal(PROJECTS.find(p=>p.title.startsWith('IAgile')).repoLink,'https://github.com/cosscoll/IAgile')
-  assert.equal(PROJECTS.find(p=>p.title.startsWith('Budget Illimité')).repoLink,'https://github.com/cosscoll/TCG-Thomas-Deseur')
+  assert.equal(PROJECTS.find(p=>p.title.startsWith('TCG Deseur')).repoLink,'https://github.com/cosscoll/TCG-Thomas-Deseur')
   assert.equal(PROJECTS.find(p=>p.title==='UnCoupDePouce').link,'')
   assert.equal(PROJECTS.find(p=>p.title==='UnCoupDePouce').repoLink,'')
 })
