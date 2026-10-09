@@ -1,4 +1,4 @@
-name: Publish contact page update
+name: Publish verified contact page update
 on:
   push:
     branches: [main]
@@ -24,7 +24,7 @@ jobs:
       - run: npm run build
       - name: Verify form is in compiled bundle
         run: |
-          grep -R -q 'formsubmit.co/Pro.collomb@gmail.com' dist/assets/ || { echo 'Form missing from production build'; exit 1; }
+          grep -R -q 'api.web3forms.com/submit' dist/assets/ || { echo 'Web3Forms missing from production build'; exit 1; }
       - name: Publish compiled site
         run: bash scripts/sync-published-root.sh
       - name: Verify public site
