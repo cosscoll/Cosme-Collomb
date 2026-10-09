@@ -26,11 +26,22 @@ export const CHILDREN = PROJECTS.map((_,i) => {
     radial(9.1,-103)
   ]
 })
+// A route is a chain of SHARED physical pieces. Previously each complete
+// route was its own Catmull-Rom: the common trunk had different tangents and
+// walls depending on the destination, so switching routes made them pop.
+const trunk=spline(TRUNK)
+const arms=BRANCHES.map(spline)
+const children=CHILDREN.map(spline)
+const chain=(...sections)=>{
+  const route=new THREE.CurvePath()
+  sections.forEach(section=>route.add(section))
+  return route
+}
 export const PATHS = {
-  routes: BRANCHES.map(points => spline([...TRUNK,...points.slice(1)])),
-  details: CHILDREN.map(points => spline([...TRUNK,...BRANCHES[0].slice(1),...points.slice(1)])),
-  arms: BRANCHES.map(spline),
-  children: CHILDREN.map(spline)
+  routes: arms.map(arm=>chain(trunk,arm)),
+  details: children.map(child=>chain(trunk,arms[0],child)),
+  arms,
+  children
 }
 export function closestT(path, coord) {
   const p=V(coord), q=new THREE.Vector3()
@@ -42,6 +53,25 @@ export function closestT(path, coord) {
     if(squared<shortest){shortest=squared;nearest=t}
   }
   return nearest
+}
+// Physical crossroads are open chambers, not the opaque sidewalls of a
+// straight tube. Remove ONLY the short wall pieces centred on each actual
+// junction; retain the approach and exits along the exact same curve.
+export function shellSpans(path,{start=0,end=1,clearance=4.6}={}){
+  let spans=[[start,end]]
+  for(const coord of [[0,0,-30],[-9.5,0,-61]]){
+    const hub=closestT(path,coord)
+    if(path.getPointAt(hub).distanceTo(V(coord))>1.2)continue
+    const pad=Math.min(.12,clearance/Math.max(1,path.getLength()))
+    const next=[]
+    for(const [a,b] of spans){
+      if(hub+pad<=a||hub-pad>=b){next.push([a,b]);continue}
+      if(hub-pad-a>.0001)next.push([a,Math.min(b,hub-pad)])
+      if(b-hub-pad>.0001)next.push([Math.max(a,hub+pad),b])
+    }
+    spans=next
+  }
+  return spans.filter(([a,b])=>b-a>.0001)
 }
 export const MAIN_HUBS=PATHS.routes.map(p=>closestT(p,[0,0,-30]))
 export const PROJECT_HUBS=PATHS.details.map(p=>closestT(p,[-9.5,0,-61]))
