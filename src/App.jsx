@@ -569,7 +569,7 @@ function Contact() {
           <p>Vous pouvez aussi m'écrire via ce formulaire. Une confirmation apparaît lorsque le service accepte le message.</p>
           <a href="https://github.com/cosscoll" className="underlined-link" target="_blank" rel="noopener noreferrer">Découvrir mon GitHub ↗</a>
         </div>
-        <form className="portfolio-contact-form" data-service="web3forms" onSubmit={submitContact} method="POST">
+        <form className="portfolio-contact-form" data-service="web3forms" data-submission="multipart" onSubmit={submitContact} method="POST">
           <span className="micro-label">ÉCRIVEZ-MOI</span>
           <input type="hidden" name="access_key" value="fe42680f-e8d8-4d17-8404-022d7147c807" />
           <input type="hidden" name="from_name" value="Portfolio Cosme Collomb" />
