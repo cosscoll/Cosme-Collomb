@@ -19,7 +19,7 @@ jobs:
       - run: cp site/index.source.html index.html
       - run: npm run build
       - run: npx playwright install --with-deps chromium
-      - run: node tests/prototype-v3-browser.mjs
+      - run: node tests/prototype-v3-preview-smoke.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
