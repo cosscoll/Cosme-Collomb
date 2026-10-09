@@ -8,20 +8,19 @@ jobs:
   public-http:
     runs-on: ubuntu-latest
     steps:
-      - name: Check actual live homepage and script are HTTP 200
+      - name: Verify new 3D bridge demo is live, bundled and accessible
         shell: bash
         run: |
           set -euo pipefail
           base='https://cosscoll.github.io/Cosme-Collomb/'
-          echo "Verified URL candidate: $base"
-          echo "Live page HTTP status and actual final address:"
-          curl --max-time 30 -fsSL -w 'HTTP %{http_code} / redirect %{url_effective} / bytes %{size_download}\\n' -o /tmp/public-index.html "$base"
-          grep -q 'Cosme Collomb' /tmp/public-index.html
-          echo "HTML title exists."
-          asset=$(grep -o '/Cosme-Collomb/assets/index.source-[^"]*js' /tmp/public-index.html | head -1)
-          echo "Found script $asset"
-          test "$asset" = '/Cosme-Collomb/assets/index.source-DZvgRTon.js'
-          echo "Latest deployed bundle matches compiled main."
-          curl --max-time 30 -fsSL -w 'Script HTTP %{http_code} / bytes %{size_download}\\n' -o /tmp/public-script.js "https://cosscoll.github.io$asset"
-          test -s /tmp/public-script.js
-          echo "CHECK PASSED, use $base or ${base}#/projets"
+          curl --max-time 30 -fsSL -w 'Portfolio HTTP %{http_code} / %{url_effective}\n' -o /tmp/portfolio.html "$base"
+          grep -q 'Cosme Collomb' /tmp/portfolio.html
+          demo="${base}prototype-3d/"
+          curl --max-time 30 -fsSL -w '3D DEMO HTTP %{http_code} / %{url_effective}\n' -o /tmp/demo.html "$demo"
+          grep -q 'Un seul chemin' /tmp/demo.html
+          grep -q '/Cosme-Collomb/assets/prototype3d-3fiVhCvC.js' /tmp/demo.html
+          for asset in prototype3d-3fiVhCvC.js three.module-B9sLsWfD.js prototype3d-DRIvYSmP.css; do
+            curl --max-time 30 -fsSL -w "Asset $asset HTTP %{http_code}\n" -o /tmp/verified-asset "https://cosscoll.github.io/Cosme-Collomb/assets/$asset"
+            test -s /tmp/verified-asset
+          done
+          echo "LIVE PROTOTYPE VERIFIED: $demo"
