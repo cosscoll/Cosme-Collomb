@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#070d16">
+<meta name="description" content="Prototype indépendant : carrefour et passage sur un pont réellement construit en 3D, avec retour sans téléportation.">
+<title>Prototype 3D — Carrefour, pont et retour</title>
+  <script type="module" crossorigin src="/Cosme-Collomb/assets/prototype3d-3fiVhCvC.js"></script>
+  <link rel="modulepreload" crossorigin href="/Cosme-Collomb/assets/modulepreload-polyfill-B5Qt9EMX.js">
+  <link rel="modulepreload" crossorigin href="/Cosme-Collomb/assets/three.module-B9sLsWfD.js">
+  <link rel="stylesheet" crossorigin href="/Cosme-Collomb/assets/prototype3d-DRIvYSmP.css">
+</head>
+<body>
+<div id="app">
+  <canvas id="world" aria-label="Scène 3D du carrefour et du pont"></canvas>
+  <div class="vignette" aria-hidden="true"></div>
+  <header class="topbar">
+    <a class="brand" href="../">CC<span class="dot">.</span><small>LABORATOIRE 3D</small></a>
+    <span class="label">DÉMONSTRATION INDÉPENDANTE · V1</span>
+    <a class="back" href="../">Retour au portfolio ↗</a>
+  </header>
+  <section class="intro" aria-label="Démonstration du parcours">
+    <p class="eyebrow">PROTOTYPE DE NAVIGATION PHYSIQUE</p>
+    <h1>Un seul chemin.<br><em>Un vrai passage.</em></h1>
+    <p class="description">Un carrefour à cinq directions. Le passage central se construit en 3D, puis la caméra l'emprunte jusqu'au projet et revient exactement par le même chemin.</p>
+    <div class="chapter"><span class="chapter-dot"></span><span id="phase">01 / AU CARREFOUR</span></div>
+  </section>
+  <div class="stage-panel">
+    <div class="stage-title"><span id="status">PRÊT À EXPLORER</span><span id="percent">0 %</span></div>
+    <div class="progress"><i id="progress"></i></div>
+    <div class="controls">
+      <button id="start" type="button">Construire le pont <span>↗</span></button>
+      <button id="return" type="button" disabled hidden>Revenir au carrefour <span>←</span></button>
+    </div>
+    <p class="hint" id="hint">La caméra reste au carrefour pendant que le pont s'assemble, puis traverse les éléments construits.</p>
+  </div>
+  <div class="scene-indicator"><span class="scene-indicator-line"></span><span id="position">CARREFOUR — 5 ACCÈS</span></div>
+  <div class="error" id="error" hidden>Impossible de démarrer WebGL sur cet appareil. Cette démonstration nécessite un navigateur prenant en charge la 3D.</div>
+</div>
+</body>
+</html>
