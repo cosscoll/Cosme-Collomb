@@ -25,20 +25,19 @@ export const CHILDREN = PROJECTS.map((_,i)=>{
   const angle=-Math.PI/2 + i*2*Math.PI/PROJECTS.length
   return [
     PROJECT_FORK_POSITION,
-    petal(angle,8,-71),petal(angle,16,-88),
-    petal(angle,24,-107),petal(angle,32,-122),
-    petal(angle,41,-126),petal(angle,49,-119),
-    petal(angle,51,-107),petal(angle,47,-94),
-    petal(angle,40,-80),petal(angle,32,-65),
-    petal(angle,22,-52),petal(angle,12,-47),
-    petal(angle,5,-51),PROJECT_FORK_POSITION
+    petal(angle,10,-72),petal(angle,17,-83),
+    petal(angle,25,-94),petal(angle,33,-100),
+    petal(angle,39,-94),petal(angle,39,-81),
+    petal(angle,32,-69),petal(angle,25,-55),
+    petal(angle,16,-46),petal(angle,8,-50),
+    PROJECT_FORK_POSITION
   ]
 })
 // Dedicated return lanes for the three major routes, with tangent continuity
 // at the junction. Their final heading at the main hub is forward (-Z).
 const PROJECT_RETURN=[
-  PROJECT_FORK_POSITION,[-13,0,-69],[-31,5,-76],[-47,11,-62],
-  [-47,13,-40],[-32,12,-20],[-16,7,-11],[-3,2,-17],MAIN_FORK_POSITION
+  PROJECT_FORK_POSITION,[-13,0,-69],[-25,5,-72],[-33,9,-58],
+  [-29,10,-39],[-18,7,-20],[-6,3,-18],MAIN_FORK_POSITION
 ]
 const EXPERIENCE_RETURN=[
   BRANCHES[1].at(-1),[-4,11,-70],[-16,19,-60],[-25,22,-40],
@@ -51,8 +50,8 @@ const CONTACT_RETURN=[
 // All pages also have a forward route back to the first scene (home).
 // Arriving at "home" no longer sends the camera backwards up the trunk.
 const MAIN_RETURN=[
-  MAIN_FORK_POSITION,[0,0,-41],[18,-2,-48],[36,-4,-34],
-  [39,-5,-12],[28,-3,15],[13,-1,25],[0,0,20],HOME_POSITION
+  MAIN_FORK_POSITION,[0,0,-39],[13,-2,-47],[27,-4,-35],
+  [29,-5,-13],[20,-3,12],[8,-1,19],[0,0,18],HOME_POSITION
 ]
 const trunk=spline(TRUNK)
 const arms=BRANCHES.map(spline)
