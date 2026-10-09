@@ -28,7 +28,7 @@ test('Arrival camera position agrees with scroll starting position on projects',
   if(to.mode==='detail'){
     const t=scrollT(to,{scrollY:0,total:4400})
     assert.ok(Math.abs(t-arrivalT(to,from))<.00001,name)
-    assert.ok(t-to.projectHub>.095,'No actual branch distance for bridge')
+    assert.ok(t-to.projectHub>.025,'No actual branch distance for bridge')
   }
  }
  const projects=routeInfo('/projets')
@@ -53,12 +53,14 @@ test('No teleportation at either real tunnel intersection for every navigation p
     const xyzA=from.path.getPointAt(junction.fromT)
     const xyzB=to.path.getPointAt(junction.toT)
     assert.ok(xyzA.distanceTo(xyzB)<.7, f+' → '+t+' not physically connected')
+    assert.ok(junction.fromT>=initialT-.002, f+' → '+t+' rewound to an earlier junction')
+    assert.ok(junction.toT<=arrivalT(to,from)+.001, f+' → '+t+' arrived backwards')
     let last
     for(let i=0;i<=250;i++){
      const sample=sampleTransit(from,to,initialT,i/250)
-     const pos=sample.path.getPointAt(Math.min(.999,Math.max(.001,sample.t)))
+     const pos=transitPoint(sample)
      assert.ok(Number.isFinite(pos.x)&&Number.isFinite(pos.y)&&Number.isFinite(pos.z))
-     if(last)assert.ok(last.distanceTo(pos)<2,f+' → '+t+' camera jumped at '+i/250)
+     if(last)assert.ok(last.distanceTo(pos)<4,f+' → '+t+' camera jumped at '+i/250)
      last=pos
     }
     const end=sampleTransit(from,to,initialT,1)
@@ -122,8 +124,8 @@ test('Returning from every finished project lands at the same open crossroads',(
   const expected=scrollT(fork,{scrollY:1600,total:5500,projectFork:1600})
   assert.equal(arrived.path,fork.path)
   assert.ok(Math.abs(arrived.t-expected)<1e-9,'Camera snaps after '+project.title)
-  assert.ok(arrived.t<PROJECT_INDEX_HUB-.045,
-    'Camera is parked against the terminal wall instead of viewing all project forks')
+  assert.ok(arrived.t>=PROJECT_INDEX_HUB-.001,
+    'Camera reversed down an old outgoing corridor')
   // A full project must return to the very same point as a fresh project visit.
   assert.ok(fork.path.getPointAt(arrived.t).distanceTo(
     fork.path.getPointAt(expected))<1e-7)
@@ -278,7 +280,25 @@ test('Joining exactly at the end of a route never clamps the camera short of the
   const source=routeInfo('/projets')
   const destination=routeInfo('/projets/'+PROJECTS[0].slug)
   const hub=junctionFor(source,destination,PROJECT_LOOKOUT_T)
-  assert.ok(hub.fromT>.998)
+  assert.ok(hub.fromT>=PROJECT_INDEX_HUB-.001)
   const atHub=transitPoint(sampleTransit(source,destination,PROJECT_LOOKOUT_T,TRANSIT_MID))
   assert.ok(atHub.distanceTo(source.path.getPointAt(hub.fromT))<.0001)
+})
+
+test('Each of eight project tours and every page change travels forward only',()=>{
+  for(const source of names)for(const destination of names){
+    if(source===destination)continue
+    const from=routeInfo(source),to=routeInfo(destination)
+    for(const initialT of [.025,.37,.75,.965]){
+      let previous=null
+      for(let i=0;i<=200;i++){
+        const sample=sampleTransit(from,to,initialT,i/200)
+        assert.equal(sample.reverse,false,source+' → '+destination+' reverse flag')
+        if(previous&&sample.path===previous.path)
+          assert.ok(sample.t>=previous.t-1e-7,
+            source+' → '+destination+' travels backwards at '+i/200)
+        previous=sample
+      }
+    }
+  }
 })

@@ -6,7 +6,7 @@ import {
   PATHS, MAIN_HUBS, PROJECT_HUBS,
   TUNNEL_RADIUS, RADIAL_SEGMENTS, createSkin, createSeam,
   PROJECT_FORK_OPEN, PROJECT_FORK_CLOSE,
-  detailTravelT, detailReturning, projectOutboundT
+  detailTravelT, detailReturning, projectOutboundT, PROJECT_RETURN_HUBS, MAIN_RETURN_HUBS
 } from '../src/scene/geometry.js'
 
 const everyPath=[...PATHS.routes,...PATHS.details]
@@ -15,7 +15,8 @@ test('All navigable journeys have one continuous centerline', () => {
   assert.equal(PATHS.details.length,PROJECTS.length)
   for(const path of everyPath){
     const a=path.getPointAt(0),b=path.getPointAt(1)
-    assert.ok(a.distanceTo(b)>30)
+    assert.ok(a.distanceTo(b)<.001,'Route must finish at its start by traveling a loop')
+    assert.ok(path.getLength()>90)
     for(let i=0;i<=100;i++){
       const point=path.getPointAt(i/100)
       const tangent=path.getTangentAt(i/100)
@@ -100,24 +101,25 @@ test('All project branches are open, distinct and have actual 3D walls',()=>{
     }
   }
 })
-test('Each journey returns to the same physical intersection after its story',()=>{
+test('Each project is a real forward loop to the same physical fork',()=>{
   for(let i=0;i<PROJECTS.length;i++){
-    const hub=projectOutboundT(i)
-    const start=detailTravelT(i,0)
-    const outbound=detailTravelT(i,.63)
-    const turning=detailTravelT(i,.7)
-    const final=detailTravelT(i,1)
-    assert.ok(Math.abs(start-hub)<.000001)
-    assert.ok(outbound>.94 && outbound<.99)
-    assert.equal(turning,outbound)
-    assert.ok(Math.abs(final-start)<.000001,'Journey did not return to its junction')
-    assert.ok(PATHS.details[i].getPointAt(final).distanceTo(
-      PATHS.details[i].getPointAt(start))<.001)
+    const a=detailTravelT(i,0),b=detailTravelT(i,.25),c=detailTravelT(i,.5),d=detailTravelT(i,1)
+    assert.equal(a,projectOutboundT(i))
+    assert.ok(a<b&&b<c&&c<d,'Camera reversed along project '+i)
+    assert.ok(Math.abs(d-PROJECT_RETURN_HUBS[i])<1e-9)
+    const fork=new THREE.Vector3(-9.5,0,-61)
+    assert.ok(PATHS.details[i].getPointAt(d).distanceTo(fork)<.65)
+    assert.ok(PATHS.children[i].getPointAt(0).distanceTo(PATHS.children[i].getPointAt(1))<.001)
+    assert.ok(PATHS.children[i].getLength()>90)
     assert.equal(detailReturning(.4),false)
     assert.equal(detailReturning(.8),true)
   }
+  for(const [i,path] of PATHS.routes.entries()){
+    const hub=MAIN_RETURN_HUBS[i]
+    assert.ok(hub>.3&&hub<.99,'Main loop return missing for '+i)
+    assert.ok(path.getPointAt(hub).distanceTo(new THREE.Vector3(0,0,-30))<.65)
+  }
 })
-
 test('Each project has grounded narrative stops and working exploration links',async()=>{
   const [{PROJECT_STORIES},{PROJECTS_WITH_SLUGS:projects}]=await Promise.all([
     import('../src/data/projectStories.js'),

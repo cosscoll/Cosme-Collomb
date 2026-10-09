@@ -245,7 +245,7 @@ export const PROJECT_BRANCH_COLORS = [
 ]
 // Portals and physical corridor segments begin only after the paths diverge,
 // leaving the common atrium free of intersecting opaque walls.
-export const PROJECT_FORK_OPEN = .10
+export const PROJECT_FORK_OPEN = .12
 export const PROJECT_FORK_CLOSE = .90
 export function projectOutboundT(index){
   return PROJECT_HUBS[index]+.028
