@@ -93,7 +93,9 @@ export function sampleTransit(from,to,initialT,progress){
   // Approach the real intersection continuously until the bridge is ready.
   // The former .35-.52 pause froze the camera for ~700 ms mid-navigation.
   if(p<TRANSIT_MID){
-    const t=initialT+(hub.fromT-initialT)*ease(p/TRANSIT_MID)
+    const distance=Math.abs(hub.fromT-initialT)*from.path.getLength()
+    const ratio=distance>90?p/TRANSIT_MID:ease(p/TRANSIT_MID)
+    const t=initialT+(hub.fromT-initialT)*ratio
     return {path:from.path,t,reverse:hub.fromT<initialT,
       mode:from.mode,index:from.index,
       phase:p<.35?'approach':'assemble'}

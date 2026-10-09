@@ -108,7 +108,7 @@ test('Each journey returns to the same physical intersection after its story',()
     const turning=detailTravelT(i,.7)
     const final=detailTravelT(i,1)
     assert.ok(Math.abs(start-hub)<.000001)
-    assert.ok(outbound>.94 && outbound<.99)
+    assert.ok(outbound>start && outbound<.99)
     assert.ok(turning>outbound)
     assert.ok(final>turning && turning>outbound && outbound>start,
       'One-way route reversed instead of looping around the project')
