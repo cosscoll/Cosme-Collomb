@@ -1,0 +1,28 @@
+name: Validate immersive 3D tunnel V3
+on:
+  push:
+    branches: ['dev/prototype-v3-immersive-interior']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test-immersive-scene:
+    runs-on: ubuntu-latest
+    timeout-minutes: 19
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install
+      - run: node --test tests/prototype-v2-geometry.test.mjs
+      - run: cp site/index.source.html index.html
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/prototype-v3-browser.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: immersive-v3-test-screenshots
+          path: test-output/v3-*.jpg
+          if-no-files-found: ignore
