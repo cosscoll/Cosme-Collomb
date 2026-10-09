@@ -461,6 +461,7 @@ function ProjectDetail({slug,onJourneyFinished}) {
         <p className="micro-label">CHEMIN {String(i+1).padStart(2,'0')} / {String(PROJECTS.length).padStart(2,'0')} — VOYAGE INTERACTIF</p>
         <h1>{p.title}</h1>
         <p className="journey-intro">{story.introduction}</p>
+        {p.role && <p className="journey-project-role"><strong>Mon rôle :</strong> {p.role}</p>}
         <div className="journey-instructions"><span className="journey-instructions-icon">↓</span>
           Faites défiler pour avancer dans ce tunnel et découvrir le projet.
         </div>
@@ -470,9 +471,11 @@ function ProjectDetail({slug,onJourneyFinished}) {
     <JourneyStation number="01" kicker="LE POINT DE DÉPART" title="L'idée." >
       <p>{story.idea}</p>
       <p className="journey-secondary">{p.description}</p>
+      {p.challenge && <p className="journey-secondary"><strong>Le défi :</strong> {p.challenge}</p>}
     </JourneyStation>
     <JourneyStation number="02" kicker="DANS L'EXPÉRIENCE" title="À explorer." align="journey-right">
       <p>{story.experience}</p>
+      {p.approach && <p className="journey-secondary"><strong>La démarche :</strong> {p.approach}</p>}
     </JourneyStation>
     <JourneyStation number="03" kicker="LES FONCTIONNALITÉS" title="Ce qui prend vie.">
       <div className="journey-features">
@@ -480,7 +483,8 @@ function ProjectDetail({slug,onJourneyFinished}) {
       </div>
     </JourneyStation>
     <JourneyStation number="04" kicker="VOIR LA RÉALISATION" title="Le projet, en vrai." align="journey-right">
-      <p>{p.link ? 'Le meilleur moyen de découvrir cette réalisation reste de l’utiliser.' : 'Ce projet est en développement. Découvrez ici son concept et les fonctionnalités envisagées.'}</p>
+      <p>{p.link ? 'Explorez cette réalisation en ligne pour voir les fonctionnalités décrites.' : 'Ce projet est en développement et aucune démonstration publique n’est encore confirmée.'}</p>
+      {p.outcome && <p className="journey-secondary"><strong>État actuel :</strong> {p.outcome}</p>}
       <div className="journey-actions">
         {p.link && <a className="detail-primary" href={p.link} target="_blank" rel="noopener noreferrer">Ouvrir le projet <span>↗</span></a>}
         {p.repoLink && <a className="underlined-link" href={p.repoLink} target="_blank" rel="noopener noreferrer">Explorer le code ↗</a>}
