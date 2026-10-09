@@ -57,11 +57,12 @@ try {
  for(const [mode,page] of pages){
    const errors=[]
    page.on('pageerror',err=>errors.push(String(err.message).slice(0,250)))
-   await page.goto(base+'?audit='+Date.now()+'#/projets',{waitUntil:'domcontentloaded',timeout:60000})
-   await page.locator('.fork-choice').first().waitFor({state:'visible',timeout:60000})
+   await page.goto(base+'?audit='+Date.now()+'#/projets',{waitUntil:'domcontentloaded',timeout:28000})
+   await page.locator('.fork-choice').first().waitFor({state:'visible',timeout:28000})
    const choices=await page.locator('.fork-choice').count()
    assert.equal(choices, PROJECTS.length, 'Wrong number of project choices on '+mode)
    for(let i=0;i<PROJECTS.length;i++){
+     console.log('AUDITING_PROJECT_CARD',mode,i,PROJECTS[i].title)
      const p=PROJECTS[i],story=PROJECT_STORIES[i]
      const link=page.locator('.fork-choice').nth(i)
      const cardTitle=(await link.locator('.fork-title').innerText()).trim().split('\n')[0].trim()
@@ -75,9 +76,10 @@ try {
      facts.push({type:'card',mode,project:p.title,href,descriptionChars:p.description.length})
    }
    for(const p of PROJECTS){
+     console.log('AUDITING_PROJECT_DETAIL',mode,p.title)
      const story=PROJECT_STORIES[PROJECTS.findIndex(x=>x.slug===p.slug)]
-     await page.goto(base+'?audit='+Date.now()+'#/projets/'+p.slug,{waitUntil:'domcontentloaded',timeout:60000})
-     await page.locator('.journey-entrance h1').waitFor({state:'visible',timeout:60000})
+     await page.goto(base+'?audit='+Date.now()+'#/projets/'+p.slug,{waitUntil:'domcontentloaded',timeout:28000})
+     await page.locator('.journey-entrance h1').waitFor({state:'visible',timeout:28000})
      const heading=(await page.locator('.journey-entrance h1').innerText()).trim()
      assert.equal(heading,p.title,'Wrong project heading '+p.slug)
      for(const sentence of [story.introduction,story.idea,story.experience,p.description])
@@ -102,6 +104,7 @@ try {
    }
    if(errors.length)alerts.push({type:'browser-errors',mode,errors})
  }
+ console.log('AUDITING_EXTERNAL_URLS')
  const targetUrls=[...new Set(PROJECTS.flatMap(p=>[p.link,p.repoLink]).filter(Boolean))]
  for(const url of targetUrls){
    const started=Date.now()
