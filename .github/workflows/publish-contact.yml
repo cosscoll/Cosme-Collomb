@@ -1,3 +1,4 @@
+# Release note: CodeFreeForm validated by two independent Gmail receipt tests.
 name: Publish verified contact page update
 on:
   push:
