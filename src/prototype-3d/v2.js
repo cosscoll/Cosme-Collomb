@@ -284,6 +284,20 @@ function approachPoint(t){
   const f=easing(t)
   return OVERVIEW.clone().lerp(center,f)
 }
+function safeProgress(dt,duration,sample){
+  // Protect every *rendered* frame from jumping ahead on slow devices.
+  // Reduce spline progress instead of lerping the camera off its deck.
+  const candidate=clamp(progress+dt/duration)
+  const limit=.48
+  if(sample(candidate).distanceTo(camera.position)<=limit)return candidate
+  let low=progress,high=candidate
+  for(let i=0;i<12;i++){
+    const middle=(low+high)*.5
+    if(sample(middle).distanceTo(camera.position)<=limit)low=middle
+    else high=middle
+  }
+  return low
+}
 function sampleCamera(u,dt){
   loopU=clamp(u)
   camera.position.copy(point(LOOPS[active],loopU))
@@ -328,8 +342,7 @@ function render(time){
       enterStage('approach')
     }
   }else if(stage==='approach'){
-    stageTime+=dt
-    progress=clamp(stageTime/durations.approach)
+    progress=safeProgress(dt,durations.approach,approachPoint)
     camera.position.copy(approachPoint(progress))
     const head=tangent(LOOPS[active],0)
     aimAt(head,dt)
@@ -339,8 +352,7 @@ function render(time){
       enterStage('loop')
     }
   }else if(stage==='loop'){
-    stageTime+=dt
-    progress=clamp(stageTime/durations.loop)
+    progress=safeProgress(dt,durations.loop,t=>point(LOOPS[active],easing(t)))
     sampleCamera(easing(progress),dt)
     if(progress>=1){
       camera.position.copy(HUB)
@@ -348,8 +360,7 @@ function render(time){
       enterStage('finish')
     }
   }else if(stage==='finish'){
-    stageTime+=dt
-    progress=clamp(stageTime/durations.finish)
+    progress=safeProgress(dt,durations.finish,t=>approachPoint(1-t))
     camera.position.copy(approachPoint(1-progress))
     camera.quaternion.rotateTowards(INITIAL_ROTATION,Math.min(.15,dt*1.75))
     if(progress>=1){
