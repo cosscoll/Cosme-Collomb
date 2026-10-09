@@ -1,0 +1,33 @@
+name: Publish contact page update
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-contact.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: portfolio-contact-publish
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm run test:geometry
+      - name: Prepare Vite
+        run: cp site/index.source.html index.html
+      - run: npm run build
+      - name: Verify form is in compiled bundle
+        run: |
+          grep -R -q 'formsubmit.co/Pro.collomb@gmail.com' dist/assets/ || { echo 'Form missing from production build'; exit 1; }
+      - name: Publish compiled site
+        run: bash scripts/sync-published-root.sh
+      - name: Verify public site
+        env:
+          PUBLIC_SITE: https://cosscoll.github.io/Cosme-Collomb/
+        run: node tests/public-http-check.mjs
