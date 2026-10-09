@@ -187,6 +187,11 @@ async function run(){
   await page.locator('[data-bridge-transition="active"]').waitFor({timeout:60000})
   await verifyPage(page,'back to projects',/Huit projets/i)
   await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:60000})
+  console.log('FORK RETURN SNAPSHOT',await page.evaluate(()=>({
+    flight:window.__portfolioFlight,scrollY:window.scrollY,
+    forkTop:document.getElementById('project-crossroads')?.offsetTop,
+    activeBridge:document.querySelector('[data-bridge-transition="active"]')!==null
+  })))
   await page.waitForFunction(()=>{
     const f=window.__portfolioFlight
     return f?.mode==='projects' && !f.transiting &&
