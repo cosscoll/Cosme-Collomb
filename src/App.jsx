@@ -517,6 +517,39 @@ function About() {
 }
 
 function Contact() {
+  const [status, setStatus] = useState('idle')
+  const [errorMessage, setErrorMessage] = useState('')
+  const [sending, setSending] = useState(false)
+
+  async function submitContact(event) {
+    event.preventDefault()
+    if (sending) return
+    const form = event.currentTarget
+    const data = new FormData(form)
+    if (data.get('_honey')) return
+    setSending(true)
+    setStatus('idle')
+    setErrorMessage('')
+    try {
+      const response = await fetch('https://formsubmit.co/ajax/Pro.collomb@gmail.com', {
+        method: 'POST',
+        body: data,
+        headers: { Accept: 'application/json' }
+      })
+      const result = await response.json()
+      if (!response.ok || result.success === false || result.success === 'false') {
+        throw new Error('Le service de messagerie a refusé la demande.')
+      }
+      form.reset()
+      setStatus('success')
+    } catch {
+      setStatus('error')
+      setErrorMessage("Le message n'a pas pu être envoyé. Réessayez ou contactez-moi directement par e-mail.")
+    } finally {
+      setSending(false)
+    }
+  }
+
   return <>
     <PageIntro kicker="CONTACT / PRENONS LE TEMPS" title="La suite" italic="s'invente ensemble." text="Un projet, une idée, une opportunité ? Parlons-en." />
     <section className="interior-body contact-body">
@@ -524,10 +557,10 @@ function Contact() {
         <div className="contact-details">
           <span className="micro-label">CONTACT DIRECT</span>
           <a className="contact-email" href="mailto:Pro.collomb@gmail.com">Pro.collomb@gmail.com <span aria-hidden="true">↗</span></a>
-          <p>Vous pouvez aussi me laisser un message. Je le recevrai directement par e-mail après activation du formulaire.</p>
+          <p>Vous pouvez aussi me laisser un message. Votre message me sera transmis par e-mail lorsque le service est disponible.</p>
           <a href="https://github.com/cosscoll" className="underlined-link" target="_blank" rel="noopener noreferrer">Découvrir mon GitHub ↗</a>
         </div>
-        <form className="portfolio-contact-form" action="https://formsubmit.co/Pro.collomb@gmail.com" method="POST">
+        <form className="portfolio-contact-form" onSubmit={submitContact} method="POST">
           <span className="micro-label">ÉCRIVEZ-MOI</span>
           <input type="hidden" name="_subject" value="Nouveau message depuis le Portfolio" />
           <input type="hidden" name="_template" value="table" />
@@ -542,7 +575,11 @@ function Contact() {
           <label htmlFor="contact-message">Votre message</label>
           <textarea id="contact-message" name="message" rows={6} placeholder="Présentez votre projet ou votre demande…" minLength={10} maxLength={5000} required />
           <p className="contact-privacy">Ces informations servent uniquement à répondre à votre demande. L'envoi passe par le service tiers FormSubmit.</p>
-          <button className="contact-submit" type="submit">Envoyer mon message <span aria-hidden="true">↗</span></button>
+          <button className="contact-submit" type="submit" disabled={sending}>{sending ? 'Envoi en cours…' : 'Envoyer mon message'} <span aria-hidden="true">↗</span></button>
+          <p role="status" aria-live="polite" style={{ marginTop: '1rem' }}>
+            {status === 'success' && 'Votre message a bien été transmis. Merci pour votre prise de contact.'}
+            {status === 'error' && errorMessage}
+          </p>
         </form>
       </div>
     </section>
