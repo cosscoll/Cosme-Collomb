@@ -448,7 +448,7 @@ function ProjectDetail({slug,onJourneyFinished}) {
         const atPhysicalExit=!hasCanvas || (flight &&
           flight.mode==='detail' &&
           flight.currentRoute==='/projets/'+slug &&
-          !flight.transiting && flight.t>=.993)
+          !flight.transiting && flight.t>=.985)
         if(atPhysicalExit) returned=Boolean(finishRef.current?.())
       }
     }
