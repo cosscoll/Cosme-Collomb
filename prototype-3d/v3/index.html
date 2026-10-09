@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="fr"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#0a111c">
+<meta name="description" content="Prototype V3 du portfolio : carrefour intérieur, cinq tunnels réellement opaques et parcours en boucle sans téléportation.">
+<title>Prototype V3 — À l'intérieur des tunnels</title>
+  <script type="module" crossorigin src="/Cosme-Collomb/assets/prototypeV3-lf50qtcq.js"></script>
+  <link rel="modulepreload" crossorigin href="/Cosme-Collomb/assets/modulepreload-polyfill-B5Qt9EMX.js">
+  <link rel="modulepreload" crossorigin href="/Cosme-Collomb/assets/three.module-DbYCB5bT.js">
+  <link rel="modulepreload" crossorigin href="/Cosme-Collomb/assets/projects-VjPwKz_2.js">
+  <link rel="modulepreload" crossorigin href="/Cosme-Collomb/assets/loopGeometry-B_LZ_4E2.js">
+  <link rel="stylesheet" crossorigin href="/Cosme-Collomb/assets/prototypeV3-CeEUwByK.css">
+</head><body>
+<canvas id="scene" aria-label="Vue immersive à l'intérieur du carrefour et de ses cinq tunnels"></canvas>
+<div class="shade" aria-hidden="true"></div>
+<header class="topbar">
+<a class="identity" href="../../../">CC<span>.</span><small>EXPÉRIENCE 3D</small></a>
+<span class="eyebrow">PROTOTYPE V3 · VUE INTÉRIEURE</span>
+<a href="../v2/" class="previous">Voir la V2 ↗</a>
+</header>
+<div class="stage-indicator"><i></i><span id="stage">VOUS ÊTES DANS LE CARREFOUR</span></div>
+<main class="overlay">
+<section class="intro"><span class="eyebrow">DÉCOUVREZ LE RÉSEAU</span>
+<h1>À l'intérieur<br><em>du passage.</em></h1>
+<p>Un carrefour fermé. Cinq tunnels. Un trajet continu, sans vue extérieure ni changement de décor.</p>
+</section>
+<section class="panel" aria-label="Choisir votre tunnel">
+<div class="panel-top"><span>CARREFOUR · CHOISISSEZ UNE VOIE</span><span>01—05</span></div>
+<div id="choices" class="choices"></div>
+<div class="route-info"><strong id="status">EN ATTENTE DE VOTRE CHOIX</strong><span id="percent">0 %</span></div>
+<div class="track"><div id="track"></div></div>
+<p class="hint" id="hint">Le tunnel choisi se construit avant votre passage. Le retour au carrefour est automatique.</p>
+</section>
+</main>
+<div class="corner-status">CAMÉRA <span>INTÉRIEURE</span><i></i> PAROIS <span>OPAQUES</span></div>
+<div id="error" class="error" hidden>Ce navigateur ne peut pas démarrer WebGL. Essayez d’activer l’accélération graphique.</div>
+</body></html>
