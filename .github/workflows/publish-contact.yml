@@ -1,9 +1,9 @@
 # Release note: CodeFreeForm validated by two independent Gmail receipt tests.
-name: Publish verified contact page update
+name: Publish verified portfolio content
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/publish-contact.yml', 'src/App.jsx']
+    paths: ['.github/workflows/publish-contact.yml', 'src/App.jsx', 'src/data/projects.js', 'src/data/projectStories.js']
   workflow_dispatch:
 permissions:
   contents: write
