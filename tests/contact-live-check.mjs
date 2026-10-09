@@ -1,96 +1,60 @@
 import assert from 'node:assert/strict'
 import { chromium } from 'playwright'
-
-const site = 'https://cosscoll.github.io/Cosme-Collomb/'
-const endpoint = 'https://api.web3forms.com/submit'
-const marker = 'PORTFOLIO-WEB3FORMS-LIVE-' + Date.now()
-const pause = ms => new Promise(resolve => setTimeout(resolve, ms))
-
-async function waitForPublishedForm() {
-  let lastError
-  for (let attempt = 1; attempt <= 36; attempt++) {
-    try {
-      const res = await fetch(site + '?live-form-check=' + Date.now(),
-        { headers: { 'Cache-Control': 'no-cache' }, signal: AbortSignal.timeout(12000) })
-      assert.equal(res.status, 200)
-      const html = await res.text()
-      const asset = html.match(/<script[^>]+src="([^"]+\.js)"/)?.[1]
-      assert.ok(asset, 'Published website has no JavaScript entrypoint')
-      const jsRes = await fetch(new URL(asset, site),
-        { signal: AbortSignal.timeout(12000) })
-      assert.equal(jsRes.status, 200)
-      const js = await jsRes.text()
-      assert.ok(js.includes('api.web3forms.com/submit'),
-        'Public website still serves a previous form integration')
-      assert.ok(js.includes('data-submission'),
-        'Public JS is missing the multipart form release marker')
-      console.log('Verified PUBLIC bundle includes Web3Forms at', asset)
-      return
-    } catch (error) {
-      lastError = error
-      console.log('Waiting for latest published form', attempt, error.message)
-      await pause(10000)
-    }
-  }
-  throw new Error('Latest form not available on public GitHub Pages: ' + lastError?.message)
+const site='https://cosscoll.github.io/Cosme-Collomb/'
+const api='https://codefreeform.com/api/contact-api/'
+const marker='PORTFOLIO-FINAL-DELIVERY-'+Date.now()
+const sleep=ms=>new Promise(r=>setTimeout(r,ms))
+let ready=false
+for(let i=1;i<=36;i++){
+ try{
+  const response=await fetch(site+'?release-check='+Date.now(),{headers:{'Cache-Control':'no-cache'},signal:AbortSignal.timeout(12000)})
+  assert.equal(response.status,200)
+  const html=await response.text()
+  const asset=html.match(/<script[^>]*src="([^"]+\.js)"/)?.[1]
+  assert.ok(asset,'No public JS bundle')
+  const js=await fetch(new URL(asset,site),{signal:AbortSignal.timeout(12000)})
+  assert.equal(js.status,200)
+  const bundle=await js.text()
+  assert.ok(bundle.includes('codefreeform.com/api/contact-api/'),'Old contact provider remains visible')
+  assert.ok(bundle.includes('data-service'),'Published form marker missing')
+  console.log('LIVE_RELEASE_ASSET',asset)
+  ready=true
+  break
+ }catch(e){console.log('WAIT_FOR_PUBLIC_RELEASE',i,e.message);await sleep(8000)}
 }
-
-await waitForPublishedForm()
-
-const browser = await chromium.launch({
-  headless: true,
-  args: ['--no-sandbox', '--enable-webgl', '--use-gl=angle',
-    '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
-    '--disable-dev-shm-usage', '--disable-gpu-sandbox']
-})
-
-try {
-  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
-  page.on('pageerror', error => console.error('Browser JS error:', error.message))
-  page.on('console', message => {
-    if (message.type() === 'error')
-      console.error('BROWSER_CONSOLE', message.text().slice(0, 500))
-  })
-  page.on('requestfailed', request => {
-    if (request.url().startsWith(endpoint))
-      console.error('Web3Forms request failed:', request.failure()?.errorText)
-  })
-  let apiResponse = null
-  page.on('response', async response => {
-    if (response.url().startsWith(endpoint)) {
-      const body = await response.text().catch(() => '(unreadable)')
-      apiResponse = { status: response.status(), body: body.slice(0, 600) }
-      console.log('WEB3FORMS_API_RESPONSE', JSON.stringify(apiResponse))
-    }
-  })
-
-  await page.goto(site + '?run=' + Date.now() + '#/contact',
-    { waitUntil: 'domcontentloaded', timeout: 60000 })
-  const form = page.locator('form[data-service="web3forms"]')
-  await form.waitFor({ state: 'visible', timeout: 60000 })
-  assert.equal(await form.getAttribute('data-submission'), 'multipart', 'Latest public form is not active')
-  assert.equal(await form.locator('input[name="access_key"]').count(), 1)
-  assert.equal(await form.locator('input[name="botcheck"]').count(), 1)
-  console.log('Verified public contact form and spam trap; test subject:', marker)
-
-  await form.locator('input[name="name"]').fill('Contrôle technique portfolio')
-  await form.locator('input[name="email"]').fill('pro.collomb@gmail.com')
-  await form.locator('input[name="subject"]').fill(marker)
-  await form.locator('textarea[name="message"]').fill(
-    'Message de contrôle technique automatisé envoyé depuis le véritable formulaire GitHub Pages. Référence : ' + marker)
-  await form.locator('button[type="submit"]').click()
-  const status = form.locator('[role="status"]')
-  await page.waitForFunction(() => {
-    const text = document.querySelector('form[data-service="web3forms"] [role="status"]')?.textContent || ''
-    return text.includes('Le service a accepté') || text.includes('Envoi non confirmé') ||
-      text.includes('Connexion au service')
-  }, null, { timeout: 60000 })
-  const message = (await status.innerText()).trim()
-  console.log('PUBLIC_FORM_RESULT', JSON.stringify({ marker, message, apiResponse }))
-  assert.ok(message.includes('Le service a accepté'), 'Public form did not confirm delivery')
-  assert.equal(apiResponse?.status, 200, 'Web3Forms did not return HTTP 200')
-  assert.ok(JSON.parse(apiResponse.body).success === true, 'Web3Forms did not report success')
-  console.log('LIVE FORM SUBMISSION CONFIRMED BY PROVIDER; check Gmail for subject:', marker)
-} finally {
-  await browser.close()
-}
+assert.ok(ready,'CodeFreeForm is not yet visible in published HTML/JS')
+const browser=await chromium.launch({channel:'chrome',headless:true,args:['--no-sandbox','--disable-dev-shm-usage']})
+try{
+ const page=await browser.newPage({viewport:{width:1150,height:780}})
+ page.on('pageerror',e=>console.error('PAGE_ERROR',e.message))
+ page.on('requestfailed',r=>{if(r.url().startsWith(api))console.error('FORM_REQUEST_FAILED',r.failure()?.errorText)})
+ let answer=null
+ page.on('response',async r=>{if(r.url().startsWith(api)){
+   answer={status:r.status(),body:await r.text().catch(()=>'')}
+   console.log('PUBLIC_FORM_API',JSON.stringify(answer).slice(0,750))
+ }})
+ await page.goto(site+'?final-contact-check='+Date.now()+'#/contact',{waitUntil:'domcontentloaded',timeout:60000})
+ const form=page.locator('form[data-service="codefreeform"]')
+ await form.waitFor({state:'visible',timeout:60000})
+ assert.equal(await form.getAttribute('data-submission'),'json')
+ await form.locator('input[name=access_key]').evaluate(el=>assertKey(el.value))
+ await form.locator('input[name=name]').fill('Controle final portfolio')
+ await form.locator('input[name=email]').fill('pro.collomb@gmail.com')
+ await form.locator('input[name=subject]').fill(marker)
+ await form.locator('textarea[name=message]').fill('Message de vérification finale du formulaire publié. Identifiant : '+marker)
+ await form.locator('button[type=submit]').click()
+ await page.waitForFunction(()=>{
+  const s=document.querySelector('form[data-service="codefreeform"] [role=status]')?.textContent||''
+  return s.includes('envoyé avec succès')||s.includes('non confirmé')||s.includes('Connexion au service')
+ },null,{timeout:45000})
+ const status=(await form.locator('[role=status]').innerText()).trim()
+ console.log('FINAL_TEST_MARKER',marker)
+ console.log('FINAL_FORM_VISIBLE_STATUS',status)
+ assert.match(status,/envoyé avec succès/i,'Public page did not confirm message')
+ assert.equal(answer?.status,200,'API did not return HTTP 200')
+ const data=JSON.parse(answer.body)
+ assert.equal(data.success,true)
+ assert.equal(data.email_status,'sent')
+ console.log('PUBLIC_FORM_SUCCESS_CHECKED',marker)
+}finally{await browser.close()}
+function assertKey(key){if(key!=='C4DE51')throw Error('Unexpected access key on public form')}
