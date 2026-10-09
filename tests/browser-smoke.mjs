@@ -192,6 +192,7 @@ async function run(){
     flight:window.__portfolioFlight,scrollY:window.scrollY,
     forkTop:document.getElementById('project-crossroads')?.offsetTop,
     now:performance.now(),canvasCount:document.querySelectorAll('.scene-backdrop canvas').length,
+    boundaryError:window.__portfolioBoundaryError||null,
     activeBridge:document.querySelector('[data-bridge-transition="active"]')!==null
   })))
   await page.waitForFunction(()=>{

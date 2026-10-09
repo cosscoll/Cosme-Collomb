@@ -17,7 +17,13 @@ const routes = [
 class Boundary extends Component {
   constructor(props) { super(props); this.state = { failed: false } }
   static getDerivedStateFromError() { return { failed: true } }
-  componentDidCatch(error) { console.error('3D unavailable; navigation remains active.', error) }
+  componentDidCatch(error,info) {
+    window.__portfolioBoundaryError={
+      message:String(error),stack:error?.stack,componentStack:info?.componentStack,
+      at:performance.now()
+    }
+    console.error('3D unavailable; navigation remains active.', error)
+  }
   render() { return this.state.failed ? null : this.props.children }
 }
 
