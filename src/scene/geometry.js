@@ -78,7 +78,19 @@ export const PROJECT_HUBS=PATHS.details.map(p=>closestT(p,[-9.5,0,-61]))
 export const TUNNEL_RADIUS=4.25
 export const RADIAL_SEGMENTS=64
 const PI2=Math.PI*2
+const WORLD_UP=new THREE.Vector3(0,1,0)
 const clamp=(n,a=0,b=1)=>Math.max(a,Math.min(b,n))
+// All shared segments use the same WORLD-SPACE cross-section and colour.
+// Frenet frames integrated across independent complete routes previously
+// twisted shared tunnel walls differently when their destination changed.
+const phaseAt=center=>(11-center.z)/140
+function frameAt(path,t,normal,binormal){
+  const tangent=path.getTangentAt(t)
+  normal.crossVectors(tangent,WORLD_UP)
+  if(normal.lengthSq()<.00001)normal.set(1,0,0)
+  normal.normalize()
+  binormal.crossVectors(tangent,normal).normalize()
+}
 const BASE=[
   new THREE.Color('#b6a8bc'),
   new THREE.Color('#9daabf'),
@@ -89,22 +101,21 @@ const tempColor=new THREE.Color()
 
 // The periodic function is identical at 0 and 2π; the shell has no gaps.
 export function radiusAt(t,angle,radius=TUNNEL_RADIUS) {
-  return radius*(1+.028*Math.sin(angle*3+t*6)+.012*Math.sin(angle*7-t*11))
+  return radius*(1+.028*Math.sin(angle*3+phase*6)+.012*Math.sin(angle*7-t*11))
 }
 export function createSkin(path,{radius=TUNNEL_RADIUS,lengthSegments=300,radialSegments=RADIAL_SEGMENTS,start=0,end=1}={}) {
   const positions=new Float32Array((lengthSegments+1)*(radialSegments+1)*3)
   const colors=new Float32Array(positions.length)
   const indices=[]
-  const frames=path.computeFrenetFrames(lengthSegments,false)
-  const center=new THREE.Vector3()
+  const center=new THREE.Vector3(),n=new THREE.Vector3(),b=new THREE.Vector3()
   for(let i=0;i<=lengthSegments;i++){
     const t=start+(end-start)*i/lengthSegments
     path.getPointAt(t,center)
-    const frame=Math.round(t*lengthSegments)
-    const n=frames.normals[frame],b=frames.binormals[frame]
+    frameAt(path,t,n,b)
+    const phase=phaseAt(center)
     for(let j=0;j<=radialSegments;j++){
       const angle=PI2*j/radialSegments
-      const r=radiusAt(t,angle,radius)
+      const r=radiusAt(phase,angle,radius)
       const nx=n.x*Math.cos(angle)+b.x*Math.sin(angle)
       const ny=n.y*Math.cos(angle)+b.y*Math.sin(angle)
       const nz=n.z*Math.cos(angle)+b.z*Math.sin(angle)
@@ -113,11 +124,11 @@ export function createSkin(path,{radius=TUNNEL_RADIUS,lengthSegments=300,radialS
       positions[k+1]=center.y+ny*r
       positions[k+2]=center.z+nz*r
 
-      const shape=(Math.sin(angle*3+t*6)+1)*.5
-      const shimmer=(Math.cos(angle*2-t*10)+1)*.5
+      const shape=(Math.sin(angle*3+phase*6)+1)*.5
+      const shimmer=(Math.cos(angle*2-phase*10)+1)*.5
       tempColor.copy(BASE[0]).lerp(BASE[1],clamp(shape*.75))
       tempColor.lerp(BASE[2],clamp(shimmer*.35))
-      tempColor.lerp(BASE[3],clamp(Math.pow(Math.max(0,Math.sin(angle*3+t*6)),16)*.58))
+      tempColor.lerp(BASE[3],clamp(Math.pow(Math.max(0,Math.sin(angle*3+phase*6)),16)*.58))
       colors[k]=tempColor.r
       colors[k+1]=tempColor.g
       colors[k+2]=tempColor.b
@@ -147,14 +158,15 @@ export function createSkin(path,{radius=TUNNEL_RADIUS,lengthSegments=300,radialS
 }
 export function createSeam(path, angle,{radius=TUNNEL_RADIUS,segments=140,start=0,end=1}={}) {
   const pts=[]
-  const frames=path.computeFrenetFrames(segments,false)
+  const n=new THREE.Vector3(),b=new THREE.Vector3()
   for(let i=0;i<=segments;i++){
     const t=start+(end-start)*i/segments
-    const theta=angle+t*.16*Math.sin(angle*3)
-    const r=radiusAt(t,theta,radius)+.022
-    const frame=Math.round(t*segments)
-    const n=frames.normals[frame],b=frames.binormals[frame]
-    pts.push(path.getPointAt(t).addScaledVector(n,r*Math.cos(theta)).addScaledVector(b,r*Math.sin(theta)))
+    const center=path.getPointAt(t)
+    const phase=phaseAt(center)
+    const theta=angle+phase*.16*Math.sin(angle*3)
+    const r=radiusAt(phase,theta,radius)+.022
+    frameAt(path,t,n,b)
+    pts.push(center.addScaledVector(n,r*Math.cos(theta)).addScaledVector(b,r*Math.sin(theta)))
   }
   return new THREE.CatmullRomCurve3(pts,false,'centripetal')
 }
