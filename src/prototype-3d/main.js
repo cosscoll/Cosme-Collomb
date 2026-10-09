@@ -98,6 +98,7 @@ const lightMaterial=new THREE.MeshBasicMaterial({color:COLOR.teal})
 const paleMaterial=new THREE.MeshBasicMaterial({color:0xbddced})
 const orangeMaterial=new THREE.MeshBasicMaterial({color:COLOR.orange})
 const collisionMeshes=[]
+const collisionSections=[]
 const staticPieces=[]
 const bridgePieces=[]
 const WIDTH=4.55
@@ -141,6 +142,7 @@ function archAt(u,material){
 }
 function span(u0,u1,{bridge=false,arch=false}={}){
   const g=new THREE.Group()
+  const firstCollider=collisionMeshes.length
   const surface=bridge?bridgeMaterial:deckMaterial
   g.add(deckBetween(u0,u1,surface))
   const side=WIDTH/2
@@ -156,6 +158,7 @@ function span(u0,u1,{bridge=false,arch=false}={}){
     }
   }
   if(arch)g.add(archAt(u0,bridge?orangeMaterial:paleMaterial))
+  collisionSections.push({u0,u1,meshes:collisionMeshes.slice(firstCollider)})
   return g
 }
 // Static approaches and destination are connected to the exact two sample
@@ -356,19 +359,21 @@ function centerlineCollisionCount(){
   const raycaster=new THREE.Raycaster()
   raycaster.near=.0001
   let collisions=0
-  const chunk=.002
-  for(let i=0;i<1/chunk;i++){
-    const a=routeSample(i*chunk)
-    const b=routeSample((i+1)*chunk)
-    const d=b.clone().sub(a)
-    const len=d.length()
+  // Spatially indexed sweep: only nearby tunnel sections can collide.
+  // Checking hundreds of distant meshes in each sample froze WebGL startup.
+  const sampleCount=220
+  for(let i=0;i<sampleCount;i++){
+    const u=i/sampleCount,next=(i+1)/sampleCount
+    const a=routeSample(u),b=routeSample(next)
+    const d=b.clone().sub(a),len=d.length()
     if(!len)continue
     d.divideScalar(len)
     raycaster.set(a,d)
     raycaster.far=len
-    // Explicitly test all created triangle meshes; invalid bridges fail.
-    const intersections=raycaster.intersectObjects(collisionMeshes,false)
-    if(intersections.length)collisions++
+    const nearby=collisionSections
+      .filter(section=>section.u0<next+.026&&section.u1>u-.026)
+      .flatMap(section=>section.meshes)
+    if(raycaster.intersectObjects(nearby,false).length)collisions++
   }
   return collisions
 }
