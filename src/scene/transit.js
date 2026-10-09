@@ -85,12 +85,13 @@ export function junctionFor(from,to,initialT){
     &&(from.mode!=='projects'||initialT<=PROJECT_INDEX_HUB+.005)
   if(canUseProjectFork){
     const fromT=from.mode==='detail'?from.projectReturnHub:from.projectHub
-    const toT=to.mode==='detail'?to.projectHub:to.projectHub
-    return {level:'projects',fromT,toT}
+    if(initialT<=fromT+.001)
+      return {level:'projects',fromT,toT:to.projectHub}
   }
-  if(to.mode==='home'){
+  // When the traveler is already past their junction, finish the loop
+  // instead of rewinding to a physically inaccessible branch.
+  if(to.mode==='home'||initialT>from.mainReturnHub+.001)
     return {level:'home',fromT:1,toT:0}
-  }
   return {level:'main',fromT:from.mainReturnHub,toT:to.mainHub}
 }
 export function bridgeBuild(progress){
