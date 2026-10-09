@@ -187,9 +187,11 @@ async function run(){
   await page.locator('[data-bridge-transition="active"]').waitFor({timeout:60000})
   await verifyPage(page,'back to projects',/Huit projets/i)
   await page.locator('[data-bridge-transition="active"]').waitFor({state:'hidden',timeout:60000})
+  console.log('FORK RETURN PAGE ERRORS',errors)
   console.log('FORK RETURN SNAPSHOT',await page.evaluate(()=>({
     flight:window.__portfolioFlight,scrollY:window.scrollY,
     forkTop:document.getElementById('project-crossroads')?.offsetTop,
+    now:performance.now(),canvasCount:document.querySelectorAll('.scene-backdrop canvas').length,
     activeBridge:document.querySelector('[data-bridge-transition="active"]')!==null
   })))
   await page.waitForFunction(()=>{
