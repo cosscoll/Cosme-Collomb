@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import * as THREE from 'three'
 import { PROJECTS_WITH_SLUGS as PROJECTS } from '../src/data/projects.js'
-import { createSkin, PATHS, PROJECT_FORK_FOCUS, PROJECT_FORK_POSITION } from '../src/scene/geometry.js'
+import { createSkin, shellSpans, PATHS, PROJECT_FORK_FOCUS, PROJECT_FORK_POSITION } from '../src/scene/geometry.js'
 import {
   routeInfo, sampleTransit, transitPoint, junctionFor, arrivalT, scrollT,
   bridgeBuild, TRANSIT_DURATION, PROJECT_INDEX_HUB, PROJECT_LOOKOUT_T, TRANSIT_MID
@@ -209,4 +209,53 @@ test('All destinations match their own reset-scroll camera pose at flight comple
     assert.ok(Math.abs(end-targetScroll)<1e-6,
       from.pathName+' → '+targetName+': a hard camera jump at React route completion')
   }
+})
+
+test('The central tunnel is the exact same physical piece on every route',()=>{
+  const routes=[...PATHS.routes,...PATHS.details]
+  const trunk=PATHS.routes[0]
+  for(const route of routes){
+    for(const distance of [8,17,27,36]){
+      const a=trunk.getPointAt(distance/trunk.getLength())
+      const b=route.getPointAt(distance/route.getLength())
+      assert.ok(a.distanceTo(b)<.35,
+        'Different walls on shared trunk at '+distance+'m')
+    }
+  }
+  // Every project reuses precisely the same physical path from the first
+  // junction to the five-way crossing, regardless of the chosen project.
+  for(let i=0;i<PATHS.details.length;i++){
+    const a=PATHS.routes[0],b=PATHS.details[i]
+    for(const distance of [42,50,59]){
+      assert.ok(a.getPointAt(distance/a.getLength())
+        .distanceTo(b.getPointAt(distance/b.getLength()))<.35,
+        'Project '+i+' changed the common corridor at '+distance+'m')
+    }
+  }
+})
+test('No opaque side wall is rendered across either navigable junction',()=>{
+  for(const path of [...PATHS.routes,...PATHS.details]){
+    const spans=shellSpans(path)
+    assert.ok(spans.length>=2)
+    for(const coord of [[0,0,-30],[-9.5,0,-61]]){
+      const target=new THREE.Vector3(...coord)
+      let bestT=0,bestDistance=Infinity
+      for(let i=0;i<=500;i++){
+        const time=i/500
+        const distance=path.getPointAt(time).distanceTo(target)
+        if(distance<bestDistance){bestDistance=distance;bestT=time}
+      }
+      if(bestDistance>1.2)continue
+      assert.ok(spans.every(([start,end])=>bestT<start||bestT>end),
+        'An opaque wall still closes an actual crossing')
+    }
+  }
+})
+test('Destination tunnel stays rendered for the complete camera crossing',async()=>{
+  const fs=await import('node:fs/promises')
+  const world=await fs.readFile(new URL('../src/components/World.jsx',import.meta.url),'utf8')
+  assert.ok(world.includes('(arrival?p>=.52:p<.52)'),
+    'Permanent destination walls must not disappear between 52% and 90%')
+  assert.ok(world.includes('shellSpans(path)'),
+    'Physical crossing apertures missing')
 })
