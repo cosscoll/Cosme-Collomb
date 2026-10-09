@@ -1,20 +1,12 @@
 import { chromium } from 'playwright'
-const browser = await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage']})
-try {
- const page = await browser.newPage({viewport:{width:1150,height:840}})
- await page.goto('https://formspree.io/create',{waitUntil:'domcontentloaded',timeout:45000})
- await page.locator('#form-email').fill('pro.collomb@gmail.com')
- await page.getByRole('button',{name:'Create'}).click()
- await page.waitForTimeout(2200)
- console.log('AFTER_FORMSPREE_CREATE_URL',page.url())
- console.log('AFTER_FORMSPREE_CREATE_INPUTS',JSON.stringify(await page.locator('input').evaluateAll(els=>els.map(e=>({type:e.type,name:e.name,id:e.id,placeholder:e.placeholder}))).catch(()=>[])))
- console.log('AFTER_FORMSPREE_CREATE_BUTTONS',JSON.stringify((await page.getByRole('button').allTextContents()).slice(0,15)))
- console.log('AFTER_FORMSPREE_CREATE_TEXT',((await page.locator('body').innerText()).slice(0,1300)).replace(/\s+/g,' '))
- const second=await browser.newPage()
- await second.goto('https://www.easyformapi.com/',{waitUntil:'domcontentloaded',timeout:45000})
- await second.waitForTimeout(1500)
- console.log('EASYFORM_URL',second.url())
- console.log('EASYFORM_INPUTS',JSON.stringify(await second.locator('input').evaluateAll(els=>els.map(e=>({type:e.type,name:e.name,id:e.id,placeholder:e.placeholder}))).catch(()=>[])))
- console.log('EASYFORM_BUTTONS',JSON.stringify((await second.getByRole('button').allTextContents()).slice(0,25)))
- console.log('EASYFORM_PAGE_TEXT',((await second.locator('body').innerText()).slice(0,1000)).replace(/\s+/g,' '))
-} finally {await browser.close()}
+const browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage']})
+try{
+ const page=await browser.newPage({viewport:{width:1100,height:840}})
+ await page.goto('https://www.easyformapi.com/',{waitUntil:'domcontentloaded',timeout:50000})
+ await page.getByRole('button',{name:'Get Access Key'}).first().click()
+ await page.waitForTimeout(1800)
+ console.log('ACCESS_KEY_MODAL_URL',page.url())
+ console.log('ACCESS_KEY_MODAL_INPUTS',JSON.stringify(await page.locator('input').evaluateAll(els=>els.map(e=>({type:e.type,name:e.name,id:e.id,placeholder:e.placeholder,outer:e.outerHTML.slice(0,350)})))))
+ console.log('ACCESS_KEY_MODAL_BUTTONS',JSON.stringify((await page.getByRole('button').allTextContents()).slice(0,20)))
+ console.log('ACCESS_KEY_MODAL_TEXT',((await page.locator('body').innerText()).slice(0,2000)).replace(/\s+/g,' '))
+}finally{await browser.close()}
