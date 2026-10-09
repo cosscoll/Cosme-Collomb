@@ -534,12 +534,13 @@ function Contact() {
     setErrorMessage('')
 
     try {
-      const payload = Object.fromEntries(data.entries())
-      payload.subject = `Portfolio — ${String(data.get('subject') || 'Nouveau message').trim()}`
+      data.set('subject', `Portfolio — ${String(data.get('subject') || 'Nouveau message').trim()}`)
+      // Native multipart FormData is a simple cross-origin request: no JSON
+      // preflight, and the browser supplies the multipart boundary itself.
       const response = await fetch('https://api.web3forms.com/submit', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify(payload)
+        body: data,
+        headers: { Accept: 'application/json' }
       })
       const result = await response.json()
       if (!response.ok || result.success !== true) {
