@@ -1,4 +1,4 @@
-name: Live HTML contact submission compatibility test
+name: Final published portfolio email delivery
 on:
   push:
     branches: [main]
@@ -17,4 +17,4 @@ jobs:
           node-version: 20
       - run: npm install
       - name: Verify live published CodeFreeForm and email sent
-        run: node tests/contact-native-post.mjs
+        run: node tests/contact-live-check.mjs
