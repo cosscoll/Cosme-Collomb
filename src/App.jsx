@@ -534,17 +534,16 @@ function Contact() {
     setErrorMessage('')
 
     try {
-      data.set('subject', `Portfolio — ${String(data.get('subject') || 'Nouveau message').trim()}`)
-      // Native multipart FormData is a simple cross-origin request: no JSON
-      // preflight, and the browser supplies the multipart boundary itself.
-      const response = await fetch('https://api.web3forms.com/submit', {
+      const payload = Object.fromEntries(data.entries())
+      payload.subject = `Portfolio — ${String(payload.subject || 'Nouveau message').trim()}`
+      const response = await fetch('https://codefreeform.com/api/contact-api/', {
         method: 'POST',
-        body: data,
-        headers: { Accept: 'application/json' }
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(payload)
       })
       const result = await response.json()
-      if (!response.ok || result.success !== true) {
-        throw new Error(String(result.message || 'Envoi refusé par le service.').slice(0, 220))
+      if (!response.ok || result.success !== true || (result.email_status && result.email_status !== 'sent')) {
+        throw new Error(String(result.message || "L'envoi n'a pas été confirmé.").slice(0, 220))
       }
       form.reset()
       setStatus('success')
@@ -569,9 +568,9 @@ function Contact() {
           <p>Vous pouvez aussi m'écrire via ce formulaire. Une confirmation apparaît lorsque le service accepte le message.</p>
           <a href="https://github.com/cosscoll" className="underlined-link" target="_blank" rel="noopener noreferrer">Découvrir mon GitHub ↗</a>
         </div>
-        <form className="portfolio-contact-form" data-service="web3forms" data-submission="multipart" onSubmit={submitContact} method="POST">
+        <form className="portfolio-contact-form" data-service="codefreeform" data-submission="json" onSubmit={submitContact} method="POST">
           <span className="micro-label">ÉCRIVEZ-MOI</span>
-          <input type="hidden" name="access_key" value="fe42680f-e8d8-4d17-8404-022d7147c807" />
+          <input type="hidden" name="access_key" value="C4DE51" />
           <input type="hidden" name="from_name" value="Portfolio Cosme Collomb" />
           <input type="hidden" name="source" value="https://cosscoll.github.io/Cosme-Collomb/#/contact" />
           <div className="contact-honey" aria-hidden="true"><label htmlFor="contact-website">Ne pas remplir</label><input id="contact-website" type="checkbox" name="botcheck" tabIndex={-1} autoComplete="off" /></div>
@@ -583,10 +582,10 @@ function Contact() {
           <input id="contact-subject" name="subject" type="text" placeholder="De quoi souhaitez-vous parler ?" required maxLength={180} />
           <label htmlFor="contact-message">Votre message</label>
           <textarea id="contact-message" name="message" rows={6} placeholder="Présentez votre projet ou votre demande…" minLength={10} maxLength={5000} required />
-          <p className="contact-privacy">Ces informations servent uniquement à répondre à votre demande. L'envoi passe par le service tiers Web3Forms.</p>
+          <p className="contact-privacy">Ces informations servent uniquement à répondre à votre demande. L'envoi passe par le service tiers CodeFreeForm.</p>
           <button className="contact-submit" type="submit" disabled={sending}>{sending ? 'Envoi en cours…' : 'Envoyer mon message'} <span aria-hidden="true">↗</span></button>
           <p role="status" aria-live="polite" style={{ marginTop: '1rem' }}>
-            {status === 'success' && 'Le service a accepté votre message. Merci pour votre prise de contact.'}
+            {status === 'success' && 'Votre message a été envoyé avec succès. Merci pour votre prise de contact.'}
             {status === 'error' && errorMessage}
           </p>
           {status === 'error' && <a className="underlined-link" href={`mailto:Pro.collomb@gmail.com?subject=${encodeURIComponent('Contact depuis le portfolio')}`}>Envoyer directement depuis votre messagerie ↗</a>}
