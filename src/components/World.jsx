@@ -58,10 +58,11 @@ function Shell({path,branch=false,transit=null,arrival=false}) {
   useFrame(()=>{
     const p=transit?(transit.progress??0):0
     // Source and destination exchange only at their REAL shared junction.
-    // Both sides are now built from the same trunk/arm curves, with an open
-    // central chamber, so there is never an opaque wall across the turn.
+    // Both sides now share the trunk/arm curves and open central chamber.
+    // Reveal the incoming surface AS the bridge crossing starts; previously
+    // all permanent walls vanished from 52% to 90%, simulating a teleport.
     if(root.current)root.current.visible=!transit||
-      (arrival?(branch?p>=.52:p>=.90):p<.52)
+      (arrival?p>=.52:p<.52)
     surfaces.current.forEach(material=>{if(material)material.opacity=1})
     seamMaterials.current.forEach((material,i)=>{
       if(material)material.opacity=i%2===0?.46:.24
