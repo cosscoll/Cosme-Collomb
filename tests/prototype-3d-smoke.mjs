@@ -22,14 +22,13 @@ async function screenshot(page,name){
     const filepath='test-output/3d-'+name+'.jpg'
     const bytes=await page.screenshot({path:filepath,type:'jpeg',quality:50,timeout:9000})
     console.log('3D screenshot:',filepath,bytes.length,'bytes')
-    if(name==='arrived'){
-      // Also place a small real screenshot into the test log for optional
-      // visual inspection via GitHub without direct browser access.
-      const encoded=(await page.screenshot({
-        type:'jpeg',quality:24,timeout:9000
-      })).toString('base64')
-      console.log('PROOF_JPEG_START'+encoded+'PROOF_JPEG_END')
-    }
+    // Small annotated samples let the finished scene, the five-way fork
+    // and the growing 3D bridge be inspected visually before publication.
+    const encoded=(await page.screenshot({
+      type:'jpeg',quality:22,timeout:9000
+    })).toString('base64')
+    const tag=name.replace(/[^a-z0-9]/gi,'_').toUpperCase()
+    console.log('PROOF_'+tag+'_JPEG_START'+encoded+'PROOF_'+tag+'_JPEG_END')
   }catch(error){
     console.warn('Optional software-WebGL screenshot unavailable:',name,error.message)
   }
