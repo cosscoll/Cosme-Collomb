@@ -4,7 +4,7 @@ import * as THREE from 'three'
 import { routeInfo, scrollT, sampleTransit, transitPoint, junctionFor, arrivalT, bridgeBuild, PROJECT_LOOKOUT_T } from '../scene/transit.js'
 import {
   PATHS, PROJECT_BRANCH_COLORS, PROJECT_FORK_OPEN, PROJECT_FORK_CLOSE, PROJECT_FORK_FOCUS,
-  createSkin, createSeam, detailReturning
+  createSkin, createSeam, shellSpans
 } from '../scene/geometry.js'
 
 const UP=new THREE.Vector3(0,1,0)
@@ -32,54 +32,55 @@ function blendHeading(a,b,weight,target){
 }
 
 function Shell({path,branch=false,transit=null,arrival=false}) {
-  // Closed 360° surface, with no overlapping opaque walls inside the hub.
+  // A junction MUST NOT be surrounded by the opaque walls of the old
+  // destination. The shared route segments meet in clear, walkable atria.
+  const radius=branch?2.85:4.25
   const start=branch?PROJECT_FORK_OPEN:0
   const end=branch?PROJECT_FORK_CLOSE:1
-  const radius=branch?2.85:4.25
-  // The outgoing and incoming walls have EXACTLY the same tessellation.
-  // A lighter preview used to pop into a different full-quality mesh at the
-  // final frame, even though the camera itself had not moved.
   const divisions=branch?104:300
   const radial=branch?40:64
   const seamsCount=branch?3:7
-  const geometry=useMemo(()=>createSkin(path,{
-    radius,lengthSegments:divisions,radialSegments:radial,start,end
-  }),[path,branch,arrival])
+  const spans=useMemo(()=>branch?[[start,end]]:shellSpans(path),[path,branch])
+  const geometries=useMemo(()=>spans.map(([a,b])=>createSkin(path,{
+    radius,lengthSegments:Math.max(16,Math.round(divisions*(b-a))),
+    radialSegments:radial,start:a,end:b
+  })),[path,spans,branch])
+  const seams=useMemo(()=>spans.flatMap(([a,b])=>
+    Array.from({length:seamsCount},(_,i)=>
+      createSeam(path,i*Math.PI*2/seamsCount,{
+        radius,segments:Math.max(15,Math.round(140*(b-a))),
+        start:a,end:b
+      }))
+  ),[path,spans,branch])
   const root=useRef(null)
-  const surface=useRef(null)
+  const surfaces=useRef([])
   const seamMaterials=useRef([])
-  useFrame((_,dt)=>{
-    if(!surface.current)return
+  useFrame(()=>{
     const p=transit?(transit.progress??0):0
-    // Never draw two full overlapping opaque route shells at once. They
-    // share most of the trunk but have slightly different Frenet frames:
-    // transparency overdraw here looked like broken walls / clipping.
-    // Switch at the actual common junction while the building branch persists.
+    // Source and destination exchange only at their REAL shared junction.
+    // Both sides are now built from the same trunk/arm curves, with an open
+    // central chamber, so there is never an opaque wall across the turn.
     if(root.current)root.current.visible=!transit||
       (arrival?(branch?p>=.52:p>=.90):p<.52)
-    surface.current.opacity=1
+    surfaces.current.forEach(material=>{if(material)material.opacity=1})
     seamMaterials.current.forEach((material,i)=>{
       if(material)material.opacity=i%2===0?.46:.24
     })
   })
-  useEffect(()=>()=>geometry.dispose(),[geometry])
-  const seams=useMemo(()=>
-    Array.from({length:seamsCount},(_,i)=>
-      createSeam(path,i*Math.PI*2/seamsCount,{radius,segments:branch?100:140,start,end})),
-    [path,branch,arrival]
-  )
+  useEffect(()=>()=>geometries.forEach(geometry=>geometry.dispose()),[geometries])
   return (
     <group ref={root}>
-      <mesh geometry={geometry}>
-        <meshPhysicalMaterial ref={surface} vertexColors side={THREE.BackSide}
-          opacity={1} depthWrite
+      {geometries.map((geometry,i)=><mesh key={i} geometry={geometry}>
+        <meshPhysicalMaterial ref={el=>{surfaces.current[i]=el}}
+          vertexColors side={THREE.BackSide}
           metalness={.58} roughness={.29}
           clearcoat={.88} clearcoatRoughness={.17}
           emissive="#514962" emissiveIntensity={.2}/>
-      </mesh>
+      </mesh>)}
       {seams.map((seam,index)=>(
         <mesh key={index}>
-          <tubeGeometry args={[seam,160,index%2===0?.018:.009,6,false]}/>
+          <tubeGeometry args={[seam,Math.max(25,Math.round(160/spans.length)),
+            index%2===0?.018:.009,6,false]}/>
           <meshBasicMaterial ref={el=>{seamMaterials.current[index]=el}}
             color={index%3===0?'#f2d9d0':'#d4d8ff'}
             transparent opacity={index%2===0?.46:.24}
@@ -279,7 +280,6 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       current.current=current.current===null?nextT:
         THREE.MathUtils.damp(current.current,nextT,3.4,dt)
       sample={path:route.path,t:current.current,
-        reverse:route.mode==='detail'&&detailReturning(y/total),
         mode:route.mode,index:route.index}
       if(flightPosition)flightPosition.current={t:current.current,pathName:route.pathName}
     }
@@ -313,10 +313,19 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       }
       ahead.copy(position).addScaledVector(direction,12)
     }else{
-      sample.path.getPointAt(
-        sample.reverse?Math.max(.001,t-.024):Math.min(.999,t+.024),ahead
-      )
       sample.path.getTangentAt(t,direction)
+      if(sample.mode==='detail'){
+        // The project story stops at its far end before returning. Rotate
+        // gradually DURING that stop rather than reversing the view in one
+        // frame or allowing a 180-degree look-at singularity.
+        sourceHeading.copy(direction)
+        destinationHeading.copy(direction).negate()
+        blendHeading(sourceHeading,destinationHeading,
+          smooth((y/Math.max(1,total)-.625)/.105),direction)
+        ahead.copy(position).addScaledVector(direction,12)
+      }else{
+        sample.path.getPointAt(Math.min(.999,t+.024),ahead)
+      }
     }
     right.crossVectors(direction,UP).normalize()
     softPointer.current.x=THREE.MathUtils.damp(softPointer.current.x,pointer.current.x,3.2,dt)
