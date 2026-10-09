@@ -1,9 +1,13 @@
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 
 const site=process.env.PUBLIC_SITE
 if(!site?.startsWith('https://'))throw new Error('No published Pages URL returned by GitHub')
 const homepage=site.endsWith('/')?site:site+'/'
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms))
+const compiled=await readFile('dist/index.html','utf8')
+const expected=compiled.match(/<script[^>]*src="([^"]+)"/)?.[1]
+if(!expected?.endsWith('.js'))throw Error('The verified production build has no JavaScript entrypoint')
 
 let last
 for(let attempt=1;attempt<=24;attempt++){
@@ -18,12 +22,14 @@ for(let attempt=1;attempt<=24;attempt++){
     if(!html.includes('Cosme Collomb'))throw new Error('Wrong page served')
     const script=[...html.matchAll(/<script[^>]*src="([^"]+)"/g)].find(match=>match[1].endsWith('.js'))
     if(!script)throw new Error('Published homepage has no JavaScript bundle')
+    if(script[1]!==expected)throw new Error(
+      'Public Pages still serves an older build: '+script[1]+' instead of '+expected)
     const asset=new URL(script[1],homepage)
     const js=await fetch(asset,{signal:AbortSignal.timeout(13000)})
     if(!js.ok)throw new Error('Published JS asset HTTP '+js.status)
     const jsContent=await js.text()
     assert.ok(jsContent.length>1000,'Published JS asset unexpectedly empty')
-    console.log('PUBLIC SITE VERIFIED:',homepage,'HTTP 200; JS bundle HTTP 200',jsContent.length,'bytes')
+    console.log('PUBLIC SITE VERIFIED:',homepage,'HTTP 200; correct current JS bundle HTTP 200',jsContent.length,'bytes')
     process.exit(0)
   }catch(err){
     last=err
