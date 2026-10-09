@@ -105,8 +105,8 @@ export function sampleTransit(from,to,initialT,progress){
   // Align the *physical* camera position exactly there and gently remove
   // that alignment as the destination corridor begins. No position filter
   // or "catch-up" lag is needed, so finishing a trip cannot snap again.
-  const join=from.path.getPointAt(Math.max(.001,Math.min(.998,hub.fromT)))
-    .sub(to.path.getPointAt(Math.max(.001,Math.min(.998,hub.toT))))
+  const join=from.path.getPointAt(clamp(hub.fromT))
+    .sub(to.path.getPointAt(clamp(hub.toT)))
   // Drive the correction by DISTANCE along the new branch, rather than
   // time. The assembled 3D wall can then use the same offset per section,
   // so the viewer is moving down the true centre of the bridge.
@@ -119,7 +119,10 @@ export function sampleTransit(from,to,initialT,progress){
 // Physical camera world position: the interpolation belongs to the route,
 // NOT a second, independently damped camera that can lag behind a page swap.
 export function transitPoint(sample,target){
-  const t=Math.max(.001,Math.min(.998,sample.t))
+  // A hub can be the true endpoint of an incoming route (t=1).
+  // Artificially clamping at .998 froze the camera before the crossing
+  // and created a visible gap when switching to the next corridor.
+  const t=clamp(sample.t)
   const point=sample.path.getPointAt(t,target)
   if(sample.offset)point.add(sample.offset)
   return point

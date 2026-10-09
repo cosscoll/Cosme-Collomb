@@ -273,3 +273,12 @@ test('Camera keeps moving during tunnel assembly instead of freezing near the fo
   const after=transitPoint(sampleTransit(from,to,initial,TRANSIT_MID))
   assert.ok(before.distanceTo(after)<.002,'Camera jumped when crossing the new tunnel')
 })
+
+test('Joining exactly at the end of a route never clamps the camera short of the shared fork',()=>{
+  const source=routeInfo('/projets')
+  const destination=routeInfo('/projets/'+PROJECTS[0].slug)
+  const hub=junctionFor(source,destination,PROJECT_LOOKOUT_T)
+  assert.ok(hub.fromT>.998)
+  const atHub=transitPoint(sampleTransit(source,destination,PROJECT_LOOKOUT_T,TRANSIT_MID))
+  assert.ok(atHub.distanceTo(source.path.getPointAt(hub.fromT))<.0001)
+})

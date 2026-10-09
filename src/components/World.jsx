@@ -472,8 +472,8 @@ function BuildingBranch({transit,flightPosition}) {
     // shell, using precisely the same distance-based correction as transitPoint.
     // Merely moving the eye while leaving this mesh behind creates a visibly
     // disconnected mouth — the reported "fake bridge" / wall teleport.
-    const hubFrom=from.path.getPointAt(Math.max(.001,Math.min(.998,hub.fromT)))
-    const hubTo=to.path.getPointAt(Math.max(.001,Math.min(.998,hub.toT)))
+    const hubFrom=from.path.getPointAt(clamp(hub.fromT))
+    const hubTo=to.path.getPointAt(clamp(hub.toT))
     const joinShift=hubFrom.clone().sub(hubTo)
     const joinWeight=(t)=>{
       const travel=Math.max(0,(t-hub.toT)/(arrival-hub.toT))
