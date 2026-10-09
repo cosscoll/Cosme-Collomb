@@ -1,0 +1,22 @@
+name: One-time live contact delivery verification
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/contact-live.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-contact-on-public-site:
+    runs-on: ubuntu-latest
+    timeout-minutes: 13
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Verify actual public contact form submission
+        run: node tests/contact-live-check.mjs
