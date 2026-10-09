@@ -520,9 +520,31 @@ function Contact() {
   return <>
     <PageIntro kicker="CONTACT / PRENONS LE TEMPS" title="La suite" italic="s'invente ensemble." text="Un projet, une idée, une opportunité ? Parlons-en." />
     <section className="interior-body contact-body">
-      <a href="https://github.com/cosscoll" className="contact-giant-link" target="_blank" rel="noopener noreferrer">Retrouvez-moi sur GitHub <span>↗</span></a>
-      <p>Ou explorez les projets pour découvrir mes réalisations et leurs liens directs.</p>
-      <Link to="/projets" className="underlined-link">Explorer les projets <span>↗</span></Link>
+      <div className="contact-layout">
+        <div className="contact-details">
+          <span className="micro-label">CONTACT DIRECT</span>
+          <a className="contact-email" href="mailto:Pro.collomb@gmail.com">Pro.collomb@gmail.com <span aria-hidden="true">↗</span></a>
+          <p>Vous pouvez aussi me laisser un message. Je le recevrai directement par e-mail après activation du formulaire.</p>
+          <a href="https://github.com/cosscoll" className="underlined-link" target="_blank" rel="noopener noreferrer">Découvrir mon GitHub ↗</a>
+        </div>
+        <form className="portfolio-contact-form" action="https://formsubmit.co/Pro.collomb@gmail.com" method="POST">
+          <span className="micro-label">ÉCRIVEZ-MOI</span>
+          <input type="hidden" name="_subject" value="Nouveau message depuis le Portfolio" />
+          <input type="hidden" name="_template" value="table" />
+          <input type="hidden" name="_url" value="https://cosscoll.github.io/Cosme-Collomb/#/contact" />
+          <div className="contact-honey" aria-hidden="true"><label htmlFor="contact-website">Ne pas remplir</label><input id="contact-website" type="text" name="_honey" tabIndex={-1} autoComplete="off" /></div>
+          <label htmlFor="contact-name">Nom et prénom</label>
+          <input id="contact-name" name="name" type="text" placeholder="Votre nom" autoComplete="name" required maxLength={120} />
+          <label htmlFor="contact-email">Adresse e-mail</label>
+          <input id="contact-email" name="email" type="email" placeholder="votre@email.com" autoComplete="email" required maxLength={254} />
+          <label htmlFor="contact-subject">Sujet</label>
+          <input id="contact-subject" name="subject" type="text" placeholder="De quoi souhaitez-vous parler ?" required maxLength={180} />
+          <label htmlFor="contact-message">Votre message</label>
+          <textarea id="contact-message" name="message" rows={6} placeholder="Présentez votre projet ou votre demande…" minLength={10} maxLength={5000} required />
+          <p className="contact-privacy">Ces informations servent uniquement à répondre à votre demande. L'envoi passe par le service tiers FormSubmit.</p>
+          <button className="contact-submit" type="submit">Envoyer mon message <span aria-hidden="true">↗</span></button>
+        </form>
+      </div>
     </section>
   </>
 }
