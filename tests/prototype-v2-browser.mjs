@@ -99,7 +99,7 @@ async function run(){
       end.step.toFixed(3),'m, collisions:',end.collisions)
     assert.ok(distance<.000001,'Project '+project+' teleports instead of returning to hub viewpoint')
     assert.equal(end.collisions,0,'Camera crossed an opaque bridge element on project '+project)
-    assert.ok(end.step<1.2,'Camera jumps more than 1.2m on a single rendered frame')
+    assert.ok(end.step<.55,'Camera makes an unstable (>0.55m) move in one rendered frame')
     assert.equal(await page.locator('button.choice:enabled').count(),5,
       'The original five-choice crossroads is blocked after a project')
     if(project===0)await photo(page,'retour')
