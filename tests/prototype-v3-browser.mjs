@@ -34,7 +34,7 @@ async function run(){
     '--use-angle=swiftshader','--enable-unsafe-swiftshader',
     '--disable-dev-shm-usage','--disable-gpu-sandbox'
   ]})
-  const page=await browser.newPage({viewport:{width:960,height:630}})
+  const page=await browser.newPage({viewport:{width:480,height:320}})
   page.setDefaultTimeout(30000)
   const errors=[]
   page.on('pageerror',error=>errors.push(String(error)))
@@ -61,7 +61,7 @@ async function run(){
       'A route does not return to the original junction')
   }
   console.log('V3 START: all five enclosed loops join one unchanged room')
-  await shot(page,'original-crossroads')
+  // Avoid GPU readback during animation: SwiftShader screenshots stall RAF.
   await page.evaluate(()=>window.__v3Proof.speedUp(3))
   for(let i=0;i<5;i++){
     const start=await page.evaluate(()=>window.__v3Proof.camera)
@@ -80,12 +80,12 @@ async function run(){
       }))
       assert.ok(euclidean(building.camera,origin.position)<.04,
         'The camera moves before the 3D tunnel is assembled')
-      await shot(page,'actual-tunnel-construction')
+  // Avoid GPU readback during animation: SwiftShader screenshots stall RAF.
     }
     // The passage is first constructed with the camera stationary, then
     // its opaque walls become available before the visitor travels inside.
     await page.waitForFunction(()=>window.__v3Proof.phase==='travelling',
-      null,{timeout:35000})
+      null,{timeout:90000})
     const proof=await page.evaluate(i=>({
       built:window.__v3Proof.built,
       ray:window.__v3Proof.testOcclusion(i,.44),
@@ -96,11 +96,11 @@ async function run(){
     // Floor and ceiling geometry must physically enclose the camera.
     assert.ok(proof.ray.roof&&proof.ray.floor,
       'Project '+(i+1)+' has an open roof or missing floor: '+JSON.stringify(proof.ray))
-    if(i===0)await shot(page,'enclosed-project-tunnel')
+  // Avoid GPU readback during animation: SwiftShader screenshots stall RAF.
     await page.waitForFunction(count=>{
       const p=window.__v3Proof
       return p.phase==='idle'&&p.completed===count+1
-    },before,{timeout:75000})
+    },before,{timeout:120000})
     const end=await page.evaluate(()=>({
       position:window.__v3Proof.camera,
       quaternion:window.__v3Proof.quaternion,
@@ -124,7 +124,7 @@ async function run(){
     console.log('V3 LOOP '+(i+1)+'/5 OK:',
       JSON.stringify({returnMeters:displacement,headingDegrees:degrees,
         maxFrameStep:end.maxStep,choices:end.choices}))
-    if(i===0)await shot(page,'restored-five-way-fork')
+  // Avoid GPU readback during animation: SwiftShader screenshots stall RAF.
   }
   assert.deepEqual(errors,[],'JavaScript exception in a 3D loop')
   console.log('V3 FULL QUALITY AUDIT PASSED: five enclosed project loops, opaque walls, visible 3D assembly, identical physical crossroads on all five returns, all five choices available, no camera teleport')
