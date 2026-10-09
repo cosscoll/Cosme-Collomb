@@ -1,0 +1,25 @@
+name: Verify V2 five-loop public website
+on:
+  push:
+    branches: ['check-public-v2-five-loops']
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check live public V2 and its exact compiled JS/CSS
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://cosscoll.github.io/Cosme-Collomb/"
+          curl -fsSL --max-time 30 -o /tmp/portfolio -w 'Portfolio HTTP %{http_code}\n' "$base"
+          grep -q 'Cosme Collomb' /tmp/portfolio
+          curl -fsSL --max-time 30 -o /tmp/v2 -w 'V2 demo HTTP %{http_code} / %{url_effective}\n' "${base}prototype-3d/v2/"
+          grep -q 'Cinq chemins' /tmp/v2
+          grep -q '/Cosme-Collomb/assets/prototypeV2-DDW2sNhh.js' /tmp/v2
+          for asset in prototypeV2-DDW2sNhh.js prototypeV2-DV0xKbQX.css three.module-CjiiO1it.js projects-VjPwKz_2.js modulepreload-polyfill-B5Qt9EMX.js; do
+            curl -fsSL --max-time 30 -o /tmp/check-asset -w "Asset $asset HTTP %{http_code}\n" "https://cosscoll.github.io/Cosme-Collomb/assets/$asset"
+            test -s /tmp/check-asset
+          done
+          echo 'VERIFIED FIVE-LOOP 3D PROTOTYPE PUBLIC: https://cosscoll.github.io/Cosme-Collomb/prototype-3d/v2/'
