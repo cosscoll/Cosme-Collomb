@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { followScrollT } from '../scene/cameraMotion.js'
 import * as THREE from 'three'
 import { routeInfo, scrollT, sampleTransit, transitPoint, junctionFor, arrivalT, bridgeBuild, PROJECT_LOOKOUT_T } from '../scene/transit.js'
 import {
@@ -31,63 +32,65 @@ function blendHeading(a,b,weight,target){
   return target
 }
 
-function Shell({path,branch=false,transit=null,arrival=false}) {
-  // A junction MUST NOT be surrounded by the opaque walls of the old
-  // destination. The shared route segments meet in clear, walkable atria.
+// Keep the geometry of a physical corridor for the whole browsing session.
+// Navigating between pages used to recreate thousands of vertices and GPU
+// buffers precisely while the camera was turning, causing dropped frames.
+// Paths are module-static and there are only 8 project branches.
+const SHELL_CACHE=new WeakMap()
+function shellResources(path,branch){
+  let variants=SHELL_CACHE.get(path)
+  if(!variants){variants={};SHELL_CACHE.set(path,variants)}
+  const kind=branch?'branch':'corridor'
+  if(variants[kind])return variants[kind]
   const radius=branch?2.85:4.25
   const start=branch?PROJECT_FORK_OPEN:0
   const end=branch?PROJECT_FORK_CLOSE:1
-  const divisions=branch?104:300
-  const radial=branch?40:64
-  const seamsCount=branch?3:7
-  const spans=useMemo(()=>branch?[[start,end]]:shellSpans(path),[path,branch])
-  const geometries=useMemo(()=>spans.map(([a,b])=>createSkin(path,{
+  const divisions=branch?84:238
+  const radial=branch?32:48
+  const seamsCount=branch?3:5
+  const spans=branch?[[start,end]]:shellSpans(path)
+  const geometries=spans.map(([a,b])=>createSkin(path,{
     radius,lengthSegments:Math.max(16,Math.round(divisions*(b-a))),
     radialSegments:radial,start:a,end:b
-  })),[path,spans,branch])
-  const seams=useMemo(()=>spans.flatMap(([a,b])=>
-    Array.from({length:seamsCount},(_,i)=>
-      createSeam(path,i*Math.PI*2/seamsCount,{
-        radius,segments:Math.max(15,Math.round(140*(b-a))),
+  }))
+  const seamGeometries=spans.flatMap(([a,b])=>
+    Array.from({length:seamsCount},(_,i)=>{
+      const seam=createSeam(path,i*Math.PI*2/seamsCount,{
+        radius,segments:Math.max(15,Math.round(120*(b-a))),
         start:a,end:b
-      }))
-  ),[path,spans,branch])
-  const root=useRef(null)
-  const surfaces=useRef([])
-  const seamMaterials=useRef([])
-  useFrame(()=>{
-    const p=transit?(transit.progress??0):0
-    // Source and destination exchange only at their REAL shared junction.
-    // Both sides now share the trunk/arm curves and open central chamber.
-    // Reveal the incoming surface AS the bridge crossing starts; previously
-    // all permanent walls vanished from 52% to 90%, simulating a teleport.
-    if(root.current)root.current.visible=!transit||
-      (arrival?p>=.52:p<.52)
-    surfaces.current.forEach(material=>{if(material)material.opacity=1})
-    seamMaterials.current.forEach((material,i)=>{
-      if(material)material.opacity=i%2===0?.46:.24
+      })
+      return new THREE.TubeGeometry(seam,
+        Math.max(25,Math.round(130/spans.length)),
+        i%2===0?.018:.009,6,false)
     })
+  )
+  const resource={geometries,seamGeometries}
+  variants[kind]=resource
+  return resource
+}
+
+function Shell({path,branch=false,transit=null,arrival=false}) {
+  const {geometries,seamGeometries}=useMemo(
+    ()=>shellResources(path,branch),[path,branch])
+  const root=useRef(null)
+  useFrame(()=>{
+    if(!root.current)return
+    const p=transit?(transit.progress??0):0
+    // The shared walls swap at the physical junction, never mid-corridor.
+    root.current.visible=!transit||(arrival?p>=.52:p<.52)
   })
-  useEffect(()=>()=>geometries.forEach(geometry=>geometry.dispose()),[geometries])
   return (
-    <group ref={root}>
-      {geometries.map((geometry,i)=><mesh key={i} geometry={geometry}>
-        <meshPhysicalMaterial ref={el=>{surfaces.current[i]=el}}
-          vertexColors side={THREE.BackSide}
-          metalness={.58} roughness={.29}
-          clearcoat={.88} clearcoatRoughness={.17}
+    <group ref={root} dispose={null}>
+      {geometries.map((geometry,i)=><mesh key={i} geometry={geometry} dispose={null}>
+        <meshStandardMaterial vertexColors side={THREE.BackSide}
+          metalness={.50} roughness={.36}
           emissive="#514962" emissiveIntensity={.2}/>
       </mesh>)}
-      {seams.map((seam,index)=>(
-        <mesh key={index}>
-          <tubeGeometry args={[seam,Math.max(25,Math.round(160/spans.length)),
-            index%2===0?.018:.009,6,false]}/>
-          <meshBasicMaterial ref={el=>{seamMaterials.current[index]=el}}
-            color={index%3===0?'#f2d9d0':'#d4d8ff'}
-            transparent opacity={index%2===0?.46:.24}
-            depthWrite={false} toneMapped={false}/>
-        </mesh>
-      ))}
+      {seamGeometries.map((geometry,i)=><mesh key={i} geometry={geometry} dispose={null}>
+        <meshBasicMaterial color={i%3===0?'#f2d9d0':'#d4d8ff'}
+          transparent opacity={i%2===0?.46:.24}
+          depthWrite={false} toneMapped={false}/>
+      </mesh>)}
     </group>
   )
 }
@@ -194,7 +197,11 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
   const matrix=useMemo(()=>new THREE.Matrix4(),[])
   const rotation=useMemo(()=>new THREE.Quaternion(),[])
   const goal=useMemo(()=>new THREE.Vector3(),[])
-  const scrollPositions=useRef({junction:1,works:2,fork:2})
+  const scrollPositions=useRef({junction:1,works:2,fork:2,total:1})
+  const pathLength=useMemo(()=>route.path.getLength(),[route.path])
+  const transitRoutes=useMemo(()=>transit?{
+    from:routeInfo(transit.from),to:routeInfo(transit.to)
+  }:null,[transit?.from,transit?.to])
 
   useEffect(()=>{
     const onMove=e=>{
@@ -204,6 +211,41 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
     window.addEventListener('pointermove',onMove,{passive:true})
     return ()=>window.removeEventListener('pointermove',onMove)
   },[])
+
+  // Read DOM geometry only when the layout changes. offsetTop and
+  // scrollHeight inside useFrame previously forced layout on EVERY GPU frame.
+  useEffect(()=>{
+    let frame=0
+    const measure=()=>{
+      frame=0
+      const home=document.getElementById('junction')
+      const work=document.getElementById('works')
+      const fork=document.getElementById('project-crossroads')
+      const next=scrollPositions.current
+      if(home)next.junction=home.offsetTop+home.offsetHeight*.38
+      if(work)next.works=work.offsetTop
+      if(fork)next.fork=fork.offsetTop
+      next.total=Math.max(1,document.documentElement.scrollHeight-window.innerHeight)
+    }
+    const schedule=()=>{
+      if(!frame)frame=requestAnimationFrame(measure)
+    }
+    measure()
+    const content=document.getElementById('content')
+    const resized=typeof ResizeObserver!=='undefined'?new ResizeObserver(schedule):null
+    if(content)resized?.observe(content)
+    const mutated=typeof MutationObserver!=='undefined'?new MutationObserver(schedule):null
+    if(content)mutated?.observe(content,{childList:true,subtree:true})
+    window.addEventListener('resize',schedule)
+    window.addEventListener('portfolio:flight-milestone',schedule)
+    return ()=>{
+      cancelAnimationFrame(frame)
+      resized?.disconnect()
+      mutated?.disconnect()
+      window.removeEventListener('resize',schedule)
+      window.removeEventListener('portfolio:flight-milestone',schedule)
+    }
+  },[route.pathName,transit?.id])
 
   useFrame(({clock},delta)=>{
     // Clamp elapsed FRAME time, not just clock time: a costly WebGL frame
@@ -226,14 +268,8 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       flight.p=0
     }
     let visualProgress=transit?flight.p:0
-    const total=Math.max(1,document.documentElement.scrollHeight-window.innerHeight)
+    const total=scrollPositions.current.total
     const y=window.scrollY
-    const homeJunction=document.getElementById('junction')
-    const work=document.getElementById('works')
-    const projectFork=document.getElementById('project-crossroads')
-    if(homeJunction)scrollPositions.current.junction=homeJunction.offsetTop+homeJunction.offsetHeight*.38
-    if(work)scrollPositions.current.works=work.offsetTop
-    if(projectFork)scrollPositions.current.fork=projectFork.offsetTop
 
     let sample
     if(transit){
@@ -248,7 +284,7 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
             projectFork:scrollPositions.current.fork}):
           current.current
       }
-      const from=routeInfo(transit.from),to=routeInfo(transit.to)
+      const {from,to}=transitRoutes
       // Cap each actual *world-space* frame movement, even when the user
       // changes pages from the far end of a long corridor via the header.
       // This also prevents crossing an opaque wall after a GPU stall.
@@ -279,7 +315,7 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
         works:scrollPositions.current.works,projectFork:scrollPositions.current.fork
       })
       current.current=current.current===null?nextT:
-        THREE.MathUtils.damp(current.current,nextT,3.4,dt)
+        followScrollT(current.current,nextT,pathLength,dt)
       sample={path:route.path,t:current.current,
         mode:route.mode,index:route.index}
       if(flightPosition)flightPosition.current={t:current.current,pathName:route.pathName}
@@ -289,7 +325,7 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
     transitPoint(sample,position)
     if(transit){
       const p=visualProgress
-      const from=routeInfo(transit.from),to=routeInfo(transit.to)
+      const {from,to}=transitRoutes
       const junction=junctionFor(from,to,departure.current)
       const endT=arrivalT(to,from)
       from.path.getTangentAt(clamp(junction.fromT),sourceHeading)
@@ -366,8 +402,11 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
         Math.min(smoothing,.20/angle):1)
     }
     const boost=transit?2.3*Math.sin(Math.PI*visualProgress):0
-    camera.fov=THREE.MathUtils.damp(camera.fov,45+boost,4,dt)
-    camera.updateProjectionMatrix()
+    const fov=THREE.MathUtils.damp(camera.fov,45+boost,4,dt)
+    if(Math.abs(fov-camera.fov)>.001){
+      camera.fov=fov
+      camera.updateProjectionMatrix()
+    }
     // Expose physical flight telemetry for real camera-continuity regression
     // tests (DOM-only route tests cannot detect a 3D position teleport).
     window.__portfolioFlight={
@@ -379,9 +418,9 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       phase:sample.phase||'scroll',
       currentRoute:route.pathName,from:transit?.from,to:transit?.to,
       flightId:transit?.id??null,
-      updatedAt:performance.now(),
+      updatedAt:performance.now(),frameMs:delta*1000,
       progress:transit?visualProgress:null,
-      samplePath:transit?(sample.path===routeInfo(transit.to).path?'destination':'source'):route.pathName
+      samplePath:transit?(sample.path===transitRoutes.to.path?'destination':'source'):route.pathName
     }
     if(transit){
       // Notify React Router only once the camera has PHYSICALLY arrived.
@@ -427,7 +466,7 @@ function BuildingBranch({transit,flightPosition}) {
       start=Math.min(.985,hub.toT+margin)
       end=Math.min(.998,Math.max(start+.115,arrival+.075))
     }
-    const lengthSegments=206,radialSegments=48,radius=4.18
+    const lengthSegments=158,radialSegments=40,radius=4.18
     // The two route splines differ very slightly at the shared control point.
     // Bend the FIRST metres of the *actual tunnel mesh* to meet the outgoing
     // shell, using precisely the same distance-based correction as transitPoint.
@@ -486,7 +525,7 @@ function BuildingBranch({transit,flightPosition}) {
         const t=start+(end-start)*j/(curve.points.length-1)
         point.addScaledVector(joinShift,joinWeight(t))
       })
-      const geom=new THREE.TubeGeometry(curve,206,.018,6,false)
+      const geom=new THREE.TubeGeometry(curve,128,.018,6,false)
       geom.setDrawRange(0,0)
       return geom
     })
@@ -615,7 +654,7 @@ function Scene({pathname,hovered,transit}) {
 export default function World({pathname='/',hovered='',transit=null,onReady}) {
   return <Canvas onCreated={onReady}
     camera={{position:[0,0,11],fov:45,near:.12,far:140}}
-    dpr={[1,1.65]}
+    dpr={[1,1.35]}
     gl={{alpha:false,antialias:true,powerPreference:'high-performance'}}
     style={{position:'absolute',inset:0}}>
     <Scene pathname={pathname} hovered={hovered} transit={transit}/>
