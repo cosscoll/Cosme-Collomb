@@ -1,5 +1,5 @@
 import { chromium } from 'playwright'
-const browser=await chromium.launch({headless:true,args:['--no-sandbox','--disable-dev-shm-usage']})
+const browser=await chromium.launch({headless:true,channel:'chrome',args:['--no-sandbox','--disable-dev-shm-usage']})
 try{
  const page=await browser.newPage({viewport:{width:1100,height:850}})
  await page.goto('https://codefreeform.com/',{waitUntil:'domcontentloaded',timeout:45000})
