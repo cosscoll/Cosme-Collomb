@@ -37,7 +37,7 @@ try{
  const form=page.locator('form[data-service="codefreeform"]')
  await form.waitFor({state:'visible',timeout:60000})
  assert.equal(await form.getAttribute('data-submission'),'json')
- await form.locator('input[name=access_key]').evaluate(el=>assertKey(el.value))
+ assert.equal(await form.locator('input[name=access_key]').inputValue(),'C4DE51')
  await form.locator('input[name=name]').fill('Controle final portfolio')
  await form.locator('input[name=email]').fill('pro.collomb@gmail.com')
  await form.locator('input[name=subject]').fill(marker)
@@ -57,4 +57,3 @@ try{
  assert.equal(data.email_status,'sent')
  console.log('PUBLIC_FORM_SUCCESS_CHECKED',marker)
 }finally{await browser.close()}
-function assertKey(key){if(key!=='C4DE51')throw Error('Unexpected access key on public form')}
