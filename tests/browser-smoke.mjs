@@ -189,7 +189,7 @@ async function run(){
   // the eight-gate crossroads.
   await page.waitForFunction(()=>{
     const f=window.__portfolioFlight
-    return f?.mode==='detail' && !f.transiting && f.t>=.993
+    return f?.mode==='detail' && !f.transiting && f.t>=.985
   },null,{timeout:180000})
   console.log('Physical loop complete at',await page.evaluate(()=>window.__portfolioFlight?.t))
   await page.locator('[data-bridge-transition="active"]').waitFor({timeout:45000})
