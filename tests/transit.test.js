@@ -301,3 +301,13 @@ test('All eight project tours advance around a separate return corridor without 
     assert.ok(a.distanceTo(b)>10,'Return corridor is not physically separate')
   }
 })
+
+test('Every completed project reaches the automatic-return camera threshold',()=>{
+  const automaticReturnThreshold=.985
+  for(const project of PROJECTS){
+    const info=routeInfo('/projets/'+project.slug)
+    const finalPosition=scrollT(info,{scrollY:6000,total:6000})
+    assert.ok(finalPosition>=automaticReturnThreshold,
+      project.title+': automatic return cannot trigger at the end of the loop')
+  }
+})
