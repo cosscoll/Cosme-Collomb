@@ -1,8 +1,8 @@
-name: Diagnostic native HTML contact test
+name: Verify alternate contact provider email delivery
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/contact-native-check.yml']
+    paths: ['.github/workflows/contact-native-check.yml', 'tests/contact-native-check.mjs']
   workflow_dispatch:
 permissions:
   contents: read
@@ -16,5 +16,4 @@ jobs:
         with:
           node-version: 20
       - run: npm install
-      - run: npx playwright install --with-deps chromium
       - run: node tests/contact-native-check.mjs
