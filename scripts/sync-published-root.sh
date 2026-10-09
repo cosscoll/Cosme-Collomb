@@ -16,7 +16,7 @@ touch .nojekyll
 
 git config user.name 'github-actions[bot]'
 git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-git add -f index.html assets/ .nojekyll
+git add -f index.html prototype-3d/index.html assets/ .nojekyll
 if git diff --cached --quiet; then
   echo 'Published branch files already match the compiled build'
 else
