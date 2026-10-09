@@ -12,6 +12,29 @@ assert.equal(PROJECTS.length, 8, 'Project count unexpectedly changed')
 assert.equal(PROJECT_STORIES.length, PROJECTS.length, 'Each project must have its own narrative')
 assert.equal(new Set(PROJECTS.map(p=>p.slug)).size, PROJECTS.length,'Duplicate project slugs')
 
+let currentSiteReady = false
+for(let attempt=1;attempt<=32;attempt++){
+ try{
+  const res=await fetch(base+'?content-audit='+Date.now(),{headers:{'Cache-Control':'no-cache'},signal:AbortSignal.timeout(12000)})
+  assert.equal(res.status,200)
+  const html=await res.text()
+  const script=html.match(/<script[^>]*src="([^"]+\\.js)"/)?.[1]
+  assert.ok(script,'No compiled script published')
+  const bundleRes=await fetch(new URL(script,base),{signal:AbortSignal.timeout(12000)})
+  assert.equal(bundleRes.status,200)
+  const js=await bundleRes.text()
+  assert.ok(js.includes('TCG Deseur'),'Project content release not yet public')
+  assert.ok(js.includes('codefreeform.com/api/contact-api/'),'Unexpected contact release')
+  console.log('AUDITED_PUBLIC_RELEASE',script)
+  currentSiteReady = true
+  break
+ }catch(error){
+  console.log('WAITING_FOR_UPDATED_PAGES',attempt,String(error.message).slice(0,170))
+  await new Promise(resolve=>setTimeout(resolve,7000))
+ }
+}
+assert.ok(currentSiteReady,'Latest project text not published in GitHub Pages')
+
 const launchOptions={headless:true,channel:'chrome',args:['--no-sandbox','--disable-dev-shm-usage']}
 const browser = await chromium.launch(launchOptions)
 try {
