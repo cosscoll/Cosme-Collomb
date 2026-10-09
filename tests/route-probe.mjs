@@ -30,7 +30,17 @@ try{
     const title=await page.locator('.journey-entrance h1').innerText()
     const internal=await page.locator('a.journey-back').getAttribute('href')
     const external=(await page.locator('a.detail-primary').count())?await page.locator('a.detail-primary').getAttribute('href'):'none'
-    const width=await page.evaluate(()=>({client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth}))
+    const width=await page.evaluate(()=>({client:document.documentElement.clientWidth,scroll:document.documentElement.scrollWidth,headingFont:getComputedStyle(document.querySelector('.journey-entrance h1')).fontSize}))
+    if(width.scroll>width.client+8){
+      const offenders=await page.evaluate(()=>{
+        const max=document.documentElement.clientWidth
+        return [...document.querySelectorAll('body *')].map(el=>({el,rect:el.getBoundingClientRect()}))
+          .filter(x=>x.rect.right>max+8 && x.rect.width>2)
+          .slice(0,9).map(x=>({tag:x.el.tagName,cls:String(x.el.className).slice(0,80),text:(x.el.textContent||'').slice(0,65),right:Math.round(x.rect.right),width:Math.round(x.rect.width)}))
+      })
+      console.log('MOBILE_OVERFLOW_OFFENDERS',mode,name,JSON.stringify(offenders))
+      failures++
+    }
     console.log('ROUTE_CHECK_SUCCESS',JSON.stringify({mode,name,slug,title,internal,external,width}))
    }catch(err){failures++;console.error('ROUTE_CHECK_FAIL',mode,name,err.message.slice(0,200))}
    finally{await page.close().catch(()=>{})}
