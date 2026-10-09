@@ -1,0 +1,35 @@
+name: Publish isolated V3 preview
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-v3-preview.yml']
+permissions:
+  contents: write
+jobs:
+  publish-v3:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install
+      - run: node --test tests/prototype-v2-geometry.test.mjs
+      - run: cp site/index.source.html index.html
+      - run: npm run build
+      - name: Publish new V3 preview without modifying existing portfolio pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s dist/prototype-3d/v3/index.html
+          mkdir -p prototype-3d/v3 assets
+          cp dist/prototype-3d/v3/index.html prototype-3d/v3/index.html
+          cp -a dist/assets/. assets/
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f prototype-3d/v3/index.html assets/
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore(pages): publish isolated opaque-tunnel V3 preview [skip ci]'
+            git push origin HEAD:main
+          fi
