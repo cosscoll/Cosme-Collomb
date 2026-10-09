@@ -18,7 +18,7 @@ for(let attempt=1;attempt<=32;attempt++){
   const res=await fetch(base+'?content-audit='+Date.now(),{headers:{'Cache-Control':'no-cache'},signal:AbortSignal.timeout(12000)})
   assert.equal(res.status,200)
   const html=await res.text()
-  const assets=[...html.matchAll(/(?:src|href)="([^"]+\\.js)"/g)].map(m=>m[1])
+  const assets=[...html.matchAll(/(?:src|href)="([^"]+\.js)"/g)].map(m=>m[1])
   assert.ok(assets.length>=2,'Published site is missing JS assets')
   const fetched=await Promise.all(assets.map(async path=>{
    const response=await fetch(new URL(path,base),{signal:AbortSignal.timeout(12000)})
