@@ -282,3 +282,20 @@ test('Joining exactly at the end of a route never clamps the camera short of the
   const atHub=transitPoint(sampleTransit(source,destination,PROJECT_LOOKOUT_T,TRANSIT_MID))
   assert.ok(atHub.distanceTo(source.path.getPointAt(hub.fromT))<.0001)
 })
+
+test('All eight project tours advance around a separate return corridor without U-turns',()=>{
+  for(const project of PROJECTS){
+    const info=routeInfo('/projets/'+project.slug)
+    let previous=-1
+    for(let i=0;i<=240;i++){
+      const t=scrollT(info,{scrollY:i,total:240})
+      assert.ok(t>=previous-1e-9,'Reversal on '+project.title+' at '+i)
+      previous=t
+    }
+    assert.ok(info.path.getPointAt(1).distanceTo(new THREE.Vector3(-9.5,0,-61))<.05)
+    const junction=junctionFor(info,routeInfo('/projets'),.985)
+    assert.equal(junction.fromT,1,'Return must complete forward loop before leaving it')
+    const a=info.path.getPointAt(.70),b=info.path.getPointAt(.88)
+    assert.ok(a.distanceTo(b)>10,'Return corridor is not physically separate')
+  }
+})

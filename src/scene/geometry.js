@@ -23,7 +23,11 @@ export const CHILDREN = PROJECTS.map((_,i) => {
     radial(8,-69),
     radial(14,-80),
     radial(18,-94),
-    radial(19,-110)
+    radial(19,-110),
+    // Wide continuous bend: the return lane is a different physical corridor.
+    radial(23,-122),radial(35,-120),radial(38,-104),
+    radial(37,-85),radial(32,-66),radial(18,-57),
+    radial(7,-55),[-9.5,0,-61]
   ]
 })
 // A route is a chain of SHARED physical pieces. Previously each complete
@@ -74,7 +78,9 @@ export function shellSpans(path,{start=0,end=1,clearance=4.6}={}){
   return spans.filter(([a,b])=>b-a>.0001)
 }
 export const MAIN_HUBS=PATHS.routes.map(p=>closestT(p,[0,0,-30]))
-export const PROJECT_HUBS=PATHS.details.map(p=>closestT(p,[-9.5,0,-61]))
+// The loop ends at the SAME hub; nearest-point searches can select its end.
+// Use the physical length of the common corridor to select the outbound fork.
+export const PROJECT_HUBS=PATHS.details.map(p=>(trunk.getLength()+arms[0].getLength())/p.getLength())
 export const TUNNEL_RADIUS=4.25
 export const RADIAL_SEGMENTS=64
 const PI2=Math.PI*2
@@ -191,15 +197,10 @@ export function projectOutboundT(index) {
   return PROJECT_HUBS[index]+.014
 }
 export function detailTravelT(index,progress) {
-  // Outbound while discovering the story; return on the same seamless shell.
+  // Always travel forward around the outer loop, never retrace the track.
   const hub=projectOutboundT(index)
-  const destination=.965
-  const p=Math.max(0,Math.min(1,progress))
-  if(p<=.63) return hub+(destination-hub)*(p/.63)
-  if(p<=.73) return destination
-  const back=(p-.73)/.27
-  return destination-(destination-hub)*(back*back*(3-2*back))
+  return hub+(.987-hub)*Math.max(0,Math.min(1,progress))
 }
 export function detailReturning(progress) {
-  return progress>.68
+  return false // Retained only for backwards-compatible callers
 }

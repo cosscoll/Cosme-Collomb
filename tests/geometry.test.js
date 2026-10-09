@@ -109,12 +109,13 @@ test('Each journey returns to the same physical intersection after its story',()
     const final=detailTravelT(i,1)
     assert.ok(Math.abs(start-hub)<.000001)
     assert.ok(outbound>.94 && outbound<.99)
-    assert.equal(turning,outbound)
-    assert.ok(Math.abs(final-start)<.000001,'Journey did not return to its junction')
-    assert.ok(PATHS.details[i].getPointAt(final).distanceTo(
-      PATHS.details[i].getPointAt(start))<.001)
+    assert.ok(turning>outbound)
+    assert.ok(final>turning && turning>outbound && outbound>start,
+      'One-way route reversed instead of looping around the project')
+    assert.ok(PATHS.details[i].getPointAt(1).distanceTo(
+      new THREE.Vector3(-9.5,0,-61))<.001)
     assert.equal(detailReturning(.4),false)
-    assert.equal(detailReturning(.8),true)
+    assert.equal(detailReturning(.8),false)
   }
 })
 
