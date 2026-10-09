@@ -1,0 +1,20 @@
+name: Portfolio production content and link audit
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/portfolio-audit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  portfolio-content:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - name: Verify eight project pages and public links
+        run: node tests/portfolio-audit-live.mjs
