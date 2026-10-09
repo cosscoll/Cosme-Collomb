@@ -1,4 +1,4 @@
-name: Live multipart contact delivery verification
+name: Live HTML contact submission compatibility test
 on:
   push:
     branches: [main]
@@ -18,4 +18,4 @@ jobs:
       - run: npm install
       - run: npx playwright install --with-deps chromium
       - name: Verify actual public contact form submission
-        run: node tests/contact-live-check.mjs
+        run: node tests/contact-native-post.mjs
