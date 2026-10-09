@@ -18,14 +18,16 @@ for(let attempt=1;attempt<=32;attempt++){
   const res=await fetch(base+'?content-audit='+Date.now(),{headers:{'Cache-Control':'no-cache'},signal:AbortSignal.timeout(12000)})
   assert.equal(res.status,200)
   const html=await res.text()
-  const script=html.match(/<script[^>]*src="([^"]+\\.js)"/)?.[1]
-  assert.ok(script,'No compiled script published')
-  const bundleRes=await fetch(new URL(script,base),{signal:AbortSignal.timeout(12000)})
-  assert.equal(bundleRes.status,200)
-  const js=await bundleRes.text()
-  assert.ok(js.includes('TCG Deseur'),'Project content release not yet public')
-  assert.ok(js.includes('codefreeform.com/api/contact-api/'),'Unexpected contact release')
-  console.log('AUDITED_PUBLIC_RELEASE',script)
+  const assets=[...html.matchAll(/(?:src|href)="([^"]+\\.js)"/g)].map(m=>m[1])
+  assert.ok(assets.length>=2,'Published site is missing JS assets')
+  const fetched=await Promise.all(assets.map(async path=>{
+   const response=await fetch(new URL(path,base),{signal:AbortSignal.timeout(12000)})
+   assert.equal(response.status,200,'Missing public JS '+path)
+   return {path,body:await response.text()}
+  }))
+  assert.ok(fetched.some(a=>a.body.includes('TCG Deseur')),'Updated project module not public yet')
+  assert.ok(fetched.some(a=>a.body.includes('codefreeform.com/api/contact-api/')),'Unexpected contact release')
+  console.log('AUDITED_PUBLIC_RELEASE',fetched.map(a=>a.path).join(','))
   currentSiteReady = true
   break
  }catch(error){
