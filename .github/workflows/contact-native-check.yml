@@ -1,0 +1,20 @@
+name: Diagnostic native HTML contact test
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/contact-native-check.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-submit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/contact-native-check.mjs
