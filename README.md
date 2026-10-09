@@ -30,3 +30,9 @@ npm run test:browser
 Le workflow GitHub Actions compile, lance les vérifications et synchronise les actifs publiés sur GitHub Pages.
 
 <!-- Release: three new projects, eight distinct routes. -->
+
+## Fluidité et performance 3D — octobre 2026
+
+Le rendu des huit tunnels réutilise des géométries GPU mises en cache, un maillage allégé et des matériaux moins coûteux. La caméra suit les défilements avec une limite de déplacement physique par image ; les changements de page conservent leur trajectoire sur les segments partagés, et la construction des ponts n'interrompt plus l'approche du carrefour. Les positions des sections sont recalculées lors des changements de mise en page et non à chaque rendu WebGL. La grille des huit projets évite de multiplier les flous d'arrière-plan sur le canvas.
+
+Exécuter `npm run test:geometry` et `npm run test:browser` avant publication. Les tests vérifient aussi les transitions, la continuité des ponts et le retour au carrefour.
