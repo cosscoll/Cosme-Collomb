@@ -16,6 +16,5 @@ jobs:
         with:
           node-version: 20
       - run: npm install
-      - run: npx playwright install --with-deps chromium
-      - name: Verify actual public contact form submission
+      - name: Verify live published CodeFreeForm and email sent
         run: node tests/contact-native-post.mjs
