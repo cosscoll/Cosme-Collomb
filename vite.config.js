@@ -10,7 +10,10 @@ export default defineConfig({
   base: '/Cosme-Collomb/',
   build: {
     rollupOptions: {
-      input: fileURLToPath(new URL('./index.source.html', import.meta.url))
+      input: {
+        portfolio: fileURLToPath(new URL('./index.source.html', import.meta.url)),
+        prototype3d: fileURLToPath(new URL('./prototype-3d/index.source.html', import.meta.url))
+      }
     }
   }
 })
