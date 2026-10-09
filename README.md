@@ -28,3 +28,5 @@ npm run test:browser
 ```
 
 Le workflow GitHub Actions compile, lance les vérifications et synchronise les actifs publiés sur GitHub Pages.
+
+<!-- Release: three new projects, eight distinct routes. -->
