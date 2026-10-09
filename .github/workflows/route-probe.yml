@@ -2,7 +2,7 @@ name: Verify eight internal project routes
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/route-probe.yml']
+    paths: ['.github/workflows/route-probe.yml', 'src/styles/rebuilt.css']
   workflow_dispatch:
 permissions:
   contents: read
