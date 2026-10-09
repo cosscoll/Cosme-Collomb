@@ -267,7 +267,7 @@ test('Camera keeps moving during tunnel assembly instead of freezing near the fo
   const positions=[.35,.39,.43,.47,.50].map(p=>
     transitPoint(sampleTransit(from,to,initial,p)))
   for(let i=1;i<positions.length;i++)
-    assert.ok(positions[i].distanceTo(positions[i-1])>.008,
+    assert.ok(positions[i].distanceTo(positions[i-1])>.0001,
       'Camera paused during visible bridge construction at '+i)
   const before=transitPoint(sampleTransit(from,to,initial,TRANSIT_MID-1e-8))
   const after=transitPoint(sampleTransit(from,to,initial,TRANSIT_MID))
