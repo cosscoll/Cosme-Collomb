@@ -92,7 +92,10 @@ export function junctionFor(from,to,initialT){
   // instead of rewinding to a physically inaccessible branch.
   if(to.mode==='home'||initialT>from.mainReturnHub+.001)
     return {level:'home',fromT:1,toT:0}
-  return {level:'main',fromT:from.mainReturnHub,toT:to.mainHub}
+  // Before reaching the FIRST main carrefour, don't take the entire outer
+  // tour just to access the next branch. Continue FORWARD to that first fork.
+  const fromT=initialT<=from.mainHub+.001?from.mainHub:from.mainReturnHub
+  return {level:'main',fromT,toT:to.mainHub}
 }
 export function bridgeBuild(progress){
   const p=clamp(progress)
