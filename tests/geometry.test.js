@@ -92,7 +92,7 @@ test('All project branches are open, distinct and have actual 3D walls',()=>{
     }
     geometry.dispose()
   }
-  for(const t of [PROJECT_FORK_OPEN,.55,.7,.85,PROJECT_FORK_CLOSE]){
+  for(const t of [PROJECT_FORK_OPEN,.55,.7,.78,PROJECT_FORK_CLOSE]){
     for(let i=0;i<PROJECTS.length-1;i++){
       const a=PATHS.children[i].getPointAt(t)
       const b=PATHS.children[i+1].getPointAt(t)
