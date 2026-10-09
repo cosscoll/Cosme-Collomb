@@ -538,17 +538,18 @@ function Contact() {
         body: JSON.stringify(payload)
       })
       const result = await response.json()
-      if (!response.ok || result.success !== true && result.success !== 'true') {
-        throw new Error(result.message || "FormSubmit n'a pas confirmé l'envoi.")
+      if (!response.ok || (result.success !== true && result.success !== 'true')) {
+        throw new Error(`FormSubmit HTTP ${response.status}: ${String(result.message || 'envoi non confirmé').slice(0, 200)}`)
       }
       form.reset()
       setStatus('success')
     } catch (error) {
       setStatus('error')
       const networkError = error instanceof TypeError
+      console.warn('Contact form delivery failed:', error)
       setErrorMessage(networkError
-        ? "Impossible de joindre le service d'envoi. Vérifiez votre connexion ou utilisez l'adresse e-mail indiquée à gauche."
-        : "Le service n'a pas confirmé l'envoi du message. Vérifiez l'activation de l'adresse de réception ou contactez-moi directement par e-mail.")
+        ? "Connexion au service FormSubmit impossible (réseau, DNS ou navigateur). Aucun envoi confirmé."
+        : `Envoi non confirmé : ${error.message || 'réponse inconnue'}`)
     } finally {
       setSending(false)
     }
@@ -584,6 +585,7 @@ function Contact() {
             {status === 'success' && 'Votre message a bien été transmis. Merci pour votre prise de contact.'}
             {status === 'error' && errorMessage}
           </p>
+          {status === 'error' && <a className="underlined-link" href={`mailto:Pro.collomb@gmail.com?subject=${encodeURIComponent('Contact depuis le portfolio')}`}>Envoyer directement depuis votre messagerie ↗</a>}
         </form>
       </div>
     </section>
