@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="fr"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#071019">
+<meta name="description" content="Prototype 3D V2 : cinq chemins physiques autour d'un carrefour, construction des ponts et retour en boucle sans téléportation.">
+<title>Prototype V2 — Cinq boucles, un seul carrefour</title>
+  <script type="module" crossorigin src="/Cosme-Collomb/assets/prototypeV2-DDW2sNhh.js"></script>
+  <link rel="modulepreload" crossorigin href="/Cosme-Collomb/assets/modulepreload-polyfill-B5Qt9EMX.js">
+  <link rel="modulepreload" crossorigin href="/Cosme-Collomb/assets/three.module-CjiiO1it.js">
+  <link rel="modulepreload" crossorigin href="/Cosme-Collomb/assets/projects-VjPwKz_2.js">
+  <link rel="stylesheet" crossorigin href="/Cosme-Collomb/assets/prototypeV2-DV0xKbQX.css">
+</head><body>
+<canvas id="scene" aria-label="Carrefour 3D et cinq chemins de projets"></canvas>
+<div class="vignette" aria-hidden="true"></div>
+<header class="topbar"><a href="../../../" class="logo">CC<span>.</span> <small>LABORATOIRE 3D</small></a>
+<span class="prototype-badge">PROTOTYPE V2 · 5 PARCOURS</span>
+<a class="original" href="../">Voir la V1 ↗</a></header>
+<main class="interface">
+<section class="intro">
+<p class="eyebrow">NAVIGATION PHYSIQUE · UN SEUL MONDE 3D</p>
+<h1>Cinq chemins.<br><em>Un seul carrefour.</em></h1>
+<p>Choisis un projet : son pont se construit, la caméra emprunte sa boucle complète puis revient naturellement au même carrefour.</p>
+<div class="journey-info"><i></i><span id="phase">01 / CHOISIS UN CHEMIN</span></div>
+</section>
+<section class="chooser" aria-label="Choisir un des cinq projets">
+<div class="chooser-top"><span>CARREFOUR</span><span>05 DIRECTIONS</span></div>
+<div id="choices" class="choices"></div>
+<div class="progress-label"><strong id="status">CHOISIS UN PROJET</strong><span id="percent">0 %</span></div>
+<div class="progress"><div id="progress"></div></div>
+<p class="hint" id="hint">Les cinq voies appartiennent à la même scène. Le parcours revient automatiquement ici.</p>
+</section>
+</main>
+<div class="scene-note"><i></i><span id="loc">CARREFOUR CENTRAL</span></div>
+<div class="error" id="error" hidden>WebGL est indisponible sur cet appareil. Essaie un navigateur récent avec accélération graphique.</div>
+</body></html>
