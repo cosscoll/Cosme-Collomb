@@ -1,4 +1,4 @@
-name: One-time live contact delivery verification
+name: Live multipart contact delivery verification
 on:
   push:
     branches: [main]
