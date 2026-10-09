@@ -27,6 +27,9 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
       - run: node tests/prototype-3d-smoke.mjs
+      - name: Audit five opaque V3 3D project loops (isolated prototype only)
+        if: startsWith(github.ref, 'refs/heads/dev/v3-five-loop-quality')
+        run: node tests/prototype-v3-browser.mjs
       - name: Check all five seamless 3D project loops (dedicated full audit)
         if: github.event_name == 'workflow_dispatch'
         run: node tests/prototype-v2-browser.mjs

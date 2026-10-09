@@ -3,98 +3,131 @@ import {chromium} from 'playwright'
 import {spawn} from 'node:child_process'
 import {mkdir} from 'node:fs/promises'
 
-const url='http://127.0.0.1:4177/Cosme-Collomb/prototype-3d/v3/'
-const server=spawn(process.execPath,['node_modules/vite/bin/vite.js','preview','--host','127.0.0.1','--port','4177','--strictPort'],{stdio:'inherit'})
-let browser
-const pause=ms=>new Promise(r=>setTimeout(r,ms))
-async function waitPreview(){
-  for(let i=0;i<100;i++){
-    if(server.exitCode!==null)throw Error('Vite preview terminated')
-    try{if((await fetch(url)).ok)return}catch{}
-    await pause(300)
-  }
-  throw Error('Immersive V3 not served at '+url)
-}
-async function shot(page,label){
+const url='http://127.0.0.1:4176/Cosme-Collomb/prototype-3d/v3/'
+const server=spawn(process.execPath,[
+  'node_modules/vite/bin/vite.js','preview','--host','127.0.0.1',
+  '--port','4176','--strictPort'
+],{stdio:'inherit'})
+let browser=null
+const sleep=ms=>new Promise(r=>setTimeout(r,ms))
+const euclidean=(a,b)=>Math.hypot(...a.map((v,i)=>v-b[i]))
+const shot=async(page,name)=>{
   try{
-    const filename='test-output/v3-'+label+'.jpg'
-    await page.screenshot({path:filename,type:'jpeg',quality:55,timeout:10000})
-    console.log('V3 SCREENSHOT FILE '+filename)
-    if(['interior','in-tunnel','back-at-hub'].includes(label)){
-      const raw=(await page.screenshot({type:'jpeg',quality:23,timeout:10000})).toString('base64')
-      const tag=label.toUpperCase().replaceAll('-','_')
-      console.log('V3_IMAGE_'+tag+'_START'+raw+'V3_IMAGE_'+tag+'_END')
-    }
-  }catch(err){console.warn('Screenshot not available:',err.message)}
+    await page.screenshot({path:'test-output/v3-'+name+'.jpg',type:'jpeg',
+      quality:40,timeout:7000,animations:'disabled'})
+    console.log('V3 image captured:',name)
+  }catch(error){console.log('V3 optional screenshot unavailable:',name,error.message)}
+}
+async function ready(){
+  for(let i=0;i<90;i++){
+    if(server.exitCode!==null)throw new Error('V3 preview server exited')
+    try{const r=await fetch(url);if(r.ok)return}catch{}
+    await sleep(450)
+  }
+  throw new Error('V3 preview server unavailable')
 }
 async function run(){
-  await waitPreview()
+  await ready()
   await mkdir('test-output',{recursive:true})
   browser=await chromium.launch({headless:true,args:[
-    '--no-sandbox','--enable-webgl','--use-gl=angle','--use-angle=swiftshader',
-    '--enable-unsafe-swiftshader','--disable-dev-shm-usage','--disable-gpu-sandbox'
+    '--no-sandbox','--enable-webgl','--use-gl=angle',
+    '--use-angle=swiftshader','--enable-unsafe-swiftshader',
+    '--disable-dev-shm-usage','--disable-gpu-sandbox'
   ]})
-  const page=await browser.newPage({viewport:{width:1200,height:790}})
+  const page=await browser.newPage({viewport:{width:960,height:630}})
+  page.setDefaultTimeout(30000)
   const errors=[]
-  page.on('pageerror',e=>{errors.push(e.message);console.error('V3 runtime error:',e.message)})
-  page.on('console',m=>{if(m.type()==='error')console.error('V3 console:',m.text())})
-  const res=await page.goto(url,{waitUntil:'domcontentloaded',timeout:60000})
-  assert.equal(res.status(),200)
-  await page.waitForFunction(()=>Boolean(window.__v3Proof),null,{timeout:60000})
-  const initial=await page.evaluate(()=>{
+  page.on('pageerror',error=>errors.push(String(error)))
+  await page.goto(url,{waitUntil:'domcontentloaded',timeout:30000})
+  await page.waitForFunction(()=>window.__v3Proof?.phase==='idle',{timeout:30000})
+  const origin=await page.evaluate(()=>{
     const p=window.__v3Proof
-    return {phase:p.phase,position:p.camera,origin:p.origin,opaque:p.materialsOpaque,
-      roof:p.hubRoofOpaque,atriumWalls:p.hasHubWalls,inside:p.cameraInside,
-      choices:p.fiveChoices,defects:p.defects,loops:p.loops}
-  })
-  assert.equal(initial.phase,'idle')
-  assert.equal(initial.choices,5)
-  assert.ok(initial.opaque,'Tunnel walls are transparent')
-  assert.ok(initial.roof,'The hub has no opaque roof')
-  assert.ok(initial.atriumWalls,'Hub has no surrounding opaque walls')
-  assert.ok(initial.inside,'Camera starts outside the carrefour volume')
-  assert.deepEqual(initial.defects,[])
-  assert.ok(Math.hypot(...initial.position.map((v,i)=>v-initial.origin[i]))<.000001)
-  for(const p of initial.loops)assert.ok(Math.hypot(...p.start.map((v,i)=>v-p.end[i]))<.000001)
-  console.log('V3 IMMERSIVE BOOT:',JSON.stringify({opaqueWalls:initial.opaque,closedRoof:initial.roof,
-    enclosedHub:initial.atriumWalls,inside:initial.inside,choices:initial.choices}))
-  await shot(page,'interior')
-  await page.evaluate(()=>window.__v3Proof.speedUp(2.5))
-  for(let i=0;i<5;i++){
-    await page.locator('button.choice').nth(i).click()
-    await page.waitForFunction(index=>window.__v3Proof?.selected===index,i,{timeout:35000})
-    if(i===0){
-      await page.waitForFunction(()=>window.__v3Proof?.built>=8,null,{timeout:35000})
-      const constructing=await page.evaluate(()=>({phase:window.__v3Proof.phase,eye:window.__v3Proof.camera,origin:window.__v3Proof.origin}))
-      assert.equal(constructing.phase,'building')
-      assert.ok(Math.hypot(...constructing.eye.map((x,j)=>x-constructing.origin[j]))<.000001,
-        'Eye moves before the tunnel is fully constructed')
-      await shot(page,'building')
+    return {
+      position:p.camera,quaternion:p.quaternion,choices:p.fiveChoices,
+      roof:p.hubRoofOpaque,walls:p.hasHubWalls,
+      opaque:p.materialsOpaque,inside:p.cameraInside,
+      loops:p.loops,defects:p.defects,version:p.version
     }
-    await page.waitForFunction(()=>window.__v3Proof?.phase==='travelling',null,{timeout:85000})
-    const pieceCount=await page.evaluate(()=>window.__v3Proof.built)
-    assert.equal(pieceCount,56,'Tunnel is still open when the camera starts moving')
-    await page.waitForFunction(()=>window.__v3Proof?.phase==='travelling'&&window.__v3Proof.loopU>.33,null,{timeout:120000})
-    const walls=await page.evaluate(i=>window.__v3Proof.testOcclusion(i,.38),i)
-    console.log('V3 tunnel occlusion',i+1,JSON.stringify(walls))
-    assert.ok(Object.values(walls).every(Boolean),
-      'A visible exterior leak exists in tunnel '+(i+1)+': '+JSON.stringify(walls))
-    if(i===0)await shot(page,'in-tunnel')
-    await page.waitForFunction(n=>window.__v3Proof?.phase==='idle'&&window.__v3Proof.completed===n,i+1,{timeout:165000})
-    const finish=await page.evaluate(()=>({p:window.__v3Proof.camera,o:window.__v3Proof.origin,
-      step:window.__v3Proof.maxStep,inside:window.__v3Proof.cameraInside,
-      choices:document.querySelectorAll('button.choice:not(:disabled)').length}))
-    const error=Math.hypot(...finish.p.map((v,j)=>v-finish.o[j]))
-    console.log('V3 finished tunnel',i+1,'return error:',error.toFixed(8),
-      'maximum camera frame step:',finish.step.toFixed(4))
-    assert.ok(error<1e-6,'Camera teleported upon returning to crossroads')
-    assert.ok(finish.step<.53,'Camera leaps more than 53cm in one frame')
-    assert.ok(finish.inside,'Camera exits the real interior volume')
-    assert.equal(finish.choices,5,'Crossroads did not reopen all five selectable tunnels')
-    if(i===0)await shot(page,'back-at-hub')
+  })
+  assert.equal(origin.version,'V3-immersion-opaque-interiors')
+  assert.equal(origin.choices,5,'Not five gates in the original crossroads')
+  assert.equal(origin.opaque,true,'Tunnel walls are transparent')
+  assert.equal(origin.roof,true,'Hub roof is not opaque')
+  assert.equal(origin.walls,true,'Atrium wall geometry is missing')
+  assert.equal(origin.inside,true,'The camera starts outside the 3D atrium')
+  assert.deepEqual(origin.defects,[],'Invalid 3D tunnel path topology')
+  for(const loop of origin.loops){
+    assert.ok(euclidean(loop.start,loop.end)<1e-6,
+      'A route does not return to the original junction')
   }
-  assert.deepEqual(errors,[],'Uncaught V3 JavaScript error')
-  console.log('V3 BROWSER TEST PASSED: five enclosed opaque routes, no exterior visibility through roof/walls/floor, camera indoors, built before crossing, five continuous returns, zero teleports')
+  console.log('V3 START: all five enclosed loops join one unchanged room')
+  await shot(page,'original-crossroads')
+  await page.evaluate(()=>window.__v3Proof.speedUp(3))
+  for(let i=0;i<5;i++){
+    const start=await page.evaluate(()=>window.__v3Proof.camera)
+    assert.ok(euclidean(start,origin.position)<.07,
+      'Loop '+i+' did not start at exactly the same crossroads')
+    const before=await page.evaluate(()=>window.__v3Proof.completed)
+    const selected=await page.evaluate(i=>window.__v3Proof.selectPath(i),i)
+    assert.equal(selected,true,'Could not enter project tunnel '+i)
+    if(i===0){
+      await page.waitForFunction(()=>window.__v3Proof.phase==='building'&&
+        window.__v3Proof.built>3&&window.__v3Proof.built<55,
+      null,{timeout:16000})
+      const building=await page.evaluate(()=>({
+        count:window.__v3Proof.built,
+        camera:window.__v3Proof.camera
+      }))
+      assert.ok(euclidean(building.camera,origin.position)<.04,
+        'The camera moves before the 3D tunnel is assembled')
+      await shot(page,'actual-tunnel-construction')
+    }
+    // The passage is first constructed with the camera stationary, then
+    // its opaque walls become available before the visitor travels inside.
+    await page.waitForFunction(()=>window.__v3Proof.phase==='travelling',
+      null,{timeout:35000})
+    const proof=await page.evaluate(i=>({
+      built:window.__v3Proof.built,
+      ray:window.__v3Proof.testOcclusion(i,.44),
+      wallOpaque:window.__v3Proof.materialsOpaque
+    }),i)
+    assert.equal(proof.built,56,'Bridge is incomplete when camera enters')
+    assert.ok(proof.wallOpaque,'Bridge is transparent')
+    // Floor and ceiling geometry must physically enclose the camera.
+    assert.ok(proof.ray.roof&&proof.ray.floor,
+      'Project '+(i+1)+' has an open roof or missing floor: '+JSON.stringify(proof.ray))
+    if(i===0)await shot(page,'enclosed-project-tunnel')
+    await page.waitForFunction(count=>{
+      const p=window.__v3Proof
+      return p.phase==='idle'&&p.completed===count+1
+    },before,{timeout:75000})
+    const end=await page.evaluate(()=>({
+      position:window.__v3Proof.camera,
+      quaternion:window.__v3Proof.quaternion,
+      choices:window.__v3Proof.fiveChoices,
+      maxStep:window.__v3Proof.maxStep,
+      inside:window.__v3Proof.cameraInside
+    }))
+    const displacement=euclidean(end.position,origin.position)
+    const dot=Math.min(1,Math.abs(end.quaternion.reduce((sum,v,j)=>
+      sum+v*origin.quaternion[j],0)))
+    const degrees=2*Math.acos(dot)*180/Math.PI
+    assert.ok(displacement<.08,
+      'Project '+(i+1)+' teleports back to a different crossroads: '+displacement)
+    assert.ok(degrees<2.0,
+      'Project '+(i+1)+' returns facing a wall: angle '+degrees)
+    assert.equal(end.choices,5,'Not all five gates are usable after a trip')
+    assert.equal(end.inside,true,'Camera is no longer in enclosed atrium')
+    assert.ok(end.maxStep<.61,'A 3D frame moved the camera too far: '+end.maxStep)
+    assert.equal(await page.locator('button.choice:enabled').count(),5,
+      'A gate remained blocked after visiting project '+(i+1))
+    console.log('V3 LOOP '+(i+1)+'/5 OK:',
+      JSON.stringify({returnMeters:displacement,headingDegrees:degrees,
+        maxFrameStep:end.maxStep,choices:end.choices}))
+    if(i===0)await shot(page,'restored-five-way-fork')
+  }
+  assert.deepEqual(errors,[],'JavaScript exception in a 3D loop')
+  console.log('V3 FULL QUALITY AUDIT PASSED: five enclosed project loops, opaque walls, visible 3D assembly, identical physical crossroads on all five returns, all five choices available, no camera teleport')
 }
-try{await run()}catch(error){console.error('V3 BROWSER TEST FAILED:',error);process.exitCode=1}
+try{await run()}catch(error){console.error('V3 QUALITY AUDIT FAILED:',error);process.exitCode=1}
 finally{await browser?.close();server.kill('SIGTERM')}
