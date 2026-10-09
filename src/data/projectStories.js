@@ -44,6 +44,12 @@ export const PROJECT_STORIES = [
     features: ["Boosters de cinq cartes", "Catalogue de 49 cartes", "Classeur et suivi des raretés"]
   },
   {
+    introduction: "Une collection numérique à construire, carte après carte.",
+    idea: "Créer un jeu de collection non officiel autour des personnages de Thomas Deseur, où la rareté des cartes et la progression du classeur donnent envie de revenir.",
+    experience: "Découvrir des boosters de cinq cartes, consulter les raretés, retrouver ses doublons et suivre sa collection. L'application active est hébergée sur Floot ; le dépôt GitHub conserve aussi un prototype historique.",
+    features: ["Boosters de cinq cartes", "Cinq niveaux de rareté", "Classeur, doublons et progression de collection"]
+  },
+  {
     introduction: "Chaque mise en relation doit être utile.",
     idea: "Rapprocher particuliers et professionnels du BTP de façon transparente et sans commission.",
     experience: "Décrire un besoin concret, trouver des professionnels adaptés et favoriser des échanges utiles dans le respect du travail de chacun.",
