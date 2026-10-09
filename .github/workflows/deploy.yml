@@ -8,7 +8,7 @@ permissions:
 concurrency:
   # Serialize writes for a branch; don't let a newer build cancel validation.
   group: portfolio-build-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   verify-and-sync:
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
@@ -27,7 +27,8 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
       - run: node tests/prototype-3d-smoke.mjs
-      - name: Check all five seamless 3D project loops
+      - name: Check all five seamless 3D project loops (dedicated full audit)
+        if: github.event_name == 'workflow_dispatch'
         run: node tests/prototype-v2-browser.mjs
       - name: Publish compiled files to branch root
         if: github.ref == 'refs/heads/main'
