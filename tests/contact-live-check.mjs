@@ -22,8 +22,8 @@ async function waitForPublishedForm() {
       const js = await jsRes.text()
       assert.ok(js.includes('api.web3forms.com/submit'),
         'Public website still serves a previous form integration')
-      assert.ok(js.includes('data-service'),
-        'Public JS is missing the form test marker')
+      assert.ok(js.includes('data-submission'),
+        'Public JS is missing the multipart form release marker')
       console.log('Verified PUBLIC bundle includes Web3Forms at', asset)
       return
     } catch (error) {
@@ -47,6 +47,10 @@ const browser = await chromium.launch({
 try {
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
   page.on('pageerror', error => console.error('Browser JS error:', error.message))
+  page.on('console', message => {
+    if (message.type() === 'error')
+      console.error('BROWSER_CONSOLE', message.text().slice(0, 500))
+  })
   page.on('requestfailed', request => {
     if (request.url().startsWith(endpoint))
       console.error('Web3Forms request failed:', request.failure()?.errorText)
@@ -64,6 +68,7 @@ try {
     { waitUntil: 'domcontentloaded', timeout: 60000 })
   const form = page.locator('form[data-service="web3forms"]')
   await form.waitFor({ state: 'visible', timeout: 60000 })
+  assert.equal(await form.getAttribute('data-submission'), 'multipart', 'Latest public form is not active')
   assert.equal(await form.locator('input[name="access_key"]').count(), 1)
   assert.equal(await form.locator('input[name="botcheck"]').count(), 1)
   console.log('Verified public contact form and spam trap; test subject:', marker)
