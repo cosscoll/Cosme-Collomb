@@ -2,7 +2,7 @@ name: Portfolio production content and link audit
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/portfolio-audit.yml']
+    paths: ['.github/workflows/portfolio-audit.yml', 'src/data/projects.js', 'src/data/projectStories.js']
   workflow_dispatch:
 permissions:
   contents: read
