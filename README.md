@@ -1,3 +1,7 @@
+## Transmission à ChatGPT Work
+
+Le dossier complet de reprise du chantier 3D se trouve dans **[docs/CHATGPT_WORK_TRANSMISSION.md](docs/CHATGPT_WORK_TRANSMISSION.md)**. Le code expérimental des boucles sans demi-tour reste sur la branche `dev/forward-only-loops` et ne doit pas être publié avant que le test navigateur de retour au carrefour soit validé.
+
 # Portfolio 3D — Cosme Collomb
 
 Portfolio React / Vite, avec parcours immersif WebGL et carrefour 3D à huit projets.
