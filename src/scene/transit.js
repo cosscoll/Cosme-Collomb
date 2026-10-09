@@ -1,6 +1,6 @@
 import { PATHS, MAIN_HUBS, MAIN_RETURN_HUBS,
   DETAIL_MAIN_RETURN_HUBS, PROJECT_HUBS, PROJECT_RETURN_HUBS,
-  PROJECT_FORK_POSITION, projectOutboundT, closestT } from './geometry.js'
+  PROJECT_FORK_POSITION, projectOutboundT, closestT, crossingTimes } from './geometry.js'
 import { PROJECTS_WITH_SLUGS as PROJECTS } from '../data/projects.js'
 
 export const TRANSIT_DURATION=4200
@@ -17,7 +17,7 @@ export const PROJECT_INDEX_HUB=closestT(PATHS.routes[0],PROJECT_FORK_POSITION)
 export const PROJECT_LOOKOUT_T=PROJECT_INDEX_HUB
 export const PROJECT_ENTRY_OFFSET=.035
 export const MAIN_ENTRY_OFFSET=.018
-const detailMainHubs=PATHS.details.map(p=>closestT(p,[0,0,-30]))
+const detailMainHubs=PATHS.details.map(p=>crossingTimes(p,[0,0,-30])[0])
 
 export function routeInfo(pathname='/'){
   const detailIndex=PROJECTS.findIndex(p=>pathname==='/projets/'+p.slug)
@@ -80,7 +80,7 @@ export function scrollT(info,{scrollY=0,total=1,junction=1,works=2,projectFork=2
 export function junctionFor(from,to,initialT){
   const projectModes=new Set(['home','projects','detail'])
   const canUseProjectFork=projectModes.has(from.mode)&&projectModes.has(to.mode)
-    &&to.mode!=='home'
+    &&(to.mode==='detail'||(to.mode==='projects'&&from.mode==='detail'))
     &&(from.mode!=='home'||initialT<=PROJECT_INDEX_HUB)
     &&(from.mode!=='projects'||initialT<=PROJECT_INDEX_HUB+.005)
   if(canUseProjectFork){
