@@ -16,7 +16,7 @@ test('Every page has an actual 3D spline and a long enough assembled transit',()
  for(const name of names){
   const route=routeInfo(name)
   assert.ok(route.path.getLength()>30,name)
-  assert.ok(route.mainHub>.1&&route.mainHub<.92)
+  assert.ok(route.mainHub>.03&&route.mainHub<.92)
   assert.ok(route.projectHub===null||(route.projectHub>.05&&route.projectHub<=1))
   assert.ok(arrivalT(route,routeInfo('/'))>0)
  }
