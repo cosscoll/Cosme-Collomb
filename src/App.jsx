@@ -679,7 +679,7 @@ function Shell() {
     const eye=window.__portfolioFlight
     const rendering=eye?.currentRoute===pathname&&!eye.transiting&&
       performance.now()-eye.updatedAt<1700
-    if(pathname.startsWith('/projets/') && rendering && eye.t<.994){
+    if(pathname.startsWith('/projets/') && rendering && eye.t<.96){
       pendingTripRef.current=next==='/projets'?null:next
       window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'})
       return true
