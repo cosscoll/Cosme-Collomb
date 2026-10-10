@@ -6,7 +6,8 @@ import * as THREE from 'three'
 import { routeInfo, scrollT, sampleTransit, transitPoint, junctionFor, arrivalT, bridgeBuild, PROJECT_LOOKOUT_T, PROJECT_INDEX_HUB } from '../scene/transit.js'
 import {
   PATHS, PROJECT_BRANCH_COLORS, PROJECT_FORK_OPEN, PROJECT_FORK_CLOSE, PROJECT_FORK_FOCUS,
-  createSkin, createSeam, shellSpans, TUNNEL_RADIUS, CHAMBERS, createJunctionChamber
+  createSkin, createSeam, shellSpans, TUNNEL_RADIUS, CHAMBERS,
+  createJunctionChamber, chamberExitDirection
 } from '../scene/geometry.js'
 
 const UP=new THREE.Vector3(0,1,0)
@@ -44,20 +45,26 @@ function shellResources(path,branch){
   const kind=branch?'branch':'corridor'
   if(variants[kind])return variants[kind]
   const radius=branch?2.85:4.25
-  const start=branch?PROJECT_FORK_OPEN:0
-  const end=branch?PROJECT_FORK_CLOSE:1
+  const start=0
+  const end=1
   const divisions=branch?84:238
   const radial=branch?32:48
   const seamsCount=branch?3:5
-  const spans=branch?[[start,end]]:shellSpans(path)
+  const spans=shellSpans(path)
+  // Close to the project hub, eight branches are only a few metres apart.
+  // Their previous full-size walls crossed one another directly in front
+  // of the camera. Taper gently before expanding to normal tunnel width.
+  const radiusProfile=branch?(t,center)=>
+    .71+.29*smooth((center.distanceTo(CHAMBERS[1].centre)-8)/12):null
   const geometries=spans.map(([a,b])=>createSkin(path,{
-    radius,lengthSegments:Math.max(16,Math.round(divisions*(b-a))),
+    radius,radiusProfile,
+    lengthSegments:Math.max(16,Math.round(divisions*(b-a))),
     radialSegments:radial,start:a,end:b
   }))
   const seamGeometries=spans.flatMap(([a,b])=>
     Array.from({length:seamsCount},(_,i)=>{
       const seam=createSeam(path,i*Math.PI*2/seamsCount,{
-        radius,segments:Math.max(15,Math.round(120*(b-a))),
+        radius:branch?2.05:radius,segments:Math.max(15,Math.round(120*(b-a))),
         start:a,end:b
       })
       return new THREE.TubeGeometry(seam,
@@ -86,9 +93,8 @@ function Shell({path,branch=false,transit=null,arrival=false}) {
   return (
     <group ref={root} dispose={null}>
       {geometries.map((geometry,i)=><mesh key={i} geometry={geometry} dispose={null}>
-        <meshStandardMaterial vertexColors side={THREE.DoubleSide}
-          metalness={.50} roughness={.36}
-          emissive="#514962" emissiveIntensity={.2}/>
+        <meshLambertMaterial vertexColors side={THREE.DoubleSide}
+          emissive="#383145" emissiveIntensity={.15}/>
       </mesh>)}
       {seamGeometries.map((geometry,i)=><mesh key={i} geometry={geometry} dispose={null}>
         <meshBasicMaterial color={i%3===0?'#f2d9d0':'#d4d8ff'}
@@ -102,16 +108,57 @@ function Shell({path,branch=false,transit=null,arrival=false}) {
 // The two shared 3D chambers remain present through every transition.
 // Previously removing shell wall strips left the starfield fully exposed;
 // these fixed vaulted walls close that gap without obstructing tunnel mouths.
-const CHAMBER_GEOMETRIES=CHAMBERS.map(createJunctionChamber)
-function JunctionChambers(){
-  return <group name="continuous-junction-chambers" dispose={null}>
-    {CHAMBER_GEOMETRIES.map((geometry,i)=>(
-      <mesh key={i} geometry={geometry} dispose={null}>
-        <meshStandardMaterial color={i===0?'#777083':'#747a92'}
-          side={THREE.DoubleSide} roughness={.64} metalness={.22}
-          emissive="#292337" emissiveIntensity={.17}/>
-      </mesh>
-    ))}
+// A carefully oriented smooth room, not a faceted sphere/tube union.
+// Every project entrance is backed by a real corridor. Return entrances
+// open only for the visited project, so the crossroads never becomes a
+// perforated black object with seventeen simultaneous open holes.
+const MAIN_ROOM_GEOMETRY=createJunctionChamber(CHAMBERS[0])
+const PROJECT_ROOM_GEOMETRY=createJunctionChamber(CHAMBERS[1])
+// Building eight nearly identical high-resolution rooms at module load
+// blocked low-end GPUs for seconds. Only the VISITED project's extra
+// return opening is needed; build it once on first visit and reuse it.
+const RETURN_ROOM_CACHE=new Map()
+function roomWithReturn(index){
+  if(RETURN_ROOM_CACHE.has(index))return RETURN_ROOM_CACHE.get(index)
+  const path=PATHS.returnArms[index]
+  const geometry=createJunctionChamber({
+    centre:CHAMBERS[1].centre,
+    exits:[...CHAMBERS[1].exits,
+      chamberExitDirection(path,CHAMBERS[1].centre,true)],
+    radii:[...CHAMBERS[1].radii,2.02]
+  })
+  RETURN_ROOM_CACHE.set(index,geometry)
+  return geometry
+}
+function JunctionChambers({mode,index}){
+  const room=useMemo(()=>mode==='detail'&&index>=0?
+    roomWithReturn(index):PROJECT_ROOM_GEOMETRY,[mode,index])
+  return <group name="sealed-smooth-junctions" dispose={null}>
+    <mesh geometry={MAIN_ROOM_GEOMETRY} dispose={null}>
+      <meshLambertMaterial color="#857d96" side={THREE.BackSide}
+        emissive="#554f6a" emissiveIntensity={.28}/>
+    </mesh>
+    <mesh geometry={room} dispose={null}>
+      <meshLambertMaterial color="#82869d" side={THREE.BackSide}
+        emissive="#525775" emissiveIntensity={.25}/>
+    </mesh>
+  </group>
+}
+
+// There is exactly ONE permanently rendered tube surface for each physical
+// section of the navigation graph. In particular, every opening carved into
+// a junction has a real corridor behind it, including unused project arms.
+// The previous implementation showed only the SELECTED route, leaving holes
+// to black sky for all other exits. Re-rendering full destination paths also
+// created overlapping walls and depth flicker when changing pages.
+function PhysicalTunnelNetwork({mode,index}){
+  return <group name="closed-physical-tunnel-network">
+    <Shell path={PATHS.trunk}/>
+    {PATHS.arms.map((path,i)=><Shell key={'main-'+i} path={path}/>)}
+    {(mode==='projects'||mode==='detail') &&
+      PATHS.children.map((path,i)=><Shell key={'out-'+i} path={path} branch/>)}
+    {mode==='detail'&&index>=0 &&
+      <Shell key={'active-return-'+index} path={PATHS.returnArms[index]} branch/>}
   </group>
 }
 
@@ -375,21 +422,29 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
         blendHeading(sourceHeading,destinationHeading,
           junctionTurnWeight(metresFromHub,true),direction)
       }
-      if(to.mode==='projects'&&from.mode==='detail'){
-        // Restore the crossroads viewpoint only near the open projects
-        // atrium, not through a wall metres earlier in the inbound passage.
-        const distanceToFork=position.distanceTo(to.path.getPointAt(PROJECT_INDEX_HUB))
-        const focusWeight=smooth((11-distanceToFork)/7)
-        if(focusWeight>0){
-          forkHeading.copy(PROJECT_FORK_FOCUS).sub(position).normalize()
-          blendHeading(direction,forkHeading,focusWeight,direction)
-        }
-      }
+      // Never override the physical corridor heading with a fixed
+      // target in world space. The old target could point BEHIND the
+      // moving camera and create a disorienting automatic turn.
+      
       ahead.copy(position).addScaledVector(direction,5)
     }else{
       corridorHeading(sample.path,t,false,direction)
-      // The story's return corridor is an actual spatial loop. Never rotate
-      // the visitor in place or reverse their camera direction at its end.
+      if(route.mode==='projects'){
+        const distanceToJunction=position.distanceTo(CHAMBERS[1].centre)
+        const approach=smooth((12-distanceToJunction)/8)
+        if(approach>0){
+          // Look through the REAL nearest open project doorway, rather than
+          // staring at an unpierced section of the curved chamber wall.
+          // The nearest forward doorway limits the turn to a small angle;
+          // the visitor NEVER rotates to inspect a door behind their head.
+          let nearest=null,alignment=-Infinity
+          for(const exit of CHAMBERS[1].exits.slice(1)){
+            const dot=direction.dot(exit)
+            if(dot>alignment){alignment=dot;nearest=exit}
+          }
+          if(nearest && alignment>.35)direction.lerp(nearest,approach*.94).normalize()
+        }
+      }
       ahead.copy(position).addScaledVector(direction,5)
     }
     right.crossVectors(direction,UP).normalize()
@@ -406,24 +461,9 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
     // The projects page is an open atrium, not the closed mouth of the trunk.
     // Keep looking through the physical junction toward its project corridors,
     // including immediately after a completed-project return.
-    if(!transit && route.mode==='projects'){
-      // Do not stare through a still-closed wall based on scroll position:
-      // the WebGL camera may lag the page by several physical metres.
-      const hub=route.path.getPointAt(PROJECT_INDEX_HUB)
-      const approach=smooth((13-position.distanceTo(hub))/8)
-      ahead.lerp(PROJECT_FORK_FOCUS,approach)
-    }
-    if(!transit && route.mode==='projects' && hovered.startsWith('project-') &&
-      position.distanceTo(route.path.getPointAt(PROJECT_INDEX_HUB))<11){
-      const idx=Number(hovered.slice(8))
-      if(idx>=0&&idx<PATHS.children.length)
-        ahead.lerp(PATHS.children[idx].getPointAt(.55),.06)
-    }
-    if(!transit && route.mode==='home' && hovered &&
-      position.distanceTo(route.path.getPointAt(route.mainHub))<11){
-      const idx=['projects','experience','contact'].indexOf(hovered)
-      if(idx>=0)ahead.lerp(PATHS.arms[idx].getPointAt(.27),.05)
-    }
+    // The camera must always face its ACTUAL corridor. Hover targets and
+    // fixed global "fork focus" targets used to pull the POV through walls
+    // and sometimes rotate it backward while the visitor was still moving.
     matrix.lookAt(camera.position,ahead,UP)
     rotation.setFromRotationMatrix(matrix)
     if(first.current){
@@ -438,7 +478,14 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
         Math.min(smoothing,.20/angle):1)
     }
     const boost=transit?2.3*Math.sin(Math.PI*visualProgress):0
-    const fov=THREE.MathUtils.damp(camera.fov,corridorFov(camera.aspect,boost),4,dt)
+    // A room contains eight doors spread across the forward hemisphere;
+    // widen the field of view ONLY when the camera is inside that room,
+    // never inside a narrow tube where wide FOV clips across the walls.
+    const atProjectAtrium=(!transit&&route.mode==='projects')?
+      smooth((12-position.distanceTo(CHAMBERS[1].centre))/7):0
+    const desiredFov=corridorFov(camera.aspect,boost)+
+      atProjectAtrium*(camera.aspect<.8?29:23)
+    const fov=THREE.MathUtils.damp(camera.fov,desiredFov,4,dt)
     if(Math.abs(fov-camera.fov)>.001){
       camera.fov=fov
       camera.updateProjectionMatrix()
@@ -501,7 +548,11 @@ function BuildingBranch({transit,flightPosition}) {
         flightPosition.current.t:.35
     const hub=junctionFor(from,to,startT)
     const arrival=arrivalT(to,from)
-    const reverse=arrival<hub.toT
+    // A finished project enters the crossroads from its separate forward
+    // return loop at t=1. The decorative assembly must meet that exact hub,
+    // not start 1.5m short at the old outward project entrance.
+    const returning=from.mode==='detail' && to.mode==='projects' && hub.fromT>.999
+    const reverse=returning || arrival<hub.toT
     const margin=0
     let start,end
     if(reverse){
@@ -523,7 +574,8 @@ function BuildingBranch({transit,flightPosition}) {
     const hubTo=to.path.getPointAt(clamp(hub.toT))
     const joinShift=hubFrom.clone().sub(hubTo)
     const joinWeight=(t)=>{
-      const travel=Math.max(0,(t-hub.toT)/(arrival-hub.toT))
+      const travel=Math.abs(arrival-hub.toT)<1e-8?0:
+        Math.max(0,(t-hub.toT)/(arrival-hub.toT))
       return 1-smooth(travel/.35)
     }
     const skin=createSkin(to.path,{
@@ -643,7 +695,7 @@ function BuildingBranch({transit,flightPosition}) {
     if(light.current)light.current.position.copy(camera.position)
   })
   return <group name="assembling-3d-tunnel">
-    <mesh geometry={journey.skin}>
+    <mesh geometry={journey.skin} visible={false}>
       <meshStandardMaterial ref={bridgeMaterial} side={THREE.DoubleSide} vertexColors
         transparent opacity={1} roughness={.72} metalness={.19} emissive="#262038"
         emissiveIntensity={.15} depthWrite/>
@@ -663,35 +715,57 @@ function BuildingBranch({transit,flightPosition}) {
   </group>
 }
 
+// Use measured render time to lower pixel density on slower phones/GPUs.
+// Never skip a route frame or move the eye faster: a 3D resolution change
+// preserves motion continuity, unlike cancelling slow camera animation.
+function AdaptiveRenderQuality(){
+  const {viewport,setDpr}=useThree()
+  const sample=useRef({seconds:0,frames:0})
+  useFrame((_,delta)=>{
+    const q=sample.current
+    if(!Number.isFinite(delta)||delta<=0)return
+    q.seconds+=Math.min(delta,1)
+    q.frames++
+    if(q.seconds<2.4)return
+    const mean=q.seconds/Math.max(1,q.frames)
+    const target=mean>.13?.60:mean>.075?.74:mean>.043?.88:
+      mean>.027?1.0:1.2
+    if(Math.abs(viewport.dpr-target)>.09)setDpr(target)
+    q.frames=0
+    q.seconds=0
+  },-1)
+  return null
+}
+
 function Scene({pathname,hovered,transit}) {
   const route=routeInfo(transit?.from||pathname)
   const incoming=transit?routeInfo(transit.to):null
   const flightPosition=useRef(null)
   const {mode,index,path}=route
+  // The connected shell network persists through page transitions. Show
+  // incoming portals early without drawing them AGAIN on top of a detail
+  // page's already visible corridor wall (the overlapping meshes caused
+  // black strips and broken-looking junction apertures).
+  const networkMode=mode==='detail'||incoming?.mode==='detail'?'detail':
+    mode==='projects'||incoming?.mode==='projects'?'projects':mode
+  const networkIndex=mode==='detail'?index:
+    incoming?.mode==='detail'?incoming.index:index
   return <>
     <color attach="background" args={['#08080f']}/>
     <fog attach="fog" args={['#08080f',22,115]}/>
-    <ambientLight intensity={.78} color="#dfd1f1"/>
-    <hemisphereLight intensity={.75} color="#fff6e9" groundColor="#29243a"/>
-    <directionalLight position={[4,8,12]} color="#ffe9d9" intensity={3.3}/>
-    <pointLight position={[-2,-1,-11]} color="#b3a1ef" intensity={38} distance={28} decay={2}/>
-    <pointLight position={[3,3,-28]} color="#f1c9bb" intensity={42} distance={30} decay={2}/>
-    <pointLight position={[-6,3,-53]} color="#a6cbd9" intensity={45} distance={32} decay={2}/>
-    <pointLight position={[3,-2,-77]} color="#9996de" intensity={34} distance={27} decay={2}/>
+    {/* Baked vertex colours retain the material detail with only three
+        light contributions, not seven per pixel on every tube surface. */}
+    <ambientLight intensity={.94} color="#e5dbee"/>
+    <hemisphereLight intensity={.83} color="#faf1ef" groundColor="#282438"/>
+    <directionalLight position={[4,8,12]} color="#f5dfed" intensity={1.65}/>
     {/* Camera updates the shared progress BEFORE wall and bridge draw ranges.
         Rendering the walls first caused a one-frame mismatch at the handoff. */}
+    <AdaptiveRenderQuality/>
     <CameraFlight route={route} hovered={hovered} transit={transit} flightPosition={flightPosition}/>
-    <JunctionChambers/>
-    <Shell key={mode+'-'+index} path={path} transit={transit}/>
-    {mode==='projects' && PATHS.children.map((arm,i)=>(
-      <Shell key={'branch-'+i} path={arm} branch transit={transit}/>
-    ))}
-    {transit&&<Shell key={'incoming-'+transit.id} path={incoming.path}
-      transit={transit} arrival/>}
-    {transit&&incoming.mode==='projects'&&PATHS.children.map((arm,i)=>(
-      <Shell key={'incoming-project-'+i+'-'+transit.id}
-        path={arm} branch transit={transit} arrival/>
-    ))}
+    <JunctionChambers mode={mode} index={index}/>
+    <PhysicalTunnelNetwork mode={networkMode} index={networkIndex}/>
+    {/* Real world-space walls are rendered ONCE per spline, never faded,
+        doubled, or reset while changing routes. */}
     {(mode==='projects'||mode==='detail'||incoming?.mode==='projects') && PATHS.children.map((arm,i)=>(
       <ForkGuide key={'guide-'+i} path={arm}
         color={PROJECT_BRANCH_COLORS[i]} active={hovered==='project-'+i}/>
@@ -705,7 +779,7 @@ function Scene({pathname,hovered,transit}) {
 export default function World({pathname='/',hovered='',transit=null,onReady}) {
   return <Canvas onCreated={onReady}
     camera={{position:[0,0,11],fov:45,near:.065,far:140}}
-    dpr={[1,1.35]}
+    dpr={[.8,1.3]}
     gl={{alpha:false,antialias:true,powerPreference:'high-performance'}}
     style={{position:'absolute',inset:0}}>
     <Scene pathname={pathname} hovered={hovered} transit={transit}/>

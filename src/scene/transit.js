@@ -13,7 +13,10 @@ export const PROJECT_INDEX_HUB=closestT(PATHS.routes[0],PROJECT_FORK_POSITION)
 // The lookout stays several metres before the open end of the main tunnel.
 // At the previous -.012 stop the camera saw the terminal wall rather than
 // the five diverging paths.
-export const PROJECT_LOOKOUT_T=PROJECT_INDEX_HUB-.065
+// The crossroads is at the physical end of the shared corridor. Parking
+// backwards from this point forced an unwanted 180-degree reversal after
+// every completed project loop.
+export const PROJECT_LOOKOUT_T=PROJECT_INDEX_HUB
 export const PROJECT_ENTRY_OFFSET=.105
 export const MAIN_ENTRY_OFFSET=.105
 const detailMainHubs=PATHS.details.map(p=>closestT(p,[0,0,-30]))
@@ -43,9 +46,7 @@ export function transitionAnchor(info,from,to){
 }
 export function arrivalT(info,from){
   if(info.mode==='detail')return Math.min(.965,info.projectHub+PROJECT_ENTRY_OFFSET)
-  if(info.mode==='projects' && ['projects','detail'].includes(from.mode))
-    return PROJECT_LOOKOUT_T
-  if(info.mode==='projects') return info.mainHub+MAIN_ENTRY_OFFSET
+  if(info.mode==='projects')return PROJECT_LOOKOUT_T
   if(info.mode==='home')return .025
   return info.mainHub+MAIN_ENTRY_OFFSET
 }
@@ -58,9 +59,10 @@ export function scrollT(info,{scrollY=0,total=1,junction=1,works=2,projectFork=2
     return entrance+(1-entrance)*ease(fraction)
   }
   if(info.mode==='projects'){
-    // Centre the camera precisely in the five-way atrium when its UI appears.
-    const t=ease(scrollY/Math.max(1,projectFork))
-    return info.mainHub+MAIN_ENTRY_OFFSET + t*(PROJECT_LOOKOUT_T-info.mainHub-MAIN_ENTRY_OFFSET)
+    // Stay in the real open crossroads, facing the project entrances.
+    // Do not slide the camera back down the entrance tunnel when the page
+    // scroll state resets at the end of a project.
+    return PROJECT_LOOKOUT_T
   }
   if(info.mode==='home'){
     if(scrollY<=junction)return .025+ease(scrollY/Math.max(1,junction))*(info.mainHub+.012-.025)
@@ -95,6 +97,31 @@ export function sampleTransit(from,to,initialT,progress){
   const p=clamp(progress)
   const hub=junctionFor(from,to,initialT)
   const end=arrivalT(to,from)
+  // A finished project already has a dedicated FORWARD return corridor.
+  // Use the full 4.2 s flight to approach the real fork, rather than
+  // arriving after 52% and rotating in place for the remaining 48%.
+  // On the final frame hand over to the shared project junction at the
+  // *exact same 3D location*, without a reverse leg.
+  if(from.mode==='detail' && to.mode==='projects' &&
+    initialT>.76 && hub.fromT>.999){
+    if(p<1)return {path:from.path,t:initialT+(1-initialT)*ease(p),
+      mode:from.mode,index:from.index,reverse:false,phase:'forward-return'}
+    return {path:to.path,t:PROJECT_INDEX_HUB,mode:to.mode,index:to.index,
+      reverse:false,phase:'arrived'}
+  }
+  // From the open projects crossroads into a selected project (or a
+  // neighbouring loop) the eye is ALREADY at the physical junction. Start
+  // moving immediately along the next forward corridor; the old two-stage
+  // transition parked it there for half its duration, then spun the POV.
+  if(to.mode==='detail' &&
+    ['projects','detail'].includes(from.mode) &&
+    initialT>.95 && hub.fromT>.999){
+    const t=hub.toT+(end-hub.toT)*ease(p)
+    const seam=from.path.getPointAt(hub.fromT)
+      .sub(to.path.getPointAt(hub.toT))
+    return {path:to.path,t,offset:seam.multiplyScalar(1-ease(p/.35)),
+      mode:to.mode,index:to.index,reverse:false,phase:'forward-enter'}
+  }
   // Approach the real intersection continuously until the bridge is ready.
   // The former .35-.52 pause froze the camera for ~700 ms mid-navigation.
   if(p<TRANSIT_MID){
