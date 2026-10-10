@@ -442,7 +442,7 @@ function ProjectDetail({slug,onJourneyFinished}) {
         const flight=window.__portfolioFlight
         const canvas=Boolean(document.querySelector('.scene-backdrop canvas'))
         const physicallyHome=flight && flight.currentRoute==='/projets/'+slug &&
-          !flight.transiting && flight.t>=.994 &&
+          !flight.transiting && flight.t>=.96 &&
           performance.now()-flight.updatedAt<1700
         // A slow or stalled GPU frame is NOT permission to teleport: keep
         // the page visible until the physical 3D eye has reached the fork.
