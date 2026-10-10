@@ -26,7 +26,9 @@ try{
    window.__loopTimer=setInterval(()=>{
      const f=window.__portfolioFlight
      if(!f)return
-     window.__loopFrames.push({at:performance.now(),...f})
+     window.__loopFrames.push({at:performance.now(),...f,
+       bridge:f.transiting&&window.__portfolioBridgeMesh?.id===f.flightId?
+         window.__portfolioBridgeMesh:null})
    },45)
    window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'})
  })
@@ -75,6 +77,8 @@ try{
  assert.ok(approach.length>=4,'No physical return transition was rendered')
  assert.ok(approach[0].departureT>.95,
    'Return flight teleported to the project entrance instead of taking its captured eye position')
+ assert.ok(approach.some(f=>f.bridge?.hubFromT>.998),
+   'The 3D return tunnel was constructed at the wrong, outgoing junction')
  for(let i=1;i<approach.length;i++)
    assert.ok(approach[i].sampleT+.00001>=approach[i-1].sampleT,
      'Return flight travelled backward toward the old project entrance')
