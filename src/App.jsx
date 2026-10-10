@@ -684,8 +684,16 @@ function Shell() {
       window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'})
       return true
     }
+    // Capture the physical eye coordinate BEFORE React can unmount/remount
+    // the 3D scene or reset the page scroll during a route transition.
+    const visibleEye=window.__portfolioFlight
+    const sourceCameraT=visibleEye?.currentRoute===pathname &&
+      Number.isFinite(visibleEye.sampleT??visibleEye.t) &&
+      performance.now()-visibleEye.updatedAt<1700 ?
+        (visibleEye.sampleT??visibleEye.t) : null
     const journey={
       id:++nextId.current,from:pathname,to:next,startedAt:performance.now(),
+      sourceCameraT,
       duration:TRANSIT_MS,sourceScroll:window.scrollY,progress:0,
       midpointDone:false,finished:false
     }
