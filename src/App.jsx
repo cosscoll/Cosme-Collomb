@@ -670,6 +670,17 @@ function Shell() {
       pendingTripRef.current=next
       return true
     }
+    // Forward-only project journeys must not reverse the POV mid-tunnel
+    // when visitors click a menu item. Finish the same physical return loop,
+    // pass through the original fork, THEN continue to the requested page.
+    const eye=window.__portfolioFlight
+    const rendering=eye?.currentRoute===pathname&&!eye.transiting&&
+      performance.now()-eye.updatedAt<1700
+    if(pathname.startsWith('/projets/') && rendering && eye.t<.994){
+      pendingTripRef.current=next==='/projets'?null:next
+      window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'})
+      return true
+    }
     const journey={
       id:++nextId.current,from:pathname,to:next,startedAt:performance.now(),
       duration:TRANSIT_MS,sourceScroll:window.scrollY,progress:0,
