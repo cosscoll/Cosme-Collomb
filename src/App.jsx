@@ -441,10 +441,13 @@ function ProjectDetail({slug,onJourneyFinished}) {
         // Wait until the ACTUAL physical eye finishes the continuous loop.
         const flight=window.__portfolioFlight
         const canvas=Boolean(document.querySelector('.scene-backdrop canvas'))
-        const fresh=flight && performance.now()-flight.updatedAt<1700
         const physicallyHome=flight && flight.currentRoute==='/projets/'+slug &&
-          !flight.transiting && flight.t>=.994
-        const canFinish=!canvas || !fresh || physicallyHome
+          !flight.transiting && flight.t>=.994 &&
+          performance.now()-flight.updatedAt<1700
+        // A slow or stalled GPU frame is NOT permission to teleport: keep
+        // the page visible until the physical 3D eye has reached the fork.
+        // The manual back link remains available if WebGL is unavailable.
+        const canFinish=!canvas || physicallyHome
         if(canFinish)returned=Boolean(onJourneyFinished())
       }
     }
