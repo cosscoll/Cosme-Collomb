@@ -395,16 +395,10 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
         blendHeading(sourceHeading,destinationHeading,
           junctionTurnWeight(metresFromHub,true),direction)
       }
-      if(to.mode==='projects'&&from.mode==='detail'){
-        // Restore the crossroads viewpoint only near the open projects
-        // atrium, not through a wall metres earlier in the inbound passage.
-        const distanceToFork=position.distanceTo(to.path.getPointAt(PROJECT_INDEX_HUB))
-        const focusWeight=smooth((11-distanceToFork)/7)
-        if(focusWeight>0){
-          forkHeading.copy(PROJECT_FORK_FOCUS).sub(position).normalize()
-          blendHeading(direction,forkHeading,focusWeight,direction)
-        }
-      }
+      // Never override the physical corridor heading with a fixed
+      // target in world space. The old target could point BEHIND the
+      // moving camera and create a disorienting automatic turn.
+      
       ahead.copy(position).addScaledVector(direction,5)
     }else{
       corridorHeading(sample.path,t,false,direction)
