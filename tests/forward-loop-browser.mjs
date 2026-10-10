@@ -73,6 +73,11 @@ try{
    f.from==='/projets/ouvertures-d-echecs-en-3d' &&
    f.to==='/projets' && f.progress!==null && f.progress<.52)
  assert.ok(approach.length>=4,'No physical return transition was rendered')
+ assert.ok(approach[0].departureT>.95,
+   'Return flight teleported to the project entrance instead of taking its captured eye position')
+ for(let i=1;i<approach.length;i++)
+   assert.ok(approach[i].sampleT+.00001>=approach[i-1].sampleT,
+     'Return flight travelled backward toward the old project entrance')
  const start=approach[0].position,end=approach.at(-1).position
  assert.ok(Math.hypot(...start.map((v,k)=>v-end[k]))>2.5,
    'Camera turned in place at the junction instead of moving into the chamber')
