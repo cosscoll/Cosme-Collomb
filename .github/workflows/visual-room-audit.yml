@@ -1,0 +1,23 @@
+name: Experimental screenshot rendering of closed 3D junctions
+on:
+  push:
+    branches: ['dev/closed-tunnel-pov-v5']
+    paths: ['.github/workflows/visual-room-audit.yml', 'tests/visual-room-audit.mjs']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  render-with-real-webgl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run test:geometry
+      - run: cp site/index.source.html index.html
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/visual-room-audit.mjs
