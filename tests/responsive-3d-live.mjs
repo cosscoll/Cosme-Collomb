@@ -33,7 +33,14 @@ try{
    const ratio=width/height
    const expectedFov=Math.max(39,Math.min(45,45-8*Math.max(0,1-ratio)-2*Math.max(0,ratio-1.9)))
    assert.ok(first.minimumWallClearance>2.4,label+' eye approaches narrow corridor wall')
-   assert.ok(Math.abs(first.fov-expectedFov)<2,label+' wrong FOV '+first.fov+' expected '+expectedFov)
+   // The crossroads is intentionally wider than the 4.25m corridors.
+   // Its camera eases from the normal, wall-safe tube FOV to the panoramic
+   // room FOV. A single sample can land anywhere along that interpolation
+   // on a slow GPU; bounds must include both valid states.
+   const roomBoost=ratio<.8?29:23
+   assert.ok(first.fov>=expectedFov-2 &&
+     first.fov<=expectedFov+roomBoost+2,
+     label+' FOV outside the valid corridor→atrium transition: '+first.fov)
    await page.evaluate(()=>{
      window.__responsive3DTrace=[]
      clearInterval(window.__responsive3DTicker)
@@ -52,6 +59,9 @@ try{
    await page.waitForTimeout(2600)
    const fork=await page.evaluate(()=>window.__portfolioFlight)
    assert.ok(fork.minimumWallClearance>2.4,label+' wall clearance at junction')
+   assert.ok(fork.fov>=expectedFov-2 &&
+     fork.fov<=expectedFov+roomBoost+2,
+     label+' projects atrium FOV out of responsive range: '+fork.fov)
    const selected=page.locator('.fork-choice').first()
    await selected.scrollIntoViewIfNeeded({timeout:10000})
    await selected.click({timeout:20000})
