@@ -1,4 +1,4 @@
-name: Experimental screenshot rendering of closed 3D junctions
+name: Validate new solid tunnel intersections on real WebGL
 on:
   push:
     branches: ['dev/closed-tunnel-pov-v5']
