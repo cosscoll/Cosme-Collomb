@@ -254,8 +254,10 @@ test('No opaque side wall is rendered across either navigable junction',()=>{
 test('Destination tunnel stays rendered for the complete camera crossing',async()=>{
   const fs=await import('node:fs/promises')
   const world=await fs.readFile(new URL('../src/components/World.jsx',import.meta.url),'utf8')
-  assert.ok(world.includes('(arrival?p>=.52:p<.52)'),
-    'Permanent destination walls must not disappear between 52% and 90%')
+  assert.ok(world.includes('(arrival?(branch?p>=.52:p>=.96):p<.52)'),
+    'Do not render duplicate destination walls over a constructed tunnel')
+  assert.ok(world.includes('const visibility=1-smooth((p-.925)/.04)'),
+    'Assembled bridge must fade before final destination wall handoff')
   assert.ok(world.includes('shellSpans(path)'),
     'Physical crossing apertures missing')
 })
