@@ -132,7 +132,7 @@ const tempColor=new THREE.Color()
 export function radiusAt(phase,angle,radius=TUNNEL_RADIUS) {
   return radius*(1+.028*Math.sin(angle*3+phase*6)+.012*Math.sin(angle*7-phase*11))
 }
-export function createSkin(path,{radius=TUNNEL_RADIUS,lengthSegments=300,radialSegments=RADIAL_SEGMENTS,start=0,end=1}={}) {
+export function createSkin(path,{radius=TUNNEL_RADIUS,radiusProfile=null,lengthSegments=300,radialSegments=RADIAL_SEGMENTS,start=0,end=1}={}) {
   const positions=new Float32Array((lengthSegments+1)*(radialSegments+1)*3)
   const colors=new Float32Array(positions.length)
   const indices=[]
@@ -144,7 +144,7 @@ export function createSkin(path,{radius=TUNNEL_RADIUS,lengthSegments=300,radialS
     const phase=phaseAt(center)
     for(let j=0;j<=radialSegments;j++){
       const angle=PI2*j/radialSegments
-      const r=radiusAt(phase,angle,radius)
+      const r=radiusAt(phase,angle,radius*(radiusProfile?radiusProfile(t,center):1))
       const nx=n.x*Math.cos(angle)+b.x*Math.sin(angle)
       const ny=n.y*Math.cos(angle)+b.y*Math.sin(angle)
       const nz=n.z*Math.cos(angle)+b.z*Math.sin(angle)
@@ -274,9 +274,10 @@ export const CHAMBERS=[
     exits:[
       chamberExitDirection(arms[0],PROJECT_CENTRE,true),
       ...children.map(path=>chamberExitDirection(path,PROJECT_CENTRE))
-      // Only the currently visited project's return mouth is opened while
-      // that project is active, not all eight return mouths at once.
-    ]
+    ],
+    // The small branch openings are deliberately narrower than the
+    // original 4.25m trunk, and never cut away the entire sphere wall.
+    radii:[TUNNEL_RADIUS,...children.map(()=>2.02)]
   }
 ]
 export function createJunctionChamber(chamber,radius=CHAMBER_RADIUS){
@@ -302,7 +303,11 @@ export function createJunctionChamber(chamber,radius=CHAMBER_RADIUS){
     direction.set(src.getX(a)+src.getX(b)+src.getX(c),
       src.getY(a)+src.getY(b)+src.getY(c),
       src.getZ(a)+src.getZ(b)+src.getZ(c)).normalize()
-    if(chamber.exits.some(exit=>direction.dot(exit)>h))continue
+    if(chamber.exits.some((exit,i)=>{
+      const radiusForExit=chamber.radii?.[i]??TUNNEL_RADIUS
+      const threshold=Math.sqrt(1-(radiusForExit/radius)**2)+.013
+      return direction.dot(exit)>threshold
+    }))continue
     indices.push(a,b,c)
   }
   const geometry=new THREE.BufferGeometry()
