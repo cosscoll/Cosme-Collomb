@@ -587,7 +587,7 @@ function BuildingBranch({transit,flightPosition}) {
       )
       return {fraction,position,rotation}
     })
-    return {skin,guides,rings,reverse,lengthSegments,radialSegments,mouthGap}
+    return {skin,guides,rings,reverse,lengthSegments,radialSegments,mouthGap,hubFromT:hub.fromT}
   },[transit.id])
   const ringGeometry=useMemo(()=>new THREE.TorusGeometry(4.10,.028,7,82),[])
   const ringMeshes=useRef([])
@@ -622,7 +622,8 @@ function BuildingBranch({transit,flightPosition}) {
     // not merely the appearance of a “bridge” HTML label.
     window.__portfolioBridgeMesh={
       id:transit.id,progress:p,rows,totalRows:journey.lengthSegments,
-      opacity:visibility,triangles,mouthGap:journey.mouthGap
+      opacity:visibility,triangles,mouthGap:journey.mouthGap,
+      hubFromT:journey.hubFromT
     }
     if(journey.reverse)journey.skin.setDrawRange(
       journey.skin.index.count-triangles,triangles)
