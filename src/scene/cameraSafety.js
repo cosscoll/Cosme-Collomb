@@ -42,3 +42,14 @@ export function safeEyeOffset(aspect,x,y,elapsed){
   const vertical=mobile?0:-clamp(y,-1,1)*.055
   return {horizontal,vertical:vertical+Math.sin(elapsed*.28)*.012}
 }
+
+
+// Turn only in the OPEN physical chamber around a junction. A time-based
+// rotation starts turning from far down a corridor on long journeys and
+// visibly points the visitor through still-opaque walls.
+export const JUNCTION_TURN_METRES = 4.35
+export function junctionTurnWeight(distanceMetres,afterJunction=false){
+  const d=clamp(Math.abs(distanceMetres)/JUNCTION_TURN_METRES,0,1)
+  const near=1-d*d*(3-2*d)
+  return afterJunction ? 1-.5*near : .5*near
+}
