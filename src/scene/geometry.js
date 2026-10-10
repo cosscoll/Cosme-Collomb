@@ -37,8 +37,8 @@ export const RETURNS = PROJECTS.map((_,i)=>{
   const x=Math.cos(angle),y=Math.sin(angle)
   const radial=(r,z)=>[-9.5+x*r,y*r,z]
   return [
-    radial(19,-110),radial(29,-121),radial(38,-113),
-    radial(38,-96),radial(32,-76),radial(18,-54),
+    radial(19,-110),radial(28,-113),radial(30,-99),
+    radial(27,-78),radial(18,-54),
     [-9.5,0,-61]
   ]
 })
