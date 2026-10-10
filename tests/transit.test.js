@@ -35,12 +35,12 @@ test('Arrival camera position agrees with scroll starting position on projects',
  const t=scrollT(projects,{scrollY:0,total:4200,projectFork:1200})
  assert.ok(Math.abs(t-arrivalT(projects,routeInfo('/')))<.00001)
 })
-test('Project crossroads still reached continuously by scrolling',()=>{
+test('Project crossroads never slides back down the tunnel on scroll resets',()=>{
  const route=routeInfo('/projets')
- const start=scrollT(route,{scrollY:0,total:4200,projectFork:1600})
- const hub=scrollT(route,{scrollY:1600,total:4200,projectFork:1600})
- assert.ok(Math.abs(hub-PROJECT_LOOKOUT_T)<.00001)
- assert.ok(hub>start+.10)
+ for(const y of [0,200,1600,4200]){
+  const here=scrollT(route,{scrollY:y,total:4200,projectFork:1600})
+  assert.ok(Math.abs(here-PROJECT_INDEX_HUB)<.00001)
+ }
 })
 test('No teleportation at either real tunnel intersection for every navigation pair',()=>{
  let checked=0
@@ -125,8 +125,8 @@ test('Returning from every finished project lands at the same open crossroads',(
   const expected=scrollT(fork,{scrollY:1600,total:5500,projectFork:1600})
   assert.equal(arrived.path,fork.path)
   assert.ok(Math.abs(arrived.t-expected)<1e-9,'Camera snaps after '+project.title)
-  assert.ok(arrived.t<PROJECT_INDEX_HUB-.045,
-    'Camera is parked against the terminal wall instead of viewing all project forks')
+  assert.ok(Math.abs(arrived.t-PROJECT_INDEX_HUB)<.00001,
+    'Return camera moves backward instead of staying in the physical crossroads')
   // A full project must return to the very same point as a fresh project visit.
   assert.ok(fork.path.getPointAt(arrived.t).distanceTo(
     fork.path.getPointAt(expected))<1e-7)
