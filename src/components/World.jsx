@@ -6,7 +6,7 @@ import * as THREE from 'three'
 import { routeInfo, scrollT, sampleTransit, transitPoint, junctionFor, arrivalT, bridgeBuild, PROJECT_LOOKOUT_T, PROJECT_INDEX_HUB } from '../scene/transit.js'
 import {
   PATHS, PROJECT_BRANCH_COLORS, PROJECT_FORK_OPEN, PROJECT_FORK_CLOSE, PROJECT_FORK_FOCUS,
-  createSkin, createSeam, shellSpans, TUNNEL_RADIUS
+  createSkin, createSeam, shellSpans, TUNNEL_RADIUS, CHAMBERS, createJunctionChamber
 } from '../scene/geometry.js'
 
 const UP=new THREE.Vector3(0,1,0)
@@ -97,6 +97,22 @@ function Shell({path,branch=false,transit=null,arrival=false}) {
       </mesh>)}
     </group>
   )
+}
+
+// The two shared 3D chambers remain present through every transition.
+// Previously removing shell wall strips left the starfield fully exposed;
+// these fixed vaulted walls close that gap without obstructing tunnel mouths.
+const CHAMBER_GEOMETRIES=CHAMBERS.map(createJunctionChamber)
+function JunctionChambers(){
+  return <group name="continuous-junction-chambers" dispose={null}>
+    {CHAMBER_GEOMETRIES.map((geometry,i)=>(
+      <mesh key={i} geometry={geometry} dispose={null}>
+        <meshStandardMaterial color={i===0?'#777083':'#747a92'}
+          side={THREE.DoubleSide} roughness={.64} metalness={.22}
+          emissive="#292337" emissiveIntensity={.17}/>
+      </mesh>
+    ))}
+  </group>
 }
 
 // The distant destinations have illuminated thresholds, not second walls
@@ -648,6 +664,7 @@ function Scene({pathname,hovered,transit}) {
     {/* Camera updates the shared progress BEFORE wall and bridge draw ranges.
         Rendering the walls first caused a one-frame mismatch at the handoff. */}
     <CameraFlight route={route} hovered={hovered} transit={transit} flightPosition={flightPosition}/>
+    <JunctionChambers/>
     <Shell key={mode+'-'+index} path={path} transit={transit}/>
     {mode==='projects' && PATHS.children.map((arm,i)=>(
       <Shell key={'branch-'+i} path={arm} branch transit={transit}/>
