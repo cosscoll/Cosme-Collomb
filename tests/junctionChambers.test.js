@@ -67,3 +67,24 @@ test('Public crossroads exposes no blank return holes; only active project can o
   base.dispose()
   material.dispose()
 })
+
+
+test('Eight visible project tubes remain separated before expanding to full radius',()=>{
+  const center=CHAMBERS[1].centre
+  const paths=PATHS.children
+  let checks=0
+  for(let i=0;i<=80;i++){
+    const t=i/80
+    const points=paths.map(path=>path.getPointAt(t))
+    const d=points[0].distanceTo(center)
+    if(d<8.05||d>26)continue
+    const width=2.85*(.71+.29*Math.min(1,Math.max(0,(d-8)/12))**2*
+      (3-2*Math.min(1,Math.max(0,(d-8)/12))))
+    for(let a=0;a<paths.length;a++)for(let b=a+1;b<paths.length;b++){
+      const sep=points[a].distanceTo(points[b])
+      assert.ok(sep>width*1.7,'Adjacent selected project tube walls overlap near the crossroads')
+      checks++
+    }
+  }
+  assert.ok(checks>120,'No separation samples validated')
+})
