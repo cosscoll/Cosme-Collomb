@@ -3,10 +3,11 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { followScrollT } from '../scene/cameraMotion.js'
 import { corridorFov, corridorHeading, safeEyeOffset, junctionTurnWeight } from '../scene/cameraSafety.js'
 import * as THREE from 'three'
+import { createSolidJunction } from '../scene/junctionSolid.js'
 import { routeInfo, scrollT, sampleTransit, transitPoint, junctionFor, arrivalT, bridgeBuild, PROJECT_LOOKOUT_T, PROJECT_INDEX_HUB } from '../scene/transit.js'
 import {
   PATHS, PROJECT_BRANCH_COLORS, PROJECT_FORK_OPEN, PROJECT_FORK_CLOSE, PROJECT_FORK_FOCUS,
-  createSkin, createSeam, shellSpans, TUNNEL_RADIUS, CHAMBERS, createJunctionChamber
+  createSkin, createSeam, shellSpans, TUNNEL_RADIUS, CHAMBERS
 } from '../scene/geometry.js'
 
 const UP=new THREE.Vector3(0,1,0)
@@ -102,14 +103,13 @@ function Shell({path,branch=false,transit=null,arrival=false}) {
 // The two shared 3D chambers remain present through every transition.
 // Previously removing shell wall strips left the starfield fully exposed;
 // these fixed vaulted walls close that gap without obstructing tunnel mouths.
-const CHAMBER_GEOMETRIES=CHAMBERS.map(createJunctionChamber)
+const CHAMBER_GEOMETRIES=CHAMBERS.map(chamber=>createSolidJunction(chamber))
 function JunctionChambers(){
   return <group name="continuous-junction-chambers" dispose={null}>
     {CHAMBER_GEOMETRIES.map((geometry,i)=>(
       <mesh key={i} geometry={geometry} dispose={null}>
-        {/* An exterior-facing spherical wall used to fill the screen like
-            a giant black disk before the visitor reached the doorway.
-            Only the INSIDE of a physical chamber is ever rendered. */}
+        {/* A signed-distance union joins ALL visible tubes to the chamber.
+            Only the interior faces appear; the external black sphere is gone. */}
         <meshStandardMaterial color={i===0?'#94869f':'#8c92ad'}
           side={THREE.BackSide} roughness={.83} metalness={.06}
           emissive="#61576f" emissiveIntensity={.35}/>
