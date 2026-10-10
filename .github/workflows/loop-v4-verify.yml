@@ -23,4 +23,6 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Browser test forward travel and project return
         run: npm run test:browser
+      - name: Verify no backward POV or teleport on full project loop
+        run: node tests/forward-loop-browser.mjs
       - run: node tests/prototype-3d-smoke.mjs
