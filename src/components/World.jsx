@@ -45,20 +45,26 @@ function shellResources(path,branch){
   const kind=branch?'branch':'corridor'
   if(variants[kind])return variants[kind]
   const radius=branch?2.85:4.25
-  const start=branch?PROJECT_FORK_OPEN:0
-  const end=branch?PROJECT_FORK_CLOSE:1
+  const start=0
+  const end=1
   const divisions=branch?84:238
   const radial=branch?32:48
   const seamsCount=branch?3:5
-  const spans=branch?[[start,end]]:shellSpans(path)
+  const spans=shellSpans(path)
+  // Close to the project hub, eight branches are only a few metres apart.
+  // Their previous full-size walls crossed one another directly in front
+  // of the camera. Taper gently before expanding to normal tunnel width.
+  const radiusProfile=branch?(t,center)=>
+    .71+.29*smooth((center.distanceTo(CHAMBERS[1].centre)-8)/12):null
   const geometries=spans.map(([a,b])=>createSkin(path,{
-    radius,lengthSegments:Math.max(16,Math.round(divisions*(b-a))),
+    radius,radiusProfile,
+    lengthSegments:Math.max(16,Math.round(divisions*(b-a))),
     radialSegments:radial,start:a,end:b
   }))
   const seamGeometries=spans.flatMap(([a,b])=>
     Array.from({length:seamsCount},(_,i)=>{
       const seam=createSeam(path,i*Math.PI*2/seamsCount,{
-        radius,segments:Math.max(15,Math.round(120*(b-a))),
+        radius:branch?2.05:radius,segments:Math.max(15,Math.round(120*(b-a))),
         start:a,end:b
       })
       return new THREE.TubeGeometry(seam,
@@ -113,7 +119,8 @@ const RETURN_ROOM_GEOMETRIES=PATHS.returnArms.map(path=>
   createJunctionChamber({
     centre:CHAMBERS[1].centre,
     exits:[...CHAMBERS[1].exits,
-      chamberExitDirection(path,CHAMBERS[1].centre,true)]
+      chamberExitDirection(path,CHAMBERS[1].centre,true)],
+    radii:[...CHAMBERS[1].radii,2.02]
   }))
 function JunctionChambers({mode,index}){
   const room=mode==='detail'&&index>=0?
@@ -136,14 +143,14 @@ function JunctionChambers({mode,index}){
 // The previous implementation showed only the SELECTED route, leaving holes
 // to black sky for all other exits. Re-rendering full destination paths also
 // created overlapping walls and depth flicker when changing pages.
-function PhysicalTunnelNetwork({mode}){
+function PhysicalTunnelNetwork({mode,index}){
   return <group name="closed-physical-tunnel-network">
     <Shell path={PATHS.trunk}/>
     {PATHS.arms.map((path,i)=><Shell key={'main-'+i} path={path}/>)}
-    {(mode==='projects'||mode==='detail') && <>
-      {PATHS.children.map((path,i)=><Shell key={'out-'+i} path={path}/>)}
-      {PATHS.returnArms.map((path,i)=><Shell key={'return-'+i} path={path}/>)}
-    </>}
+    {(mode==='projects'||mode==='detail') &&
+      PATHS.children.map((path,i)=><Shell key={'out-'+i} path={path} branch/>)}
+    {mode==='detail'&&index>=0 &&
+      <Shell key={'active-return-'+index} path={PATHS.returnArms[index]} branch/>}
   </group>
 }
 
@@ -693,7 +700,7 @@ function Scene({pathname,hovered,transit}) {
         Rendering the walls first caused a one-frame mismatch at the handoff. */}
     <CameraFlight route={route} hovered={hovered} transit={transit} flightPosition={flightPosition}/>
     <JunctionChambers mode={mode} index={index}/>
-    <PhysicalTunnelNetwork mode={mode==='detail'||incoming?.mode==='detail'?'detail':mode}/>
+    <PhysicalTunnelNetwork mode={mode} index={index}/>
     {/* Navigation ribbons may assemble, but solid walls never disappear. */}
     {transit&&incoming.mode==='projects'&&PATHS.children.map((arm,i)=>(
       <Shell key={'incoming-project-'+i+'-'+transit.id}
