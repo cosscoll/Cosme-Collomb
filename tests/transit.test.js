@@ -143,7 +143,7 @@ test('All project paths remain accessible when a project visit is complete',asyn
  assert.ok(app.includes('state={{fromJourney:true}}'))
  assert.ok(world.includes("fork.offsetTop"))
  assert.ok(!world.includes("projectFork.offsetTop+projectFork.offsetHeight*.35"))
- assert.ok(world.includes("incoming.mode==='projects'&&PATHS.children.map"))
+ assert.ok(world.includes('PhysicalTunnelNetwork'), 'Every chamber portal needs its own permanent tunnel backing')
  assert.ok(world.includes("to.mode==='projects'&&from.mode==='detail'"))
  assert.ok(world.includes('bridgeMaterial.current.opacity=visibility'))
  assert.ok(world.includes('arrival?'))
