@@ -73,7 +73,7 @@ export function closestT(path, coord) {
 // Physical crossroads are open chambers, not the opaque sidewalls of a
 // straight tube. Remove ONLY the short wall pieces centred on each actual
 // junction; retain the approach and exits along the exact same curve.
-export function shellSpans(path,{start=0,end=1,clearance=14.4}={}){
+export function shellSpans(path,{start=0,end=1,clearance=8.05}={}){
   let spans=[[start,end]]
   for(const coord of [[0,0,-30],[-9.5,0,-61]]){
     const hub=closestT(path,coord)
@@ -241,8 +241,10 @@ export const CHAMBER_RADIUS=9.55
 // instead of guessing path percentages (which misaligned doors by metres).
 export const CHAMBER_PORTAL_DISTANCE=Math.sqrt(
   CHAMBER_RADIUS*CHAMBER_RADIUS-TUNNEL_RADIUS*TUNNEL_RADIUS)
+// A portal is slightly narrower than the backed tube. This intentional
+// overlap seals every edge instead of letting the starfield peek through.
 export const CHAMBER_HOLE_DOT=Math.sqrt(
-  1-(TUNNEL_RADIUS/CHAMBER_RADIUS)**2)-.016
+  1-(TUNNEL_RADIUS/CHAMBER_RADIUS)**2)+.013
 export function chamberExitDirection(path,centre,atEnd=false){
   const low=atEnd?.57:0, high=atEnd?1:.43
   let closest=Infinity, best=null
@@ -271,13 +273,14 @@ export const CHAMBERS=[
     centre:PROJECT_CENTRE,
     exits:[
       chamberExitDirection(arms[0],PROJECT_CENTRE,true),
-      ...children.map(path=>chamberExitDirection(path,PROJECT_CENTRE)),
-      ...returnArms.map(path=>chamberExitDirection(path,PROJECT_CENTRE,true))
+      ...children.map(path=>chamberExitDirection(path,PROJECT_CENTRE))
+      // Only the currently visited project's return mouth is opened while
+      // that project is active, not all eight return mouths at once.
     ]
   }
 ]
 export function createJunctionChamber(chamber,radius=CHAMBER_RADIUS){
-  const sphere=new THREE.SphereGeometry(radius,112,72)
+  const sphere=new THREE.SphereGeometry(radius,224,144)
   const src=sphere.getAttribute('position')
   const original=sphere.getIndex()
   const positions=new Float32Array(src.array.length)
