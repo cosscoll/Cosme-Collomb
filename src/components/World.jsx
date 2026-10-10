@@ -362,18 +362,9 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       ahead.copy(position).addScaledVector(direction,5)
     }else{
       corridorHeading(sample.path,t,false,direction)
-      if(sample.mode==='detail'){
-        // The project story stops at its far end before returning. Rotate
-        // gradually DURING that stop rather than reversing the view in one
-        // frame or allowing a 180-degree look-at singularity.
-        sourceHeading.copy(direction)
-        destinationHeading.copy(direction).negate()
-        blendHeading(sourceHeading,destinationHeading,
-          smooth((y/Math.max(1,total)-.625)/.105),direction)
-        ahead.copy(position).addScaledVector(direction,5)
-      }else{
-        ahead.copy(position).addScaledVector(direction,5)
-      }
+      // The story's return corridor is an actual spatial loop. Never rotate
+      // the visitor in place or reverse their camera direction at its end.
+      ahead.copy(position).addScaledVector(direction,5)
     }
     right.crossVectors(direction,UP).normalize()
     softPointer.current.x=THREE.MathUtils.damp(softPointer.current.x,pointer.current.x,3.2,dt)
