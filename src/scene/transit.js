@@ -97,6 +97,18 @@ export function sampleTransit(from,to,initialT,progress){
   const p=clamp(progress)
   const hub=junctionFor(from,to,initialT)
   const end=arrivalT(to,from)
+  // A finished project already has a dedicated FORWARD return corridor.
+  // Use the full 4.2 s flight to approach the real fork, rather than
+  // arriving after 52% and rotating in place for the remaining 48%.
+  // On the final frame hand over to the shared project junction at the
+  // *exact same 3D location*, without a reverse leg.
+  if(from.mode==='detail' && to.mode==='projects' &&
+    initialT>.76 && hub.fromT>.999){
+    if(p<1)return {path:from.path,t:initialT+(1-initialT)*ease(p),
+      mode:from.mode,index:from.index,reverse:false,phase:'forward-return'}
+    return {path:to.path,t:PROJECT_INDEX_HUB,mode:to.mode,index:to.index,
+      reverse:false,phase:'arrived'}
+  }
   // Approach the real intersection continuously until the bridge is ready.
   // The former .35-.52 pause froze the camera for ~700 ms mid-navigation.
   if(p<TRANSIT_MID){
