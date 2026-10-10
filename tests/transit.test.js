@@ -144,7 +144,7 @@ test('All project paths remain accessible when a project visit is complete',asyn
  assert.ok(world.includes("fork.offsetTop"))
  assert.ok(!world.includes("projectFork.offsetTop+projectFork.offsetHeight*.35"))
  assert.ok(world.includes('PhysicalTunnelNetwork'), 'Every chamber portal needs its own permanent tunnel backing')
- assert.ok(world.includes("to.mode==='projects'&&from.mode==='detail'"))
+ assert.ok(world.includes('Never override the physical corridor heading'), 'No fixed look target may spin the POV away from the real path')
  assert.ok(world.includes('bridgeMaterial.current.opacity=visibility'))
  assert.ok(world.includes('arrival?'))
 })
@@ -284,6 +284,10 @@ test('Joining exactly at the end of a route never clamps the camera short of the
   const destination=routeInfo('/projets/'+PROJECTS[0].slug)
   const hub=junctionFor(source,destination,PROJECT_LOOKOUT_T)
   assert.ok(hub.fromT>.998)
-  const atHub=transitPoint(sampleTransit(source,destination,PROJECT_LOOKOUT_T,TRANSIT_MID))
-  assert.ok(atHub.distanceTo(source.path.getPointAt(hub.fromT))<.0001)
+  const atHub=transitPoint(sampleTransit(source,destination,PROJECT_LOOKOUT_T,0))
+  assert.ok(atHub.distanceTo(source.path.getPointAt(hub.fromT))<.0001,
+    'The new forward-only flight must start at the real shared chamber')
+  const ahead=transitPoint(sampleTransit(source,destination,PROJECT_LOOKOUT_T,TRANSIT_MID))
+  assert.ok(ahead.distanceTo(atHub)>1,
+    'Forward movement must not stall for half the transition at the junction')
 })
