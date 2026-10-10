@@ -73,7 +73,7 @@ export function closestT(path, coord) {
 // Physical crossroads are open chambers, not the opaque sidewalls of a
 // straight tube. Remove ONLY the short wall pieces centred on each actual
 // junction; retain the approach and exits along the exact same curve.
-export function shellSpans(path,{start=0,end=1,clearance=8.5}={}){
+export function shellSpans(path,{start=0,end=1,clearance=14.4}={}){
   let spans=[[start,end]]
   for(const coord of [[0,0,-30],[-9.5,0,-61]]){
     const hub=closestT(path,coord)
