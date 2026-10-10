@@ -54,11 +54,14 @@ test('No teleportation at either real tunnel intersection for every navigation p
     const xyzB=to.path.getPointAt(junction.toT)
     assert.ok(xyzA.distanceTo(xyzB)<.7, f+' → '+t+' not physically connected')
     let last
-    for(let i=0;i<=250;i++){
-     const sample=sampleTransit(from,to,initialT,i/250)
-     const pos=sample.path.getPointAt(Math.min(.999,Math.max(.001,sample.t)))
+    // Forward loops are considerably longer than the previous backtracking
+    // paths. Measure the real corrected position at 1000 equal time intervals.
+    for(let i=0;i<=1000;i++){
+     const sample=sampleTransit(from,to,initialT,i/1000)
+     const pos=transitPoint(sample)
      assert.ok(Number.isFinite(pos.x)&&Number.isFinite(pos.y)&&Number.isFinite(pos.z))
-     if(last)assert.ok(last.distanceTo(pos)<2,f+' → '+t+' camera jumped at '+i/250)
+     if(last)assert.ok(last.distanceTo(pos)<.95,
+       f+' → '+t+' moved more than .95m per 0.1% of transition at '+i/1000)
      last=pos
     }
     const end=sampleTransit(from,to,initialT,1)

@@ -1,6 +1,8 @@
 // Smooth scroll-driven camera motion in metres rather than raw spline units.
+// Physical per-frame translation is limited even when the GPU stalls. Velocity remains
+// limited to 15m/s, so full forward loops finish without appearing frozen.
 // No browser dependencies so movement limits can be regression-tested.
-export const MAX_SCROLL_STEP_METRES = 0.42
+export const MAX_SCROLL_STEP_METRES = 0.50
 export const MAX_SCROLL_SPEED_MPS = 15
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x))
 

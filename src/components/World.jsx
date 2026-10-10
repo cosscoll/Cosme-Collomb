@@ -6,7 +6,7 @@ import * as THREE from 'three'
 import { routeInfo, scrollT, sampleTransit, transitPoint, junctionFor, arrivalT, bridgeBuild, PROJECT_LOOKOUT_T, PROJECT_INDEX_HUB } from '../scene/transit.js'
 import {
   PATHS, PROJECT_BRANCH_COLORS, PROJECT_FORK_OPEN, PROJECT_FORK_CLOSE, PROJECT_FORK_FOCUS,
-  createSkin, createSeam, shellSpans, TUNNEL_RADIUS
+  createSkin, createSeam, shellSpans, TUNNEL_RADIUS, CHAMBERS, createJunctionChamber
 } from '../scene/geometry.js'
 
 const UP=new THREE.Vector3(0,1,0)
@@ -97,6 +97,22 @@ function Shell({path,branch=false,transit=null,arrival=false}) {
       </mesh>)}
     </group>
   )
+}
+
+// The two shared 3D chambers remain present through every transition.
+// Previously removing shell wall strips left the starfield fully exposed;
+// these fixed vaulted walls close that gap without obstructing tunnel mouths.
+const CHAMBER_GEOMETRIES=CHAMBERS.map(createJunctionChamber)
+function JunctionChambers(){
+  return <group name="continuous-junction-chambers" dispose={null}>
+    {CHAMBER_GEOMETRIES.map((geometry,i)=>(
+      <mesh key={i} geometry={geometry} dispose={null}>
+        <meshStandardMaterial color={i===0?'#777083':'#747a92'}
+          side={THREE.DoubleSide} roughness={.64} metalness={.22}
+          emissive="#292337" emissiveIntensity={.17}/>
+      </mesh>
+    ))}
+  </group>
 }
 
 // The distant destinations have illuminated thresholds, not second walls
@@ -281,12 +297,22 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
         transitId.current=transit.id
         // Capture the exact position in the existing 3D corridor, BEFORE
         // React Router exchanges the content, even midway through a scroll.
-        departure.current=current.current===null?
-          scrollT(route,{scrollY:y,total,
-            junction:scrollPositions.current.junction,
-            works:scrollPositions.current.works,
-            projectFork:scrollPositions.current.fork}):
-          current.current
+        // React may remount this scene after scroll reset; current.current
+        // then points to the PROJECT ENTRANCE, not to the eye at the fork.
+        // Navigation captures sourceCameraT before React starts the switch.
+        const captured=transit.sourceCameraT
+        const observed=window.__portfolioFlight
+        const observedT=observed?.currentRoute===transit.from &&
+          Number.isFinite(observed.sampleT??observed.t)?
+          (observed.sampleT??observed.t):null
+        departure.current=Number.isFinite(captured)?captured:
+          Number.isFinite(observedT)?observedT:
+          current.current===null?
+            scrollT(route,{scrollY:y,total,
+              junction:scrollPositions.current.junction,
+              works:scrollPositions.current.works,
+              projectFork:scrollPositions.current.fork}):
+            current.current
       }
       const {from,to}=transitRoutes
       // Cap each actual *world-space* frame movement, even when the user
@@ -362,18 +388,9 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       ahead.copy(position).addScaledVector(direction,5)
     }else{
       corridorHeading(sample.path,t,false,direction)
-      if(sample.mode==='detail'){
-        // The project story stops at its far end before returning. Rotate
-        // gradually DURING that stop rather than reversing the view in one
-        // frame or allowing a 180-degree look-at singularity.
-        sourceHeading.copy(direction)
-        destinationHeading.copy(direction).negate()
-        blendHeading(sourceHeading,destinationHeading,
-          smooth((y/Math.max(1,total)-.625)/.105),direction)
-        ahead.copy(position).addScaledVector(direction,5)
-      }else{
-        ahead.copy(position).addScaledVector(direction,5)
-      }
+      // The story's return corridor is an actual spatial loop. Never rotate
+      // the visitor in place or reverse their camera direction at its end.
+      ahead.copy(position).addScaledVector(direction,5)
     }
     right.crossVectors(direction,UP).normalize()
     softPointer.current.x=THREE.MathUtils.damp(softPointer.current.x,pointer.current.x,3.2,dt)
@@ -436,7 +453,8 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       bridgeProgress:transit?bridgeBuild(visualProgress):null,
       quaternion:[camera.quaternion.x,camera.quaternion.y,camera.quaternion.z,camera.quaternion.w],
       direction:[ahead.x-camera.position.x,ahead.y-camera.position.y,ahead.z-camera.position.z],
-      mode:sample.mode,t,forkTarget:PROJECT_LOOKOUT_T,transiting:Boolean(transit),
+      mode:sample.mode,t,sampleT:sample.t,departureT:transit?departure.current:null,
+      forkTarget:PROJECT_LOOKOUT_T,transiting:Boolean(transit),
       phase:sample.phase||'scroll',
       currentRoute:route.pathName,from:transit?.from,to:transit?.to,
       flightId:transit?.id??null,
@@ -475,8 +493,13 @@ function BuildingBranch({transit,flightPosition}) {
     const to=routeInfo(transit.to)
     // The graph junction is shared by both camera paths (no fabricated bridge
     // crossing the existing tunnel wall).
-    const hub=junctionFor(from,to,flightPosition.current?.pathName===transit.from?
-      flightPosition.current.t:.35)
+    // The bridge must use the SAME captured departure graph node as the
+    // camera. Otherwise it can build from the outbound project entrance
+    // while the eye is already entering the return junction.
+    const startT=Number.isFinite(transit.sourceCameraT)?transit.sourceCameraT:
+      flightPosition.current?.pathName===transit.from?
+        flightPosition.current.t:.35
+    const hub=junctionFor(from,to,startT)
     const arrival=arrivalT(to,from)
     const reverse=arrival<hub.toT
     const margin=0
@@ -564,7 +587,7 @@ function BuildingBranch({transit,flightPosition}) {
       )
       return {fraction,position,rotation}
     })
-    return {skin,guides,rings,reverse,lengthSegments,radialSegments,mouthGap}
+    return {skin,guides,rings,reverse,lengthSegments,radialSegments,mouthGap,hubFromT:hub.fromT}
   },[transit.id])
   const ringGeometry=useMemo(()=>new THREE.TorusGeometry(4.10,.028,7,82),[])
   const ringMeshes=useRef([])
@@ -599,7 +622,8 @@ function BuildingBranch({transit,flightPosition}) {
     // not merely the appearance of a “bridge” HTML label.
     window.__portfolioBridgeMesh={
       id:transit.id,progress:p,rows,totalRows:journey.lengthSegments,
-      opacity:visibility,triangles,mouthGap:journey.mouthGap
+      opacity:visibility,triangles,mouthGap:journey.mouthGap,
+      hubFromT:journey.hubFromT
     }
     if(journey.reverse)journey.skin.setDrawRange(
       journey.skin.index.count-triangles,triangles)
@@ -657,6 +681,7 @@ function Scene({pathname,hovered,transit}) {
     {/* Camera updates the shared progress BEFORE wall and bridge draw ranges.
         Rendering the walls first caused a one-frame mismatch at the handoff. */}
     <CameraFlight route={route} hovered={hovered} transit={transit} flightPosition={flightPosition}/>
+    <JunctionChambers/>
     <Shell key={mode+'-'+index} path={path} transit={transit}/>
     {mode==='projects' && PATHS.children.map((arm,i)=>(
       <Shell key={'branch-'+i} path={arm} branch transit={transit}/>

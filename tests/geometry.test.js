@@ -100,19 +100,23 @@ test('All project branches are open, distinct and have actual 3D walls',()=>{
     }
   }
 })
-test('Each journey returns to the same physical intersection after its story',()=>{
+test('Each project journey is a real forward-only loop back to the same fork',()=>{
   for(let i=0;i<PROJECTS.length;i++){
-    const hub=projectOutboundT(i)
+    const path=PATHS.details[i]
+    const fork=path.getPointAt(projectOutboundT(i)-.014)
     const start=detailTravelT(i,0)
-    const outbound=detailTravelT(i,.63)
-    const turning=detailTravelT(i,.7)
-    const final=detailTravelT(i,1)
-    assert.ok(Math.abs(start-hub)<.000001)
-    assert.ok(outbound>.94 && outbound<.99)
-    assert.equal(turning,outbound)
-    assert.ok(Math.abs(final-start)<.000001,'Journey did not return to its junction')
-    assert.ok(PATHS.details[i].getPointAt(final).distanceTo(
-      PATHS.details[i].getPointAt(start))<.001)
+    assert.ok(start>projectOutboundT(i))
+    let previous=start
+    for(let k=1;k<=300;k++){
+      const t=detailTravelT(i,k/300)
+      assert.ok(t>=previous,'A project camera backtracks at scroll fraction '+k/300)
+      previous=t
+    }
+    assert.equal(detailTravelT(i,1),1,'The project loop does not finish at the real fork')
+    assert.ok(path.getPointAt(1).distanceTo(fork)<.08,
+      'A project return corridor does not meet its physical departure fork')
+    assert.ok(path.getPointAt(.95).distanceTo(path.getPointAt(start))>5,
+      'Return corridor collapsed into the outgoing corridor')
     assert.equal(detailReturning(.4),false)
     assert.equal(detailReturning(.8),true)
   }

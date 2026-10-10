@@ -124,6 +124,7 @@ async function run(){
       '--disable-dev-shm-usage','--disable-gpu-sandbox']
   })
   const page=await browser.newPage({viewport:{width:1030,height:690}})
+  globalThis.__active3DSmokePage=page
   page.setDefaultTimeout(60000)
   const errors=[]
   page.on('pageerror',error=>errors.push(String(error)))
@@ -270,6 +271,17 @@ try{
   await run()
 }catch(error){
   console.error('BROWSER SMOKE TEST FAILED:',error)
+  try{
+    const diagnostic=await globalThis.__active3DSmokePage?.evaluate(()=>({
+      href:location.href, scrollY:window.scrollY,
+      total:document.documentElement.scrollHeight-window.innerHeight,
+      header:document.querySelector('main h1')?.textContent?.slice(0,120),
+      activeTransition:!!document.querySelector('[data-bridge-transition="active"]'),
+      flight:window.__portfolioFlight,
+      bridge:window.__portfolioBridgeMesh
+    }))
+    console.error('FAILED_3D_ROUTE_DIAGNOSTIC',JSON.stringify(diagnostic))
+  }catch(ex){console.error('Browser diagnostic unavailable',String(ex))}
   process.exitCode=1
 }finally{
   await browser?.close()

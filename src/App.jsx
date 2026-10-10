@@ -435,10 +435,20 @@ function ProjectDetail({slug,onJourneyFinished}) {
       if(window.scrollY>total*.45)travelled=true
       if(travelled && window.scrollY>=total-30 &&
         performance.now()-mountedAt>1100){
-        // A journey can reach the page bottom while its inbound 3D transit
-        // is still active. Only mark it complete once a NEW return flight
-        // has actually started, otherwise the user gets stranded at the end.
-        returned=Boolean(onJourneyFinished())
+        // Scroll can jump instantly to the bottom while the 3D camera still
+        // has 80+ metres of the return loop to travel. Starting navigation
+        // here used to reverse the camera and cut through the outbound wall.
+        // Wait until the ACTUAL physical eye finishes the continuous loop.
+        const flight=window.__portfolioFlight
+        const canvas=Boolean(document.querySelector('.scene-backdrop canvas'))
+        const physicallyHome=flight && flight.currentRoute==='/projets/'+slug &&
+          !flight.transiting && flight.t>=.96 &&
+          performance.now()-flight.updatedAt<1700
+        // A slow or stalled GPU frame is NOT permission to teleport: keep
+        // the page visible until the physical 3D eye has reached the fork.
+        // The manual back link remains available if WebGL is unavailable.
+        const canFinish=!canvas || physicallyHome
+        if(canFinish)returned=Boolean(onJourneyFinished())
       }
     }
     const poll=()=>{
@@ -663,8 +673,27 @@ function Shell() {
       pendingTripRef.current=next
       return true
     }
+    // Forward-only project journeys must not reverse the POV mid-tunnel
+    // when visitors click a menu item. Finish the same physical return loop,
+    // pass through the original fork, THEN continue to the requested page.
+    const eye=window.__portfolioFlight
+    const rendering=eye?.currentRoute===pathname&&!eye.transiting&&
+      performance.now()-eye.updatedAt<1700
+    if(pathname.startsWith('/projets/') && rendering && eye.t<.96){
+      pendingTripRef.current=next==='/projets'?null:next
+      window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'})
+      return true
+    }
+    // Capture the physical eye coordinate BEFORE React can unmount/remount
+    // the 3D scene or reset the page scroll during a route transition.
+    const visibleEye=window.__portfolioFlight
+    const sourceCameraT=visibleEye?.currentRoute===pathname &&
+      Number.isFinite(visibleEye.sampleT??visibleEye.t) &&
+      performance.now()-visibleEye.updatedAt<1700 ?
+        (visibleEye.sampleT??visibleEye.t) : null
     const journey={
       id:++nextId.current,from:pathname,to:next,startedAt:performance.now(),
+      sourceCameraT,
       duration:TRANSIT_MS,sourceScroll:window.scrollY,progress:0,
       midpointDone:false,finished:false
     }
