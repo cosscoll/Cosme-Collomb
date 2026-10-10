@@ -1,0 +1,20 @@
+name: Live responsive 3D wall collision regression
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/responsive-3d.yml', 'tests/responsive-3d-live.mjs']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-physical-camera-on-public-site:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npx playwright install --with-deps chromium
+      - run: node tests/responsive-3d-live.mjs
