@@ -280,39 +280,92 @@ export const CHAMBERS=[
     radii:[TUNNEL_RADIUS,...children.map(()=>2.02)]
   }
 ]
+// Clip each sphere triangle against the EXACT geometric plane of every
+// tunnel mouth. Deleting entire triangles by their centroid left jagged
+// polygon teeth and apparent gaps when viewed from inside the crossroads.
+// Shared edge intersections are cached, giving adjacent triangles precisely
+// the same boundary vertices: no pinholes, no disconnected surfaces.
 export function createJunctionChamber(chamber,radius=CHAMBER_RADIUS){
-  const sphere=new THREE.SphereGeometry(radius,224,144)
+  const sphere=new THREE.SphereGeometry(radius,160,104)
   const src=sphere.getAttribute('position')
   const original=sphere.getIndex()
-  const positions=new Float32Array(src.array.length)
-  const normals=new Float32Array(src.array.length)
+  const positions=[]
+  const normals=[]
   for(let i=0;i<src.count;i++){
-    const direction=new THREE.Vector3().fromBufferAttribute(src,i).normalize()
-    positions[i*3]=src.getX(i)+chamber.centre.x
-    positions[i*3+1]=src.getY(i)+chamber.centre.y
-    positions[i*3+2]=src.getZ(i)+chamber.centre.z
-    normals[i*3]=direction.x;normals[i*3+1]=direction.y;normals[i*3+2]=direction.z
+    const x=src.getX(i),y=src.getY(i),z=src.getZ(i)
+    const len=Math.hypot(x,y,z)||1
+    positions.push(x+chamber.centre.x,y+chamber.centre.y,z+chamber.centre.z)
+    normals.push(x/len,y/len,z/len)
+  }
+  const openings=chamber.exits.map((exit,i)=>({
+    exit,
+    threshold:Math.sqrt(1-((chamber.radii?.[i]??TUNNEL_RADIUS)/radius)**2)+.013,
+    id:i
+  }))
+  const edgeCache=new Map()
+  const dot=(id,v)=>normals[id*3]*v.x+
+    normals[id*3+1]*v.y+normals[id*3+2]*v.z
+  function cutVertex(a,b,op){
+    const key=op.id+':'+Math.min(a,b)+':'+Math.max(a,b)
+    const hit=edgeCache.get(key)
+    if(hit!==undefined)return hit
+    const da=dot(a,op.exit),db=dot(b,op.exit)
+    // Binary search along a NORMALISED chord on the spherical surface,
+    // ensuring the clipped edge lies on the true physical aperture.
+    let lo=0,hi=1
+    for(let k=0;k<11;k++){
+      const t=(lo+hi)*.5
+      let x=normals[a*3]*(1-t)+normals[b*3]*t
+      let y=normals[a*3+1]*(1-t)+normals[b*3+1]*t
+      let z=normals[a*3+2]*(1-t)+normals[b*3+2]*t
+      const len=Math.hypot(x,y,z)||1
+      const within=(x*op.exit.x+y*op.exit.y+z*op.exit.z)/len<=op.threshold
+      if(within===(da<=op.threshold))lo=t
+      else hi=t
+    }
+    const t=(lo+hi)*.5
+    let nx=normals[a*3]*(1-t)+normals[b*3]*t
+    let ny=normals[a*3+1]*(1-t)+normals[b*3+1]*t
+    let nz=normals[a*3+2]*(1-t)+normals[b*3+2]*t
+    const len=Math.hypot(nx,ny,nz)||1
+    nx/=len;ny/=len;nz/=len
+    const id=positions.length/3
+    positions.push(chamber.centre.x+radius*nx,
+      chamber.centre.y+radius*ny,
+      chamber.centre.z+radius*nz)
+    normals.push(nx,ny,nz)
+    edgeCache.set(key,id)
+    return id
   }
   const indices=[]
-  const direction=new THREE.Vector3()
-  const h=CHAMBER_HOLE_DOT
   for(let i=0;i<original.count;i+=3){
-    const a=original.getX(i),b=original.getX(i+1),c=original.getX(i+2)
-    // Use the triangle centroid, which gives clean, stable apertures and
-    // prevents slit-like edges when a route meets the chamber.
-    direction.set(src.getX(a)+src.getX(b)+src.getX(c),
-      src.getY(a)+src.getY(b)+src.getY(c),
-      src.getZ(a)+src.getZ(b)+src.getZ(c)).normalize()
-    if(chamber.exits.some((exit,i)=>{
-      const radiusForExit=chamber.radii?.[i]??TUNNEL_RADIUS
-      const threshold=Math.sqrt(1-(radiusForExit/radius)**2)+.013
-      return direction.dot(exit)>threshold
-    }))continue
-    indices.push(a,b,c)
+    let polygon=[original.getX(i),original.getX(i+1),original.getX(i+2)]
+    for(const op of openings){
+      if(polygon.length<3)break
+      const points=polygon.map(index=>({index,within:dot(index,op.exit)<=op.threshold}))
+      if(points.every(p=>p.within))continue
+      if(points.every(p=>!p.within)){polygon=[];break}
+      const clipped=[]
+      for(let j=0;j<points.length;j++){
+        const previous=points[(j+points.length-1)%points.length]
+        const current=points[j]
+        if(previous.within!==current.within){
+          clipped.push(cutVertex(previous.index,current.index,op))
+        }
+        if(current.within)clipped.push(current.index)
+      }
+      polygon=clipped
+    }
+    if(polygon.length>=3){
+      for(let j=1;j+1<polygon.length;j++){
+        const a=polygon[0],b=polygon[j],c=polygon[j+1]
+        if(a!==b&&b!==c&&a!==c)indices.push(a,b,c)
+      }
+    }
   }
   const geometry=new THREE.BufferGeometry()
-  geometry.setAttribute('position',new THREE.BufferAttribute(positions,3))
-  geometry.setAttribute('normal',new THREE.BufferAttribute(normals,3))
+  geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3))
+  geometry.setAttribute('normal',new THREE.Float32BufferAttribute(normals,3))
   geometry.setIndex(indices)
   geometry.computeBoundingSphere()
   sphere.dispose()
