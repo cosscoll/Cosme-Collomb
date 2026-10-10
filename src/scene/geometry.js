@@ -72,7 +72,7 @@ export function closestT(path, coord) {
 // Physical crossroads are open chambers, not the opaque sidewalls of a
 // straight tube. Remove ONLY the short wall pieces centred on each actual
 // junction; retain the approach and exits along the exact same curve.
-export function shellSpans(path,{start=0,end=1,clearance=4.6}={}){
+export function shellSpans(path,{start=0,end=1,clearance=8.5}={}){
   let spans=[[start,end]]
   for(const coord of [[0,0,-30],[-9.5,0,-61]]){
     const hub=closestT(path,coord)
@@ -227,4 +227,63 @@ export function detailTravelT(index,progress) {
 export function detailReturning(progress) {
   // Return corridor is a separate piece, not a reverse traversal.
   return progress>.68
+}
+
+
+// A shared physical atrium replaces the old empty circular gap cut around a
+// junction. Its rounded walls have genuine openings in the direction of
+// every adjoining tunnel (including the distinct project return tunnels).
+// The static mesh is built once and reused; no texture or WebGL shader tricks.
+export const CHAMBER_RADIUS=9.55
+export const CHAMBER_HOLE_DOT=Math.sqrt(1-(TUNNEL_RADIUS/CHAMBER_RADIUS)**2)-.009
+export const CHAMBERS=[
+  {
+    centre:V([0,0,-30]),
+    exits:[
+      trunk.getPointAt(.86).sub(V([0,0,-30])).normalize(),
+      ...arms.map(a=>a.getPointAt(.2).sub(V([0,0,-30])).normalize())
+    ]
+  },
+  {
+    centre:V(PROJECT_FORK_POSITION),
+    exits:[
+      arms[0].getPointAt(.83).sub(V(PROJECT_FORK_POSITION)).normalize(),
+      ...children.map(a=>a.getPointAt(.16).sub(V(PROJECT_FORK_POSITION)).normalize()),
+      ...returnArms.map(a=>a.getPointAt(.9).sub(V(PROJECT_FORK_POSITION)).normalize())
+    ]
+  }
+]
+export function createJunctionChamber(chamber,radius=CHAMBER_RADIUS){
+  const sphere=new THREE.SphereGeometry(radius,112,72)
+  const src=sphere.getAttribute('position')
+  const original=sphere.getIndex()
+  const positions=new Float32Array(src.array.length)
+  const normals=new Float32Array(src.array.length)
+  for(let i=0;i<src.count;i++){
+    const direction=new THREE.Vector3().fromBufferAttribute(src,i).normalize()
+    positions[i*3]=src.getX(i)+chamber.centre.x
+    positions[i*3+1]=src.getY(i)+chamber.centre.y
+    positions[i*3+2]=src.getZ(i)+chamber.centre.z
+    normals[i*3]=direction.x;normals[i*3+1]=direction.y;normals[i*3+2]=direction.z
+  }
+  const indices=[]
+  const direction=new THREE.Vector3()
+  const h=CHAMBER_HOLE_DOT
+  for(let i=0;i<original.count;i+=3){
+    const a=original.getX(i),b=original.getX(i+1),c=original.getX(i+2)
+    // Use the triangle centroid, which gives clean, stable apertures and
+    // prevents slit-like edges when a route meets the chamber.
+    direction.set(src.getX(a)+src.getX(b)+src.getX(c),
+      src.getY(a)+src.getY(b)+src.getY(c),
+      src.getZ(a)+src.getZ(b)+src.getZ(c)).normalize()
+    if(chamber.exits.some(exit=>direction.dot(exit)>h))continue
+    indices.push(a,b,c)
+  }
+  const geometry=new THREE.BufferGeometry()
+  geometry.setAttribute('position',new THREE.BufferAttribute(positions,3))
+  geometry.setAttribute('normal',new THREE.BufferAttribute(normals,3))
+  geometry.setIndex(indices)
+  geometry.computeBoundingSphere()
+  sphere.dispose()
+  return geometry
 }
