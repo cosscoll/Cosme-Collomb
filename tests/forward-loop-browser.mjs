@@ -32,10 +32,23 @@ try{
    },45)
    window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'})
  })
- await page.waitForFunction(()=>{
-  const f=window.__portfolioFlight
-  return f?.mode==='projects'&&!f.transiting&&Math.abs(f.t-f.forkTarget)<.005
- },null,{timeout:115000})
+ try{
+  await page.waitForFunction(()=>{
+   const f=window.__portfolioFlight
+   return f?.mode==='projects'&&!f.transiting&&Math.abs(f.t-f.forkTarget)<.005
+  },null,{timeout:115000})
+ }catch(error){
+  console.error('FORWARD_LOOP_TIMEOUT_DIAGNOSTIC',JSON.stringify(await page.evaluate(()=>({
+    route:location.hash,
+    scrollY:scrollY,
+    total:document.documentElement.scrollHeight-innerHeight,
+    flight:window.__portfolioFlight,
+    bridge:window.__portfolioBridgeMesh,
+    traceCount:window.__loopFrames?.length,
+    recentFrames:window.__loopFrames?.slice(-3)
+  }))))
+  throw error
+ }
  const frames=await page.evaluate(()=>{
    clearInterval(window.__loopTimer)
    return window.__loopFrames||[]
