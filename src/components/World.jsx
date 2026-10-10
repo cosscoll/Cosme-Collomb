@@ -107,11 +107,31 @@ function JunctionChambers(){
   return <group name="continuous-junction-chambers" dispose={null}>
     {CHAMBER_GEOMETRIES.map((geometry,i)=>(
       <mesh key={i} geometry={geometry} dispose={null}>
-        <meshStandardMaterial color={i===0?'#777083':'#747a92'}
-          side={THREE.DoubleSide} roughness={.64} metalness={.22}
-          emissive="#292337" emissiveIntensity={.17}/>
+        {/* An exterior-facing spherical wall used to fill the screen like
+            a giant black disk before the visitor reached the doorway.
+            Only the INSIDE of a physical chamber is ever rendered. */}
+        <meshStandardMaterial color={i===0?'#94869f':'#8c92ad'}
+          side={THREE.BackSide} roughness={.83} metalness={.06}
+          emissive="#61576f" emissiveIntensity={.35}/>
       </mesh>
     ))}
+  </group>
+}
+
+// There is exactly ONE permanently rendered tube surface for each physical
+// section of the navigation graph. In particular, every opening carved into
+// a junction has a real corridor behind it, including unused project arms.
+// The previous implementation showed only the SELECTED route, leaving holes
+// to black sky for all other exits. Re-rendering full destination paths also
+// created overlapping walls and depth flicker when changing pages.
+function PhysicalTunnelNetwork({mode}){
+  return <group name="closed-physical-tunnel-network">
+    <Shell path={PATHS.trunk}/>
+    {PATHS.arms.map((path,i)=><Shell key={'main-'+i} path={path}/>)}
+    {(mode==='projects'||mode==='detail') && <>
+      {PATHS.children.map((path,i)=><Shell key={'out-'+i} path={path}/>)}
+      {PATHS.returnArms.map((path,i)=><Shell key={'return-'+i} path={path}/>)}
+    </>}
   </group>
 }
 
@@ -406,24 +426,9 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
     // The projects page is an open atrium, not the closed mouth of the trunk.
     // Keep looking through the physical junction toward its project corridors,
     // including immediately after a completed-project return.
-    if(!transit && route.mode==='projects'){
-      // Do not stare through a still-closed wall based on scroll position:
-      // the WebGL camera may lag the page by several physical metres.
-      const hub=route.path.getPointAt(PROJECT_INDEX_HUB)
-      const approach=smooth((13-position.distanceTo(hub))/8)
-      ahead.lerp(PROJECT_FORK_FOCUS,approach)
-    }
-    if(!transit && route.mode==='projects' && hovered.startsWith('project-') &&
-      position.distanceTo(route.path.getPointAt(PROJECT_INDEX_HUB))<11){
-      const idx=Number(hovered.slice(8))
-      if(idx>=0&&idx<PATHS.children.length)
-        ahead.lerp(PATHS.children[idx].getPointAt(.55),.06)
-    }
-    if(!transit && route.mode==='home' && hovered &&
-      position.distanceTo(route.path.getPointAt(route.mainHub))<11){
-      const idx=['projects','experience','contact'].indexOf(hovered)
-      if(idx>=0)ahead.lerp(PATHS.arms[idx].getPointAt(.27),.05)
-    }
+    // The camera must always face its ACTUAL corridor. Hover targets and
+    // fixed global "fork focus" targets used to pull the POV through walls
+    // and sometimes rotate it backward while the visitor was still moving.
     matrix.lookAt(camera.position,ahead,UP)
     rotation.setFromRotationMatrix(matrix)
     if(first.current){
@@ -643,7 +648,7 @@ function BuildingBranch({transit,flightPosition}) {
     if(light.current)light.current.position.copy(camera.position)
   })
   return <group name="assembling-3d-tunnel">
-    <mesh geometry={journey.skin}>
+    <mesh geometry={journey.skin} visible={false}>
       <meshStandardMaterial ref={bridgeMaterial} side={THREE.DoubleSide} vertexColors
         transparent opacity={1} roughness={.72} metalness={.19} emissive="#262038"
         emissiveIntensity={.15} depthWrite/>
@@ -682,12 +687,8 @@ function Scene({pathname,hovered,transit}) {
         Rendering the walls first caused a one-frame mismatch at the handoff. */}
     <CameraFlight route={route} hovered={hovered} transit={transit} flightPosition={flightPosition}/>
     <JunctionChambers/>
-    <Shell key={mode+'-'+index} path={path} transit={transit}/>
-    {mode==='projects' && PATHS.children.map((arm,i)=>(
-      <Shell key={'branch-'+i} path={arm} branch transit={transit}/>
-    ))}
-    {transit&&<Shell key={'incoming-'+transit.id} path={incoming.path}
-      transit={transit} arrival/>}
+    <PhysicalTunnelNetwork mode={mode==='detail'||incoming?.mode==='detail'?'detail':mode}/>
+    {/* Navigation ribbons may assemble, but solid walls never disappear. */}
     {transit&&incoming.mode==='projects'&&PATHS.children.map((arm,i)=>(
       <Shell key={'incoming-project-'+i+'-'+transit.id}
         path={arm} branch transit={transit} arrival/>
