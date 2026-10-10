@@ -2,7 +2,7 @@ name: Experimental screenshot rendering of closed 3D junctions
 on:
   push:
     branches: ['dev/closed-tunnel-pov-v5']
-    paths: ['.github/workflows/visual-room-audit.yml', 'tests/visual-room-audit.mjs']
+    paths: ['.github/workflows/visual-room-audit.yml', 'tests/visual-room-audit.mjs', 'src/scene/junctionSolid.js', 'src/components/World.jsx', 'tests/junctionSolid.test.js']
   workflow_dispatch:
 permissions:
   contents: read
