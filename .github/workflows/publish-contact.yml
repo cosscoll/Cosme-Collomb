@@ -3,7 +3,7 @@ name: Publish verified portfolio content
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/publish-contact.yml', 'src/App.jsx', 'src/data/projects.js', 'src/data/projectStories.js', 'src/styles/rebuilt.css']
+    paths: ['.github/workflows/publish-contact.yml', 'src/App.jsx', 'src/data/projects.js', 'src/data/projectStories.js', 'src/styles/rebuilt.css', 'src/components/World.jsx', 'src/scene/cameraSafety.js', 'tests/cameraSafety.test.js', 'package.json']
   workflow_dispatch:
 permissions:
   contents: write
