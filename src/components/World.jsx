@@ -114,16 +114,25 @@ function Shell({path,branch=false,transit=null,arrival=false}) {
 // perforated black object with seventeen simultaneous open holes.
 const MAIN_ROOM_GEOMETRY=createJunctionChamber(CHAMBERS[0])
 const PROJECT_ROOM_GEOMETRY=createJunctionChamber(CHAMBERS[1])
-const RETURN_ROOM_GEOMETRIES=PATHS.returnArms.map(path=>
-  createJunctionChamber({
+// Building eight nearly identical high-resolution rooms at module load
+// blocked low-end GPUs for seconds. Only the VISITED project's extra
+// return opening is needed; build it once on first visit and reuse it.
+const RETURN_ROOM_CACHE=new Map()
+function roomWithReturn(index){
+  if(RETURN_ROOM_CACHE.has(index))return RETURN_ROOM_CACHE.get(index)
+  const path=PATHS.returnArms[index]
+  const geometry=createJunctionChamber({
     centre:CHAMBERS[1].centre,
     exits:[...CHAMBERS[1].exits,
       chamberExitDirection(path,CHAMBERS[1].centre,true)],
     radii:[...CHAMBERS[1].radii,2.02]
-  }))
+  })
+  RETURN_ROOM_CACHE.set(index,geometry)
+  return geometry
+}
 function JunctionChambers({mode,index}){
-  const room=mode==='detail'&&index>=0?
-    RETURN_ROOM_GEOMETRIES[index]:PROJECT_ROOM_GEOMETRY
+  const room=useMemo(()=>mode==='detail'&&index>=0?
+    roomWithReturn(index):PROJECT_ROOM_GEOMETRY,[mode,index])
   return <group name="sealed-smooth-junctions" dispose={null}>
     <mesh geometry={MAIN_ROOM_GEOMETRY} dispose={null}>
       <meshLambertMaterial color="#857d96" side={THREE.BackSide}
