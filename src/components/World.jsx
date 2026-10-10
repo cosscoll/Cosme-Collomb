@@ -712,6 +712,14 @@ function Scene({pathname,hovered,transit}) {
   const incoming=transit?routeInfo(transit.to):null
   const flightPosition=useRef(null)
   const {mode,index,path}=route
+  // The connected shell network persists through page transitions. Show
+  // incoming portals early without drawing them AGAIN on top of a detail
+  // page's already visible corridor wall (the overlapping meshes caused
+  // black strips and broken-looking junction apertures).
+  const networkMode=mode==='detail'||incoming?.mode==='detail'?'detail':
+    mode==='projects'||incoming?.mode==='projects'?'projects':mode
+  const networkIndex=mode==='detail'?index:
+    incoming?.mode==='detail'?incoming.index:index
   return <>
     <color attach="background" args={['#08080f']}/>
     <fog attach="fog" args={['#08080f',22,115]}/>
@@ -726,12 +734,9 @@ function Scene({pathname,hovered,transit}) {
         Rendering the walls first caused a one-frame mismatch at the handoff. */}
     <CameraFlight route={route} hovered={hovered} transit={transit} flightPosition={flightPosition}/>
     <JunctionChambers mode={mode} index={index}/>
-    <PhysicalTunnelNetwork mode={mode} index={index}/>
-    {/* Navigation ribbons may assemble, but solid walls never disappear. */}
-    {transit&&incoming.mode==='projects'&&PATHS.children.map((arm,i)=>(
-      <Shell key={'incoming-project-'+i+'-'+transit.id}
-        path={arm} branch transit={transit} arrival/>
-    ))}
+    <PhysicalTunnelNetwork mode={networkMode} index={networkIndex}/>
+    {/* Real world-space walls are rendered ONCE per spline, never faded,
+        doubled, or reset while changing routes. */}
     {(mode==='projects'||mode==='detail'||incoming?.mode==='projects') && PATHS.children.map((arm,i)=>(
       <ForkGuide key={'guide-'+i} path={arm}
         color={PROJECT_BRANCH_COLORS[i]} active={hovered==='project-'+i}/>
