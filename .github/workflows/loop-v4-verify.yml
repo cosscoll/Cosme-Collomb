@@ -2,7 +2,7 @@ name: Experimental forward-only 3D loop verification
 on:
   push:
     branches: ['dev/continuous-forward-loop-v4']
-    paths: ['.github/workflows/loop-v4-verify.yml', 'src/scene/**', 'src/components/World.jsx', 'src/App.jsx', 'tests/junctionChambers.test.js']
+    paths: ['.github/workflows/loop-v4-verify.yml', 'src/scene/**', 'src/components/World.jsx', 'src/App.jsx', 'tests/junctionChambers.test.js', 'tests/forward-loop-browser.mjs', 'tests/browser-smoke.mjs']
   workflow_dispatch:
 permissions:
   contents: read
