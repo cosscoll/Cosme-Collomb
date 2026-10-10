@@ -68,7 +68,14 @@ try{
    assert.ok(angle<.65,'Camera snapped orientation by '+(angle*180/Math.PI).toFixed(1)+'°')
  }
  assert.equal(reverseCount,0,'POV repeatedly faces backward while moving along loop')
- assert.ok(moving.at(-1).t>.99,'The full loop did not reach the same fork')
+ assert.ok(moving.at(-1).t>.955,'The return corridor never reached the open fork chamber')
+ const approach=frames.filter(f=>f.transiting &&
+   f.from==='/projets/ouvertures-d-echecs-en-3d' &&
+   f.to==='/projets' && f.progress!==null && f.progress<.52)
+ assert.ok(approach.length>=4,'No physical return transition was rendered')
+ const start=approach[0].position,end=approach.at(-1).position
+ assert.ok(Math.hypot(...start.map((v,k)=>v-end[k]))>2.5,
+   'Camera turned in place at the junction instead of moving into the chamber')
  assert.deepEqual(errors,[],'Unexpected JavaScript errors')
  console.log('FORWARD_LOOP_RESULT',JSON.stringify({
    frames:frames.length,detailFrames:moving.length,reverseCount,
