@@ -493,8 +493,13 @@ function BuildingBranch({transit,flightPosition}) {
     const to=routeInfo(transit.to)
     // The graph junction is shared by both camera paths (no fabricated bridge
     // crossing the existing tunnel wall).
-    const hub=junctionFor(from,to,flightPosition.current?.pathName===transit.from?
-      flightPosition.current.t:.35)
+    // The bridge must use the SAME captured departure graph node as the
+    // camera. Otherwise it can build from the outbound project entrance
+    // while the eye is already entering the return junction.
+    const startT=Number.isFinite(transit.sourceCameraT)?transit.sourceCameraT:
+      flightPosition.current?.pathName===transit.from?
+        flightPosition.current.t:.35
+    const hub=junctionFor(from,to,startT)
     const arrival=arrivalT(to,from)
     const reverse=arrival<hub.toT
     const margin=0
