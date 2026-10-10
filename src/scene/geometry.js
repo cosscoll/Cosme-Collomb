@@ -29,9 +29,23 @@ export const CHILDREN = PROJECTS.map((_,i) => {
 // A route is a chain of SHARED physical pieces. Previously each complete
 // route was its own Catmull-Rom: the common trunk had different tangents and
 // walls depending on the destination, so switching routes made them pop.
+// Each project has a genuinely separate return corridor. The visitor does
+// not turn 180 degrees and drive backward through the outbound mesh.
+// Return approaches the shared fork from above and outside the outgoing arm.
+export const RETURNS = PROJECTS.map((_,i)=>{
+  const angle=-Math.PI/2 + i*Math.PI*2/PROJECTS.length
+  const x=Math.cos(angle),y=Math.sin(angle)
+  const radial=(r,z)=>[-9.5+x*r,y*r,z]
+  return [
+    radial(19,-110),radial(29,-121),radial(38,-113),
+    radial(38,-96),radial(32,-76),radial(18,-54),
+    [-9.5,0,-61]
+  ]
+})
 const trunk=spline(TRUNK)
 const arms=BRANCHES.map(spline)
 const children=CHILDREN.map(spline)
+const returnArms=RETURNS.map(spline)
 const chain=(...sections)=>{
   const route=new THREE.CurvePath()
   sections.forEach(section=>route.add(section))
@@ -39,9 +53,10 @@ const chain=(...sections)=>{
 }
 export const PATHS = {
   routes: arms.map(arm=>chain(trunk,arm)),
-  details: children.map(child=>chain(trunk,arms[0],child)),
+  details: children.map((child,i)=>chain(trunk,arms[0],child,returnArms[i])),
   arms,
-  children
+  children,
+  returnArms
 }
 export function closestT(path, coord) {
   const p=V(coord), q=new THREE.Vector3()
@@ -71,10 +86,23 @@ export function shellSpans(path,{start=0,end=1,clearance=4.6}={}){
     }
     spans=next
   }
+  // The return leg ends at the same open fork. Do not render a terminal
+  // circular wall across the end of the loop at its connection to the atrium.
+  if(PATHS.details.includes(path)){
+    const tail=Math.min(.12,clearance/Math.max(1,path.getLength()))
+    spans=spans.map(([a,b])=>[a,Math.min(b,1-tail)])
+  }
   return spans.filter(([a,b])=>b-a>.0001)
 }
 export const MAIN_HUBS=PATHS.routes.map(p=>closestT(p,[0,0,-30]))
-export const PROJECT_HUBS=PATHS.details.map(p=>closestT(p,[-9.5,0,-61]))
+// getPointAt is arc-length based. A closed project loop passes the fork
+// TWICE; the closest-point search could select its return endpoint (t=1)
+// rather than the outgoing entrance. The exact shared-section length is stable.
+export const PROJECT_HUBS=PATHS.details.map(path=>
+  (trunk.getLength()+arms[0].getLength())/path.getLength())
+export const PROJECT_RETURN_HUBS=PATHS.details.map(()=>1)
+export const PROJECT_OUTBOUND_ENDS=PATHS.details.map(path=>
+  (trunk.getLength()+arms[0].getLength()+children[PATHS.details.indexOf(path)].getLength())/path.getLength())
 export const TUNNEL_RADIUS=4.25
 export const RADIAL_SEGMENTS=64
 const PI2=Math.PI*2
@@ -191,15 +219,12 @@ export function projectOutboundT(index) {
   return PROJECT_HUBS[index]+.014
 }
 export function detailTravelT(index,progress) {
-  // Outbound while discovering the story; return on the same seamless shell.
-  const hub=projectOutboundT(index)
-  const destination=.965
+  // Forward-only from the project entrance along the *entire closed loop*.
+  const entrance=PROJECT_HUBS[index]+.105
   const p=Math.max(0,Math.min(1,progress))
-  if(p<=.63) return hub+(destination-hub)*(p/.63)
-  if(p<=.73) return destination
-  const back=(p-.73)/.27
-  return destination-(destination-hub)*(back*back*(3-2*back))
+  return entrance+(1-entrance)*(p*p*(3-2*p))
 }
 export function detailReturning(progress) {
+  // Return corridor is a separate piece, not a reverse traversal.
   return progress>.68
 }
