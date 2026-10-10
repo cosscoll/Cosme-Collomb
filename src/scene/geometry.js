@@ -52,6 +52,7 @@ const chain=(...sections)=>{
   return route
 }
 export const PATHS = {
+  trunk,
   routes: arms.map(arm=>chain(trunk,arm)),
   details: children.map((child,i)=>chain(trunk,arms[0],child,returnArms[i])),
   arms,
@@ -235,21 +236,43 @@ export function detailReturning(progress) {
 // every adjoining tunnel (including the distinct project return tunnels).
 // The static mesh is built once and reused; no texture or WebGL shader tricks.
 export const CHAMBER_RADIUS=9.55
-export const CHAMBER_HOLE_DOT=Math.sqrt(1-(TUNNEL_RADIUS/CHAMBER_RADIUS)**2)-.009
+// Radius where a round tube of the same radius intersects the sphere.
+// Calculate the true opening from the physical crossing of the spline,
+// instead of guessing path percentages (which misaligned doors by metres).
+export const CHAMBER_PORTAL_DISTANCE=Math.sqrt(
+  CHAMBER_RADIUS*CHAMBER_RADIUS-TUNNEL_RADIUS*TUNNEL_RADIUS)
+export const CHAMBER_HOLE_DOT=Math.sqrt(
+  1-(TUNNEL_RADIUS/CHAMBER_RADIUS)**2)-.016
+export function chamberExitDirection(path,centre,atEnd=false){
+  const low=atEnd?.57:0, high=atEnd?1:.43
+  let closest=Infinity, best=null
+  for(let i=0;i<=300;i++){
+    const t=low+(high-low)*i/300
+    const point=path.getPointAt(t)
+    const error=Math.abs(point.distanceTo(centre)-CHAMBER_PORTAL_DISTANCE)
+    if(error<closest){
+      closest=error
+      best=point.sub(centre)
+    }
+  }
+  return best.normalize()
+}
+const MAIN_CENTRE=V([0,0,-30])
+const PROJECT_CENTRE=V(PROJECT_FORK_POSITION)
 export const CHAMBERS=[
   {
-    centre:V([0,0,-30]),
+    centre:MAIN_CENTRE,
     exits:[
-      trunk.getPointAt(.86).sub(V([0,0,-30])).normalize(),
-      ...arms.map(a=>a.getPointAt(.2).sub(V([0,0,-30])).normalize())
+      chamberExitDirection(trunk,MAIN_CENTRE,true),
+      ...arms.map(path=>chamberExitDirection(path,MAIN_CENTRE))
     ]
   },
   {
-    centre:V(PROJECT_FORK_POSITION),
+    centre:PROJECT_CENTRE,
     exits:[
-      arms[0].getPointAt(.83).sub(V(PROJECT_FORK_POSITION)).normalize(),
-      ...children.map(a=>a.getPointAt(.16).sub(V(PROJECT_FORK_POSITION)).normalize()),
-      ...returnArms.map(a=>a.getPointAt(.9).sub(V(PROJECT_FORK_POSITION)).normalize())
+      chamberExitDirection(arms[0],PROJECT_CENTRE,true),
+      ...children.map(path=>chamberExitDirection(path,PROJECT_CENTRE)),
+      ...returnArms.map(path=>chamberExitDirection(path,PROJECT_CENTRE,true))
     ]
   }
 ]
