@@ -52,11 +52,10 @@ export function arrivalT(info,from){
 export function scrollT(info,{scrollY=0,total=1,junction=1,works=2,projectFork=2}={}){
   const fraction=clamp(scrollY/Math.max(1,total))
   if(info.mode==='detail'){
+    // The physical route is a forward-only loop. Scrolling must never make
+    // the camera backtrack or execute a sudden 180-degree reversal.
     const entrance=info.projectHub+PROJECT_ENTRY_OFFSET
-    const far=.965
-    if(fraction<=.63)return entrance+(far-entrance)*ease(fraction/.63)
-    if(fraction<=.73)return far
-    return far-(far-entrance)*ease((fraction-.73)/.27)
+    return entrance+(1-entrance)*ease(fraction)
   }
   if(info.mode==='projects'){
     // Centre the camera precisely in the five-way atrium when its UI appears.
@@ -77,9 +76,14 @@ export function junctionFor(from,to,initialT){
   const shortcut=projectModes.has(from.mode)&&projectModes.has(to.mode)&&
     (from.mode!=='home'||initialT>(from.mainHub+PROJECT_INDEX_HUB)*.5)&&
     (to.mode!=='home'||from.mode==='projects')
+  // Once a project has passed the far end of its OUTBOUND corridor,
+  // reaching the fork means continuing ahead to t=1 on the return arm.
+  // Heading backwards to the original projectHub would undo the loop.
+  const returningToFork=shortcut && from.mode==='detail' &&
+    initialT>.76 && ['projects','detail'].includes(to.mode)
   return {
     level:shortcut?'projects':'main',
-    fromT:shortcut?from.projectHub:from.mainHub,
+    fromT:returningToFork?1:shortcut?from.projectHub:from.mainHub,
     toT:shortcut?to.projectHub:to.mainHub
   }
 }
