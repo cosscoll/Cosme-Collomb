@@ -21,12 +21,25 @@ try{
   console.log('RENDERED_FLIGHT',label,JSON.stringify(await page.evaluate(()=>window.__portfolioFlight)))
   const buffer=await page.screenshot({type:'jpeg',quality:43})
   console.log('SNAPSHOT_JPEG_'+label.toUpperCase()+'='+buffer.toString('base64'))
+  const pure=await page.locator('canvas').first().screenshot({type:'jpeg',quality:52})
+  console.log('SNAPSHOT_JPEG_CANVAS_'+label.toUpperCase()+'='+pure.toString('base64'))
   if(label==='hero'){
    await page.evaluate(()=>window.scrollTo({top:Math.min(900,document.documentElement.scrollHeight-window.innerHeight),behavior:'instant'}))
    await page.waitForTimeout(2300)
    const next=await page.screenshot({type:'jpeg',quality:43})
    console.log('SNAPSHOT_JPEG_SCROLLED='+next.toString('base64'))
+   console.log('SCROLLED_CAMERA_INFO',JSON.stringify(await page.evaluate(()=>window.__portfolioFlight)))
+   const native=await page.locator('canvas').first().screenshot({type:'jpeg',quality:52})
+   console.log('SNAPSHOT_JPEG_CANVAS_SCROLLED='+native.toString('base64'))
   }
   await page.close()
  }
+ const projects=await browser.newPage({viewport:{width:980,height:640}})
+ await projects.goto(url+'#/projets',{waitUntil:'domcontentloaded',timeout:60000})
+ await projects.waitForFunction(()=>window.__portfolioFlight?.updatedAt,{timeout:60000})
+ await projects.waitForTimeout(700)
+ const pureProject=await projects.locator('canvas').first().screenshot({type:'jpeg',quality:52})
+ console.log('SNAPSHOT_JPEG_CANVAS_PROJECTS='+pureProject.toString('base64'))
+ console.log('PROJECTS_CAMERA_INFO',JSON.stringify(await projects.evaluate(()=>window.__portfolioFlight)))
+ await projects.close()
 }finally{await browser?.close();server.kill('SIGTERM')}
