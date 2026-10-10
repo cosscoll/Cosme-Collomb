@@ -44,3 +44,26 @@ test('Projected view follows actual 3D walls, including both ends and return dir
     }
   }
 })
+
+
+test('Heading starts turning only inside the physical open chamber',async()=>{
+  const { junctionTurnWeight, JUNCTION_TURN_METRES }=await import('../src/scene/cameraSafety.js')
+  for(const d of [100,30,15,8,JUNCTION_TURN_METRES+.1]){
+    assert.equal(junctionTurnWeight(d,false),0)
+    assert.equal(junctionTurnWeight(d,true),1)
+  }
+  assert.equal(junctionTurnWeight(0,false),.5)
+  assert.equal(junctionTurnWeight(0,true),.5)
+  let previousBefore=0,previousAfter=.5
+  for(let d=JUNCTION_TURN_METRES;d>=0;d-=.15){
+    const before=junctionTurnWeight(d,false)
+    assert.ok(before>=previousBefore-1e-9 && before<=.5)
+    previousBefore=before
+    const after=junctionTurnWeight(d,true)
+    assert.ok(after<=previousAfter+.5 && after>=.5)
+    assert.ok(Math.abs(before+after-1)<1e-9)
+    previousAfter=after
+  }
+  assert.equal(junctionTurnWeight(JUNCTION_TURN_METRES/2,false),.25)
+  assert.equal(junctionTurnWeight(JUNCTION_TURN_METRES/2,true),.75)
+})
