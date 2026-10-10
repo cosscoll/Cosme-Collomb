@@ -3,11 +3,11 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { followScrollT } from '../scene/cameraMotion.js'
 import { corridorFov, corridorHeading, safeEyeOffset, junctionTurnWeight } from '../scene/cameraSafety.js'
 import * as THREE from 'three'
-import { createSolidJunction } from '../scene/junctionSolid.js'
 import { routeInfo, scrollT, sampleTransit, transitPoint, junctionFor, arrivalT, bridgeBuild, PROJECT_LOOKOUT_T, PROJECT_INDEX_HUB } from '../scene/transit.js'
 import {
   PATHS, PROJECT_BRANCH_COLORS, PROJECT_FORK_OPEN, PROJECT_FORK_CLOSE, PROJECT_FORK_FOCUS,
-  createSkin, createSeam, shellSpans, TUNNEL_RADIUS, CHAMBERS
+  createSkin, createSeam, shellSpans, TUNNEL_RADIUS, CHAMBERS,
+  createJunctionChamber, chamberExitDirection
 } from '../scene/geometry.js'
 
 const UP=new THREE.Vector3(0,1,0)
@@ -103,18 +103,30 @@ function Shell({path,branch=false,transit=null,arrival=false}) {
 // The two shared 3D chambers remain present through every transition.
 // Previously removing shell wall strips left the starfield fully exposed;
 // these fixed vaulted walls close that gap without obstructing tunnel mouths.
-const CHAMBER_GEOMETRIES=CHAMBERS.map(chamber=>createSolidJunction(chamber))
-function JunctionChambers(){
-  return <group name="continuous-junction-chambers" dispose={null}>
-    {CHAMBER_GEOMETRIES.map((geometry,i)=>(
-      <mesh key={i} geometry={geometry} dispose={null}>
-        {/* A signed-distance union joins ALL visible tubes to the chamber.
-            Only the interior faces appear; the external black sphere is gone. */}
-        <meshStandardMaterial color={i===0?'#94869f':'#8c92ad'}
-          side={THREE.BackSide} roughness={.83} metalness={.06}
-          emissive="#61576f" emissiveIntensity={.35}/>
-      </mesh>
-    ))}
+// A carefully oriented smooth room, not a faceted sphere/tube union.
+// Every project entrance is backed by a real corridor. Return entrances
+// open only for the visited project, so the crossroads never becomes a
+// perforated black object with seventeen simultaneous open holes.
+const MAIN_ROOM_GEOMETRY=createJunctionChamber(CHAMBERS[0])
+const PROJECT_ROOM_GEOMETRY=createJunctionChamber(CHAMBERS[1])
+const RETURN_ROOM_GEOMETRIES=PATHS.returnArms.map(path=>
+  createJunctionChamber({
+    centre:CHAMBERS[1].centre,
+    exits:[...CHAMBERS[1].exits,
+      chamberExitDirection(path,CHAMBERS[1].centre,true)]
+  }))
+function JunctionChambers({mode,index}){
+  const room=mode==='detail'&&index>=0?
+    RETURN_ROOM_GEOMETRIES[index]:PROJECT_ROOM_GEOMETRY
+  return <group name="sealed-smooth-junctions" dispose={null}>
+    <mesh geometry={MAIN_ROOM_GEOMETRY} dispose={null}>
+      <meshStandardMaterial color="#a199ad" side={THREE.BackSide}
+        roughness={.91} metalness={.02} emissive="#6d637c" emissiveIntensity={.42}/>
+    </mesh>
+    <mesh geometry={room} dispose={null}>
+      <meshStandardMaterial color="#9ca5b7" side={THREE.BackSide}
+        roughness={.89} metalness={.04} emissive="#686b8a" emissiveIntensity={.39}/>
+    </mesh>
   </group>
 }
 
@@ -680,7 +692,7 @@ function Scene({pathname,hovered,transit}) {
     {/* Camera updates the shared progress BEFORE wall and bridge draw ranges.
         Rendering the walls first caused a one-frame mismatch at the handoff. */}
     <CameraFlight route={route} hovered={hovered} transit={transit} flightPosition={flightPosition}/>
-    <JunctionChambers/>
+    <JunctionChambers mode={mode} index={index}/>
     <PhysicalTunnelNetwork mode={mode==='detail'||incoming?.mode==='detail'?'detail':mode}/>
     {/* Navigation ribbons may assemble, but solid walls never disappear. */}
     {transit&&incoming.mode==='projects'&&PATHS.children.map((arm,i)=>(
