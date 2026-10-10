@@ -2,7 +2,7 @@ name: Live responsive 3D wall collision regression
 on:
   push:
     branches: [main]
-    paths: ['.github/workflows/responsive-3d.yml', 'tests/responsive-3d-live.mjs']
+    paths: ['.github/workflows/responsive-3d.yml', 'tests/responsive-3d-live.mjs', 'src/components/World.jsx', 'src/scene/cameraSafety.js', 'src/scene/transit.js']
   workflow_dispatch:
 permissions:
   contents: read
