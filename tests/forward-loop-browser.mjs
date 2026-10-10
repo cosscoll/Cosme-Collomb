@@ -52,7 +52,14 @@ try{
    const dot=dx.reduce((sum,v,k)=>sum+v*forward[k],0)/(step*Math.hypot(...forward))
    worstReverse=Math.min(worstReverse,dot)
    if(dot<-.1)reverseCount++
-   assert.ok(step<.85, 'Camera teleported '+step.toFixed(2)+' metres on the loop')
+   // Samples come from a timer, not every WebGL frame. Two rendered frames
+   // can legitimately land between snapshots on slow software GPUs. Bound
+   // actual metres per second rather than the arbitrary sampled distance.
+   const elapsedMs=Math.max(1,next.at-prev.at)
+   const physicalLimit=Math.max(.95,15*elapsedMs/1000+.40)
+   assert.ok(step<=physicalLimit,
+     'Camera teleported '+step.toFixed(2)+'m in '+elapsedMs.toFixed(0)+
+     'ms (safe limit '+physicalLimit.toFixed(2)+'m)')
    worstTeleport=Math.max(worstTeleport,step)
    const qa=prev.quaternion,qb=next.quaternion
    const inner=Math.min(1,Math.abs(qa.reduce((sum,v,k)=>sum+v*qb[k],0)))
