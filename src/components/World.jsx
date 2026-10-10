@@ -297,12 +297,22 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
         transitId.current=transit.id
         // Capture the exact position in the existing 3D corridor, BEFORE
         // React Router exchanges the content, even midway through a scroll.
-        departure.current=current.current===null?
-          scrollT(route,{scrollY:y,total,
-            junction:scrollPositions.current.junction,
-            works:scrollPositions.current.works,
-            projectFork:scrollPositions.current.fork}):
-          current.current
+        // React may remount this scene after scroll reset; current.current
+        // then points to the PROJECT ENTRANCE, not to the eye at the fork.
+        // Navigation captures sourceCameraT before React starts the switch.
+        const captured=transit.sourceCameraT
+        const observed=window.__portfolioFlight
+        const observedT=observed?.currentRoute===transit.from &&
+          Number.isFinite(observed.sampleT??observed.t)?
+          (observed.sampleT??observed.t):null
+        departure.current=Number.isFinite(captured)?captured:
+          Number.isFinite(observedT)?observedT:
+          current.current===null?
+            scrollT(route,{scrollY:y,total,
+              junction:scrollPositions.current.junction,
+              works:scrollPositions.current.works,
+              projectFork:scrollPositions.current.fork}):
+            current.current
       }
       const {from,to}=transitRoutes
       // Cap each actual *world-space* frame movement, even when the user
@@ -443,7 +453,8 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       bridgeProgress:transit?bridgeBuild(visualProgress):null,
       quaternion:[camera.quaternion.x,camera.quaternion.y,camera.quaternion.z,camera.quaternion.w],
       direction:[ahead.x-camera.position.x,ahead.y-camera.position.y,ahead.z-camera.position.z],
-      mode:sample.mode,t,forkTarget:PROJECT_LOOKOUT_T,transiting:Boolean(transit),
+      mode:sample.mode,t,sampleT:sample.t,departureT:transit?departure.current:null,
+      forkTarget:PROJECT_LOOKOUT_T,transiting:Boolean(transit),
       phase:sample.phase||'scroll',
       currentRoute:route.pathName,from:transit?.from,to:transit?.to,
       flightId:transit?.id??null,
