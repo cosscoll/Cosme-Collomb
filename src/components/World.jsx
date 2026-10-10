@@ -93,9 +93,8 @@ function Shell({path,branch=false,transit=null,arrival=false}) {
   return (
     <group ref={root} dispose={null}>
       {geometries.map((geometry,i)=><mesh key={i} geometry={geometry} dispose={null}>
-        <meshStandardMaterial vertexColors side={THREE.DoubleSide}
-          metalness={.50} roughness={.36}
-          emissive="#514962" emissiveIntensity={.2}/>
+        <meshLambertMaterial vertexColors side={THREE.DoubleSide}
+          emissive="#383145" emissiveIntensity={.15}/>
       </mesh>)}
       {seamGeometries.map((geometry,i)=><mesh key={i} geometry={geometry} dispose={null}>
         <meshBasicMaterial color={i%3===0?'#f2d9d0':'#d4d8ff'}
@@ -127,12 +126,12 @@ function JunctionChambers({mode,index}){
     RETURN_ROOM_GEOMETRIES[index]:PROJECT_ROOM_GEOMETRY
   return <group name="sealed-smooth-junctions" dispose={null}>
     <mesh geometry={MAIN_ROOM_GEOMETRY} dispose={null}>
-      <meshStandardMaterial color="#a199ad" side={THREE.BackSide}
-        roughness={.91} metalness={.02} emissive="#6d637c" emissiveIntensity={.42}/>
+      <meshLambertMaterial color="#857d96" side={THREE.BackSide}
+        emissive="#554f6a" emissiveIntensity={.28}/>
     </mesh>
     <mesh geometry={room} dispose={null}>
-      <meshStandardMaterial color="#9ca5b7" side={THREE.BackSide}
-        roughness={.89} metalness={.04} emissive="#686b8a" emissiveIntensity={.39}/>
+      <meshLambertMaterial color="#82869d" side={THREE.BackSide}
+        emissive="#525775" emissiveIntensity={.25}/>
     </mesh>
   </group>
 }
@@ -707,6 +706,28 @@ function BuildingBranch({transit,flightPosition}) {
   </group>
 }
 
+// Use measured render time to lower pixel density on slower phones/GPUs.
+// Never skip a route frame or move the eye faster: a 3D resolution change
+// preserves motion continuity, unlike cancelling slow camera animation.
+function AdaptiveRenderQuality(){
+  const {viewport,setDpr}=useThree()
+  const sample=useRef({seconds:0,frames:0})
+  useFrame((_,delta)=>{
+    const q=sample.current
+    if(!Number.isFinite(delta)||delta<=0)return
+    q.seconds+=Math.min(delta,1)
+    q.frames++
+    if(q.seconds<2.4)return
+    const mean=q.seconds/Math.max(1,q.frames)
+    const target=mean>.13?.60:mean>.075?.74:mean>.043?.88:
+      mean>.027?1.0:1.2
+    if(Math.abs(viewport.dpr-target)>.09)setDpr(target)
+    q.frames=0
+    q.seconds=0
+  },-1)
+  return null
+}
+
 function Scene({pathname,hovered,transit}) {
   const route=routeInfo(transit?.from||pathname)
   const incoming=transit?routeInfo(transit.to):null
@@ -723,15 +744,14 @@ function Scene({pathname,hovered,transit}) {
   return <>
     <color attach="background" args={['#08080f']}/>
     <fog attach="fog" args={['#08080f',22,115]}/>
-    <ambientLight intensity={.78} color="#dfd1f1"/>
-    <hemisphereLight intensity={.75} color="#fff6e9" groundColor="#29243a"/>
-    <directionalLight position={[4,8,12]} color="#ffe9d9" intensity={3.3}/>
-    <pointLight position={[-2,-1,-11]} color="#b3a1ef" intensity={38} distance={28} decay={2}/>
-    <pointLight position={[3,3,-28]} color="#f1c9bb" intensity={42} distance={30} decay={2}/>
-    <pointLight position={[-6,3,-53]} color="#a6cbd9" intensity={45} distance={32} decay={2}/>
-    <pointLight position={[3,-2,-77]} color="#9996de" intensity={34} distance={27} decay={2}/>
+    {/* Baked vertex colours retain the material detail with only three
+        light contributions, not seven per pixel on every tube surface. */}
+    <ambientLight intensity={.94} color="#e5dbee"/>
+    <hemisphereLight intensity={.83} color="#faf1ef" groundColor="#282438"/>
+    <directionalLight position={[4,8,12]} color="#f5dfed" intensity={1.65}/>
     {/* Camera updates the shared progress BEFORE wall and bridge draw ranges.
         Rendering the walls first caused a one-frame mismatch at the handoff. */}
+    <AdaptiveRenderQuality/>
     <CameraFlight route={route} hovered={hovered} transit={transit} flightPosition={flightPosition}/>
     <JunctionChambers mode={mode} index={index}/>
     <PhysicalTunnelNetwork mode={networkMode} index={networkIndex}/>
@@ -750,7 +770,7 @@ function Scene({pathname,hovered,transit}) {
 export default function World({pathname='/',hovered='',transit=null,onReady}) {
   return <Canvas onCreated={onReady}
     camera={{position:[0,0,11],fov:45,near:.065,far:140}}
-    dpr={[1,1.35]}
+    dpr={[.8,1.3]}
     gl={{alpha:false,antialias:true,powerPreference:'high-performance'}}
     style={{position:'absolute',inset:0}}>
     <Scene pathname={pathname} hovered={hovered} transit={transit}/>
