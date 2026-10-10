@@ -1,0 +1,26 @@
+name: Experimental forward-only 3D loop verification
+on:
+  push:
+    branches: ['dev/continuous-forward-loop-v4']
+    paths: ['.github/workflows/loop-v4-verify.yml', 'src/scene/**', 'src/components/World.jsx', 'src/App.jsx', 'tests/junctionChambers.test.js']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  full-geometry-and-webgl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npm run test:geometry
+      - run: node --test tests/prototype-v2-geometry.test.mjs
+      - run: cp site/index.source.html index.html
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Browser test forward travel and project return
+        run: npm run test:browser
+      - run: node tests/prototype-3d-smoke.mjs
