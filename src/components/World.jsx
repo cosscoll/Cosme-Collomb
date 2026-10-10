@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { followScrollT } from '../scene/cameraMotion.js'
+import { corridorFov, corridorHeading, safeEyeOffset } from '../scene/cameraSafety.js'
 import * as THREE from 'three'
-import { routeInfo, scrollT, sampleTransit, transitPoint, junctionFor, arrivalT, bridgeBuild, PROJECT_LOOKOUT_T } from '../scene/transit.js'
+import { routeInfo, scrollT, sampleTransit, transitPoint, junctionFor, arrivalT, bridgeBuild, PROJECT_LOOKOUT_T, PROJECT_INDEX_HUB } from '../scene/transit.js'
 import {
   PATHS, PROJECT_BRANCH_COLORS, PROJECT_FORK_OPEN, PROJECT_FORK_CLOSE, PROJECT_FORK_FOCUS,
-  createSkin, createSeam, shellSpans
+  createSkin, createSeam, shellSpans, TUNNEL_RADIUS
 } from '../scene/geometry.js'
 
 const UP=new THREE.Vector3(0,1,0)
@@ -82,7 +83,7 @@ function Shell({path,branch=false,transit=null,arrival=false}) {
   return (
     <group ref={root} dispose={null}>
       {geometries.map((geometry,i)=><mesh key={i} geometry={geometry} dispose={null}>
-        <meshStandardMaterial vertexColors side={THREE.BackSide}
+        <meshStandardMaterial vertexColors side={THREE.DoubleSide}
           metalness={.50} roughness={.36}
           emissive="#514962" emissiveIntensity={.2}/>
       </mesh>)}
@@ -328,10 +329,8 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       const {from,to}=transitRoutes
       const junction=junctionFor(from,to,departure.current)
       const endT=arrivalT(to,from)
-      from.path.getTangentAt(clamp(junction.fromT),sourceHeading)
-      sourceHeading.multiplyScalar(junction.fromT<departure.current?-1:1).normalize()
-      to.path.getTangentAt(clamp(p<.52?junction.toT:t),destinationHeading)
-      destinationHeading.multiplyScalar(endT<junction.toT?-1:1).normalize()
+      corridorHeading(from.path,clamp(junction.fromT),junction.fromT<departure.current,sourceHeading)
+      corridorHeading(to.path,clamp(p<.52?junction.toT:t),endT<junction.toT,destinationHeading)
       if(p<.35) {
         // Begin at the actual orientation the visitor was already seeing.
         blendHeading(capturedHeading.current,sourceHeading,p/.31,direction)
@@ -348,9 +347,9 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
         forkHeading.copy(PROJECT_FORK_FOCUS).sub(position).normalize()
         if(p>.56)blendHeading(direction,forkHeading,(p-.56)/.35,direction)
       }
-      ahead.copy(position).addScaledVector(direction,12)
+      ahead.copy(position).addScaledVector(direction,5)
     }else{
-      sample.path.getTangentAt(t,direction)
+      corridorHeading(sample.path,t,false,direction)
       if(sample.mode==='detail'){
         // The project story stops at its far end before returning. Rotate
         // gradually DURING that stop rather than reversing the view in one
@@ -359,32 +358,40 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
         destinationHeading.copy(direction).negate()
         blendHeading(sourceHeading,destinationHeading,
           smooth((y/Math.max(1,total)-.625)/.105),direction)
-        ahead.copy(position).addScaledVector(direction,12)
+        ahead.copy(position).addScaledVector(direction,5)
       }else{
-        sample.path.getPointAt(Math.min(.999,t+.024),ahead)
+        ahead.copy(position).addScaledVector(direction,5)
       }
     }
     right.crossVectors(direction,UP).normalize()
     softPointer.current.x=THREE.MathUtils.damp(softPointer.current.x,pointer.current.x,3.2,dt)
     softPointer.current.y=THREE.MathUtils.damp(softPointer.current.y,pointer.current.y,3.2,dt)
-    // Keep the eye inside the shared radius on both sides of every fork.
+    // Never let mouse parallax move the eye into a narrow wall or project mouth.
+    const offset=safeEyeOffset(camera.aspect,softPointer.current.x,
+      softPointer.current.y,clock.elapsedTime)
     goal.copy(position)
-      .addScaledVector(right,softPointer.current.x*.095)
-      .addScaledVector(UP,-softPointer.current.y*.06+Math.sin(clock.elapsedTime*.28)*.015)
+      .addScaledVector(right,offset.horizontal)
+      .addScaledVector(UP,offset.vertical)
     camera.position.copy(goal)
 
     // The projects page is an open atrium, not the closed mouth of the trunk.
     // Keep looking through the physical junction toward its project corridors,
     // including immediately after a completed-project return.
-    if(!transit && route.mode==='projects' && y>=scrollPositions.current.fork*.68){
-      ahead.copy(PROJECT_FORK_FOCUS)
+    if(!transit && route.mode==='projects'){
+      // Do not stare through a still-closed wall based on scroll position:
+      // the WebGL camera may lag the page by several physical metres.
+      const hub=route.path.getPointAt(PROJECT_INDEX_HUB)
+      const approach=smooth((13-position.distanceTo(hub))/8)
+      ahead.lerp(PROJECT_FORK_FOCUS,approach)
     }
-    if(!transit && route.mode==='projects' && hovered.startsWith('project-') && y>window.innerHeight*.45){
+    if(!transit && route.mode==='projects' && hovered.startsWith('project-') &&
+      position.distanceTo(route.path.getPointAt(PROJECT_INDEX_HUB))<11){
       const idx=Number(hovered.slice(8))
       if(idx>=0&&idx<PATHS.children.length)
         ahead.lerp(PATHS.children[idx].getPointAt(.55),.06)
     }
-    if(!transit && route.mode==='home' && hovered && y>window.innerHeight*.8){
+    if(!transit && route.mode==='home' && hovered &&
+      position.distanceTo(route.path.getPointAt(route.mainHub))<11){
       const idx=['projects','experience','contact'].indexOf(hovered)
       if(idx>=0)ahead.lerp(PATHS.arms[idx].getPointAt(.27),.05)
     }
@@ -402,7 +409,7 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
         Math.min(smoothing,.20/angle):1)
     }
     const boost=transit?2.3*Math.sin(Math.PI*visualProgress):0
-    const fov=THREE.MathUtils.damp(camera.fov,45+boost,4,dt)
+    const fov=THREE.MathUtils.damp(camera.fov,corridorFov(camera.aspect,boost),4,dt)
     if(Math.abs(fov-camera.fov)>.001){
       camera.fov=fov
       camera.updateProjectionMatrix()
@@ -411,6 +418,9 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
     // tests (DOM-only route tests cannot detect a 3D position teleport).
     window.__portfolioFlight={
       position:[camera.position.x,camera.position.y,camera.position.z],
+      aspect:camera.aspect,fov:camera.fov,
+      centreDeviation:camera.position.distanceTo(position),
+      minimumWallClearance:Math.min(TUNNEL_RADIUS,2.85)-camera.position.distanceTo(position),
       bridgeProgress:transit?bridgeBuild(visualProgress):null,
       quaternion:[camera.quaternion.x,camera.quaternion.y,camera.quaternion.z,camera.quaternion.w],
       direction:[ahead.x-camera.position.x,ahead.y-camera.position.y,ahead.z-camera.position.z],
@@ -596,7 +606,7 @@ function BuildingBranch({transit,flightPosition}) {
   })
   return <group name="assembling-3d-tunnel">
     <mesh geometry={journey.skin}>
-      <meshStandardMaterial ref={bridgeMaterial} side={THREE.BackSide} vertexColors
+      <meshStandardMaterial ref={bridgeMaterial} side={THREE.DoubleSide} vertexColors
         transparent opacity={1} roughness={.72} metalness={.19} emissive="#262038"
         emissiveIntensity={.15} depthWrite/>
     </mesh>
@@ -655,7 +665,7 @@ function Scene({pathname,hovered,transit}) {
 
 export default function World({pathname='/',hovered='',transit=null,onReady}) {
   return <Canvas onCreated={onReady}
-    camera={{position:[0,0,11],fov:45,near:.12,far:140}}
+    camera={{position:[0,0,11],fov:45,near:.065,far:140}}
     dpr={[1,1.35]}
     gl={{alpha:false,antialias:true,powerPreference:'high-performance'}}
     style={{position:'absolute',inset:0}}>
