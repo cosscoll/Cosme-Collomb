@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { followScrollT } from '../scene/cameraMotion.js'
-import { corridorFov, corridorHeading, safeEyeOffset } from '../scene/cameraSafety.js'
+import { corridorFov, corridorHeading, safeEyeOffset, junctionTurnWeight } from '../scene/cameraSafety.js'
 import * as THREE from 'three'
 import { routeInfo, scrollT, sampleTransit, transitPoint, junctionFor, arrivalT, bridgeBuild, PROJECT_LOOKOUT_T, PROJECT_INDEX_HUB } from '../scene/transit.js'
 import {
@@ -77,8 +77,11 @@ function Shell({path,branch=false,transit=null,arrival=false}) {
   useFrame(()=>{
     if(!root.current)return
     const p=transit?(transit.progress??0):0
-    // The shared walls swap at the physical junction, never mid-corridor.
-    root.current.visible=!transit||(arrival?p>=.52:p<.52)
+    // The assembled tunnel owns the destination passage during the flight.
+    // Do not render the identical permanent surface over it: the overlapping
+    // opaque triangles caused depth fighting and apparent wall flicker.
+    // The 8 other project portals never overlap that assembled route.
+    root.current.visible=!transit||(arrival?(branch?p>=.52:p>=.96):p<.52)
   })
   return (
     <group ref={root} dispose={null}>
@@ -329,23 +332,32 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       const {from,to}=transitRoutes
       const junction=junctionFor(from,to,departure.current)
       const endT=arrivalT(to,from)
-      corridorHeading(from.path,clamp(junction.fromT),junction.fromT<departure.current,sourceHeading)
-      corridorHeading(to.path,clamp(p<.52?junction.toT:t),endT<junction.toT,destinationHeading)
-      if(p<.35) {
-        // Begin at the actual orientation the visitor was already seeing.
-        blendHeading(capturedHeading.current,sourceHeading,p/.31,direction)
-      }else if(p<.52){
-        // Turn WHILE the 3D connecting tunnel is constructed at the fork,
-        // not instantaneously when the destination spline becomes active.
-        blendHeading(sourceHeading,destinationHeading,(p-.35)/.17,direction)
+      const sourceReverse=junction.fromT<departure.current
+      const destinationReverse=endT<junction.toT
+      if(p<.52){
+        // The visitor first follows the TRUE local tangent, then starts
+        // turning only inside the physical aperture of the intersection.
+        corridorHeading(from.path,t,sourceReverse,sourceHeading)
+        corridorHeading(to.path,junction.toT,destinationReverse,destinationHeading)
+        const metresToHub=Math.abs(junction.fromT-t)*from.path.getLength()
+        blendHeading(sourceHeading,destinationHeading,
+          junctionTurnWeight(metresToHub,false),direction)
       }else{
-        direction.copy(destinationHeading)
+        corridorHeading(from.path,junction.fromT,sourceReverse,sourceHeading)
+        corridorHeading(to.path,t,destinationReverse,destinationHeading)
+        const metresFromHub=Math.abs(t-junction.toT)*to.path.getLength()
+        blendHeading(sourceHeading,destinationHeading,
+          junctionTurnWeight(metresFromHub,true),direction)
       }
       if(to.mode==='projects'&&from.mode==='detail'){
-        // Back gently out of the visited corridor while recovering the exact
-        // original view of the project tunnel mouths (no last-frame spin).
-        forkHeading.copy(PROJECT_FORK_FOCUS).sub(position).normalize()
-        if(p>.56)blendHeading(direction,forkHeading,(p-.56)/.35,direction)
+        // Restore the crossroads viewpoint only near the open projects
+        // atrium, not through a wall metres earlier in the inbound passage.
+        const distanceToFork=position.distanceTo(to.path.getPointAt(PROJECT_INDEX_HUB))
+        const focusWeight=smooth((11-distanceToFork)/7)
+        if(focusWeight>0){
+          forkHeading.copy(PROJECT_FORK_FOCUS).sub(position).normalize()
+          blendHeading(direction,forkHeading,focusWeight,direction)
+        }
       }
       ahead.copy(position).addScaledVector(direction,5)
     }else{
@@ -567,7 +579,9 @@ function BuildingBranch({transit,flightPosition}) {
   useFrame((_,dt)=>{
     const p=transit.progress??0
     const built=bridgeBuild(p)
-    const visibility=1-smooth((p-.90)/.095)
+    // Complete the physical tunnel before its destination shell reappears.
+    // The new shell takes over after the temporary mesh has nearly faded.
+    const visibility=1-smooth((p-.925)/.04)
     if(bridgeMaterial.current){
       bridgeMaterial.current.opacity=visibility
       // Depth-test the fully constructed wall normally. Otherwise several
