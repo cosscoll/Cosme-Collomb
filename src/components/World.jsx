@@ -421,8 +421,22 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
       ahead.copy(position).addScaledVector(direction,5)
     }else{
       corridorHeading(sample.path,t,false,direction)
-      // The story's return corridor is an actual spatial loop. Never rotate
-      // the visitor in place or reverse their camera direction at its end.
+      if(route.mode==='projects'){
+        const distanceToJunction=position.distanceTo(CHAMBERS[1].centre)
+        const approach=smooth((12-distanceToJunction)/8)
+        if(approach>0){
+          // Look through the REAL nearest open project doorway, rather than
+          // staring at an unpierced section of the curved chamber wall.
+          // The nearest forward doorway limits the turn to a small angle;
+          // the visitor NEVER rotates to inspect a door behind their head.
+          let nearest=null,alignment=-Infinity
+          for(const exit of CHAMBERS[1].exits.slice(1)){
+            const dot=direction.dot(exit)
+            if(dot>alignment){alignment=dot;nearest=exit}
+          }
+          if(nearest && alignment>.35)direction.lerp(nearest,approach*.94).normalize()
+        }
+      }
       ahead.copy(position).addScaledVector(direction,5)
     }
     right.crossVectors(direction,UP).normalize()
@@ -456,7 +470,14 @@ function CameraFlight({route,hovered,transit,flightPosition}) {
         Math.min(smoothing,.20/angle):1)
     }
     const boost=transit?2.3*Math.sin(Math.PI*visualProgress):0
-    const fov=THREE.MathUtils.damp(camera.fov,corridorFov(camera.aspect,boost),4,dt)
+    // A room contains eight doors spread across the forward hemisphere;
+    // widen the field of view ONLY when the camera is inside that room,
+    // never inside a narrow tube where wide FOV clips across the walls.
+    const atProjectAtrium=(!transit&&route.mode==='projects')?
+      smooth((12-position.distanceTo(CHAMBERS[1].centre))/7):0
+    const desiredFov=corridorFov(camera.aspect,boost)+
+      atProjectAtrium*(camera.aspect<.8?29:23)
+    const fov=THREE.MathUtils.damp(camera.fov,desiredFov,4,dt)
     if(Math.abs(fov-camera.fov)>.001){
       camera.fov=fov
       camera.updateProjectionMatrix()
