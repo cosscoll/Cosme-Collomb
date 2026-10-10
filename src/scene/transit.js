@@ -109,6 +109,19 @@ export function sampleTransit(from,to,initialT,progress){
     return {path:to.path,t:PROJECT_INDEX_HUB,mode:to.mode,index:to.index,
       reverse:false,phase:'arrived'}
   }
+  // From the open projects crossroads into a selected project (or a
+  // neighbouring loop) the eye is ALREADY at the physical junction. Start
+  // moving immediately along the next forward corridor; the old two-stage
+  // transition parked it there for half its duration, then spun the POV.
+  if(to.mode==='detail' &&
+    ['projects','detail'].includes(from.mode) &&
+    initialT>.95 && hub.fromT>.999){
+    const t=hub.toT+(end-hub.toT)*ease(p)
+    const seam=from.path.getPointAt(hub.fromT)
+      .sub(to.path.getPointAt(hub.toT))
+    return {path:to.path,t,offset:seam.multiplyScalar(1-ease(p/.35)),
+      mode:to.mode,index:to.index,reverse:false,phase:'forward-enter'}
+  }
   // Approach the real intersection continuously until the bridge is ready.
   // The former .35-.52 pause froze the camera for ~700 ms mid-navigation.
   if(p<TRANSIT_MID){
