@@ -18,7 +18,13 @@ export function corridorHeading(path,t,reverse=false,target=new THREE.Vector3())
   const u=clamp(t,0,1)
   const step=Math.min(.048,Math.max(.006,3.25/Math.max(1,path.getLength())))
   let next=clamp(u+(reverse?-step:step),0,1)
-  if(Math.abs(next-u)<.00001)next=clamp(u+(reverse?step:-step),0,1)
+  if(Math.abs(next-u)<.00001){
+    // At an open route end, retain its actual tangent rather than turning
+    // toward the previous point and looking through the terminal wall.
+    path.getTangentAt(u,target)
+    if(reverse)target.negate()
+    return target.normalize()
+  }
   path.getPointAt(next,target)
   target.sub(path.getPointAt(u))
   if(target.lengthSq()<.000001){
