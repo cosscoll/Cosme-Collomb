@@ -519,7 +519,11 @@ function BuildingBranch({transit,flightPosition}) {
         flightPosition.current.t:.35
     const hub=junctionFor(from,to,startT)
     const arrival=arrivalT(to,from)
-    const reverse=arrival<hub.toT
+    // A finished project enters the crossroads from its separate forward
+    // return loop at t=1. The decorative assembly must meet that exact hub,
+    // not start 1.5m short at the old outward project entrance.
+    const returning=from.mode==='detail' && to.mode==='projects' && hub.fromT>.999
+    const reverse=returning || arrival<hub.toT
     const margin=0
     let start,end
     if(reverse){
@@ -541,7 +545,8 @@ function BuildingBranch({transit,flightPosition}) {
     const hubTo=to.path.getPointAt(clamp(hub.toT))
     const joinShift=hubFrom.clone().sub(hubTo)
     const joinWeight=(t)=>{
-      const travel=Math.max(0,(t-hub.toT)/(arrival-hub.toT))
+      const travel=Math.abs(arrival-hub.toT)<1e-8?0:
+        Math.max(0,(t-hub.toT)/(arrival-hub.toT))
       return 1-smooth(travel/.35)
     }
     const skin=createSkin(to.path,{
