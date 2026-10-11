@@ -97,6 +97,10 @@ test('All eight far ends are joined by a real closed turnaround room with two cl
     assert.ok(room.centre.distanceTo(PATHS.children[i].getPointAt(1))<1e-6)
     assert.ok(room.centre.distanceTo(PATHS.returnArms[i].getPointAt(0))<1e-6)
     assert.equal(room.exits.length,2)
+    const lastHeading=PATHS.children[i].getTangentAt(1)
+    const returnHeading=PATHS.returnArms[i].getTangentAt(0)
+    assert.ok(lastHeading.dot(returnHeading)>.92,
+      'POV would sharply pivot at the physical U-turn joining outgoing and return tunnels: '+i)
     const outSegments=shellSpans(PATHS.children[i])
     const returnSegments=shellSpans(PATHS.returnArms[i])
     assert.ok(Math.max(...outSegments.map(x=>x[1]))<.999,
