@@ -37,7 +37,10 @@ export const RETURNS = PROJECTS.map((_,i)=>{
   const x=Math.cos(angle),y=Math.sin(angle)
   const radial=(r,z)=>[-9.5+x*r,y*r,z]
   return [
-    radial(19,-110),radial(28,-113),radial(30,-99),
+    // Continue the outbound heading into the enclosed turning room before
+    // curving outward. A return path that immediately diverged sideways
+    // caused a sharp ~90° POV jerk exactly at the corridor junction.
+    radial(19,-110),radial(20,-116),radial(28,-113),radial(30,-99),
     radial(27,-78),radial(18,-54),
     [-9.5,0,-61]
   ]
@@ -84,6 +87,26 @@ export function shellSpans(path,{start=0,end=1,clearance=8.05}={}){
       if(hub+pad<=a||hub-pad>=b){next.push([a,b]);continue}
       if(hub-pad-a>.0001)next.push([a,Math.min(b,hub-pad)])
       if(b-hub-pad>.0001)next.push([Math.max(a,hub+pad),b])
+    }
+    spans=next
+  }
+  // Every far project turnaround is a CLOSED physical mini-room joining
+  // its outgoing and incoming corridors. Remove only the small tube section
+  // inside that room; otherwise two independent open tube ends create a
+  // visible gap or overlapping wall precisely during the forward U-turn.
+  const projectChild=PATHS.children.indexOf(path)
+  const projectReturn=PATHS.returnArms.indexOf(path)
+  const turnIndex=projectChild>=0?projectChild:projectReturn
+  if(turnIndex>=0){
+    const far=PATHS.children[turnIndex].getPointAt(1)
+    const hub=projectChild>=0?1:0
+    const remove=PROJECT_TURN_RADIUS-0.75
+    const pad=Math.min(.27,remove/Math.max(1,path.getLength()))
+    const next=[]
+    for(const [a,b] of spans){
+      if(hub+pad<=a||hub-pad>=b){next.push([a,b]);continue}
+      if(hub-pad>a+.0001)next.push([a,Math.min(b,hub-pad)])
+      if(hub+pad<b-.0001)next.push([Math.max(a,hub+pad),b])
     }
     spans=next
   }
@@ -235,6 +258,38 @@ export function detailReturning(progress) {
 // junction. Its rounded walls have genuine openings in the direction of
 // every adjoining tunnel (including the distinct project return tunnels).
 // The static mesh is built once and reused; no texture or WebGL shader tricks.
+// A closed turning room seals the seam between the outbound and return
+// corridors. Each room is positioned at their exact shared 3D endpoint.
+// The camera follows the continuous forward loop through this empty volume.
+export const PROJECT_TURN_RADIUS=6.4
+export const PROJECT_TURN_TUBE_RADIUS=2.85
+const TURN_PORTAL_DISTANCE=Math.sqrt(
+  PROJECT_TURN_RADIUS**2-PROJECT_TURN_TUBE_RADIUS**2)
+function farTurnMouth(path,centre,atEnd){
+  let nearest=Infinity,heading=null
+  for(let i=0;i<=140;i++){
+    const t=atEnd?.69+.31*i/140:.31*i/140
+    const point=path.getPointAt(t)
+    const error=Math.abs(point.distanceTo(centre)-TURN_PORTAL_DISTANCE)
+    if(error<nearest){
+      nearest=error
+      heading=point.sub(centre)
+    }
+  }
+  return heading.normalize()
+}
+export const PROJECT_TURN_ROOMS=PATHS.children.map((out,i)=>{
+  const centre=out.getPointAt(1)
+  return {
+    centre,
+    radius:PROJECT_TURN_RADIUS,
+    exits:[
+      farTurnMouth(out,centre,true),
+      farTurnMouth(PATHS.returnArms[i],centre,false)
+    ],
+    radii:[PROJECT_TURN_TUBE_RADIUS,PROJECT_TURN_TUBE_RADIUS]
+  }
+})
 export const CHAMBER_RADIUS=9.55
 // Radius where a round tube of the same radius intersects the sphere.
 // Calculate the true opening from the physical crossing of the spline,

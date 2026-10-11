@@ -7,7 +7,7 @@ import { routeInfo, scrollT, sampleTransit, transitPoint, junctionFor, arrivalT,
 import {
   PATHS, PROJECT_BRANCH_COLORS, PROJECT_FORK_OPEN, PROJECT_FORK_CLOSE, PROJECT_FORK_FOCUS,
   createSkin, createSeam, shellSpans, TUNNEL_RADIUS, CHAMBERS,
-  createJunctionChamber, chamberExitDirection
+  createJunctionChamber, chamberExitDirection, PROJECT_TURN_ROOMS
 } from '../scene/geometry.js'
 
 const UP=new THREE.Vector3(0,1,0)
@@ -130,9 +130,20 @@ function roomWithReturn(index){
   RETURN_ROOM_CACHE.set(index,geometry)
   return geometry
 }
+const PROJECT_TURN_GEOMETRY_CACHE=new Map()
+function turnRoomGeometry(index){
+  if(PROJECT_TURN_GEOMETRY_CACHE.has(index))
+    return PROJECT_TURN_GEOMETRY_CACHE.get(index)
+  const room=PROJECT_TURN_ROOMS[index]
+  const geometry=createJunctionChamber(room,room.radius)
+  PROJECT_TURN_GEOMETRY_CACHE.set(index,geometry)
+  return geometry
+}
 function JunctionChambers({mode,index}){
   const room=useMemo(()=>mode==='detail'&&index>=0?
     roomWithReturn(index):PROJECT_ROOM_GEOMETRY,[mode,index])
+  const farTurn=useMemo(()=>mode==='detail'&&index>=0?
+    turnRoomGeometry(index):null,[mode,index])
   return <group name="sealed-smooth-junctions" dispose={null}>
     <mesh geometry={MAIN_ROOM_GEOMETRY} dispose={null}>
       <meshLambertMaterial color="#857d96" side={THREE.BackSide}
@@ -142,6 +153,10 @@ function JunctionChambers({mode,index}){
       <meshLambertMaterial color="#82869d" side={THREE.BackSide}
         emissive="#525775" emissiveIntensity={.25}/>
     </mesh>
+    {farTurn&&<mesh name="physical-far-end-closed-turn" geometry={farTurn} dispose={null}>
+      <meshLambertMaterial color="#8d8ea2" side={THREE.BackSide}
+        emissive="#56516c" emissiveIntensity={.21}/>
+    </mesh>}
   </group>
 }
 

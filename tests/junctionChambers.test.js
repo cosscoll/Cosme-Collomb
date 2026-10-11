@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import * as THREE from 'three'
-import { CHAMBERS, CHAMBER_RADIUS, createJunctionChamber, chamberExitDirection, PATHS, PROJECT_HUBS, PROJECT_OUTBOUND_ENDS, shellSpans } from '../src/scene/geometry.js'
+import { CHAMBERS, CHAMBER_RADIUS, PROJECT_TURN_ROOMS, PROJECT_TURN_RADIUS, createJunctionChamber, chamberExitDirection, PATHS, PROJECT_HUBS, PROJECT_OUTBOUND_ENDS, shellSpans } from '../src/scene/geometry.js'
 
 test('Both physical crossroads have watertight visible vaults with all real corridor mouths open',()=>{
  assert.equal(CHAMBERS.length,2)
@@ -87,4 +87,45 @@ test('Eight visible project tubes remain separated before expanding to full radi
     }
   }
   assert.ok(checks>120,'No separation samples validated')
+})
+
+
+test('All eight far ends are joined by a real closed turnaround room with two clear openings',()=>{
+  assert.equal(PROJECT_TURN_ROOMS.length,PATHS.children.length)
+  for(let i=0;i<PROJECT_TURN_ROOMS.length;i++){
+    const room=PROJECT_TURN_ROOMS[i]
+    assert.ok(room.centre.distanceTo(PATHS.children[i].getPointAt(1))<1e-6)
+    assert.ok(room.centre.distanceTo(PATHS.returnArms[i].getPointAt(0))<1e-6)
+    assert.equal(room.exits.length,2)
+    const lastHeading=PATHS.children[i].getTangentAt(1)
+    const returnHeading=PATHS.returnArms[i].getTangentAt(0)
+    assert.ok(lastHeading.dot(returnHeading)>.92,
+      'POV would sharply pivot at the physical U-turn joining outgoing and return tunnels: '+i)
+    const outSegments=shellSpans(PATHS.children[i])
+    const returnSegments=shellSpans(PATHS.returnArms[i])
+    assert.ok(Math.max(...outSegments.map(x=>x[1]))<.999,
+      'Open outbound tube sticks through its rounded closed turnaround chamber: '+i)
+    assert.ok(Math.min(...returnSegments.map(x=>x[0]))>.001,
+      'Open return tube starts inside the rounded closed turnaround chamber: '+i)
+  }
+  for(const i of [0,4]){
+    const room=PROJECT_TURN_ROOMS[i]
+    const geometry=createJunctionChamber(room,PROJECT_TURN_RADIUS)
+    const material=new THREE.MeshBasicMaterial({side:THREE.DoubleSide})
+    const mesh=new THREE.Mesh(geometry,material)
+    for(const exit of room.exits){
+      const ray=new THREE.Raycaster(room.centre,exit,0,PROJECT_TURN_RADIUS+1)
+      assert.equal(ray.intersectObject(mesh).length,0,
+        'Actual project turn tube opening blocked by a wall: '+i)
+    }
+    let sealed=0
+    for(let k=0;k<24;k++){
+      const theta=k*Math.PI*2/24
+      const dir=new THREE.Vector3(Math.cos(theta),Math.sin(theta),.4).normalize()
+      sealed+=Number(new THREE.Raycaster(room.centre,dir,0,PROJECT_TURN_RADIUS+1)
+        .intersectObject(mesh).length>0)
+    }
+    assert.ok(sealed>=16,'Far turnaround is open to black sky: '+i)
+    geometry.dispose();material.dispose()
+  }
 })
