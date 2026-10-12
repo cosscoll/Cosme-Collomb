@@ -36,7 +36,7 @@ async function screenshot(page,name){
 async function run(){
   await waitForServer()
   await mkdir('test-output',{recursive:true})
-  browser=await chromium.launch({headless:true,args:[
+  browser=await chromium.launch({headless:true,executablePath:process.env.BROWSER_EXECUTABLE||undefined,args:[
     '--no-sandbox','--enable-webgl','--use-gl=angle',
     '--use-angle=swiftshader','--enable-unsafe-swiftshader',
     '--disable-dev-shm-usage','--disable-gpu-sandbox'

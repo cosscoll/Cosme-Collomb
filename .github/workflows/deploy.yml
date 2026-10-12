@@ -1,7 +1,7 @@
 name: Build and validate portfolio
 on:
   push:
-    branches: [main, 'dev/**']
+    branches: [main, 'dev/**', 'fix/**']
   workflow_dispatch:
 permissions:
   contents: write
@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
+      - run: npm ci
       - run: npm run test:geometry
       - run: node --test tests/prototype-v2-geometry.test.mjs
       - name: Restore Vite HTML entrypoint
@@ -27,9 +27,8 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
       - run: node tests/prototype-3d-smoke.mjs
-      - name: Check all five seamless 3D project loops (dedicated full audit)
-        if: github.event_name == 'workflow_dispatch'
-        run: node tests/prototype-v2-browser.mjs
+      # test:browser includes all eight production loops, queued navigation,
+      # actual mesh raycasts, reverse scroll, history and mobile WebGL.
       - name: Publish compiled files to branch root
         if: github.ref == 'refs/heads/main'
         run: bash scripts/sync-published-root.sh
@@ -38,6 +37,12 @@ jobs:
         env:
           PUBLIC_SITE: https://cosscoll.github.io/Cosme-Collomb/
         run: node tests/public-http-check.mjs
+      - name: Verify the deployed WebGL journey in the public browser
+        if: github.ref == 'refs/heads/main'
+        env:
+          PUBLIC_SITE: https://cosscoll.github.io/Cosme-Collomb/
+          AUDIT_QUICK: '1'
+        run: node tests/network-browser.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

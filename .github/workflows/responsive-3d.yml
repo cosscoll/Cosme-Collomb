@@ -1,20 +1,31 @@
 name: Live responsive 3D wall collision regression
 on:
-  push:
+  workflow_run:
+    workflows: ['Build and validate portfolio']
+    types: [completed]
     branches: [main]
-    paths: ['.github/workflows/responsive-3d.yml', 'tests/responsive-3d-live.mjs', 'src/components/World.jsx', 'src/scene/cameraSafety.js', 'src/scene/transit.js']
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   verify-physical-camera-on-public-site:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && !contains(github.event.workflow_run.head_commit.message, '[skip ci]'))
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
+      - run: npm ci
+      - run: npm run build:network
       - run: npx playwright install --with-deps chromium
-      - run: node tests/responsive-3d-live.mjs
+      - name: Audit eight public loops, responsive controls and actual walls
+        env:
+          PUBLIC_SITE: https://cosscoll.github.io/Cosme-Collomb/
+        run: node tests/network-browser.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: public-network-proof
+          path: test-output/

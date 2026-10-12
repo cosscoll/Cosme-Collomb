@@ -442,7 +442,7 @@ function ProjectDetail({slug,onJourneyFinished}) {
         const flight=window.__portfolioFlight
         const canvas=Boolean(document.querySelector('.scene-backdrop canvas'))
         const physicallyHome=flight && flight.currentRoute==='/projets/'+slug &&
-          !flight.transiting && flight.t>=.96 &&
+          !flight.transiting && flight.t>=.90 &&
           performance.now()-flight.updatedAt<1700
         // A slow or stalled GPU frame is NOT permission to teleport: keep
         // the page visible until the physical 3D eye has reached the fork.
@@ -630,8 +630,8 @@ function TransitionCurtain({transit}) {
   // A readable, non-occluding indicator — there is no white flash,
   // no full-screen transition overlay and no teleport masking.
   return <div className="bridge-wayfinding" data-bridge-transition="active"
-    role="status" aria-label={'Construction du tunnel vers '+name}>
-    <span className="bridge-wayfinding-kicker">LE CHEMIN SE CONSTRUIT</span>
+    role="status" aria-label={'En route vers '+name}>
+    <span className="bridge-wayfinding-kicker">L’EXPLORATION CONTINUE</span>
     <strong>{name}</strong>
     <span className="bridge-wayfinding-track" aria-hidden="true"><i/></span>
   </div>
@@ -666,24 +666,15 @@ function Shell() {
     setTransit(null)
   },[commitMidpoint])
   const beginTrip=useCallback((next)=>{
-    if(next===pathname)return false
     if(transitRef.current){
       // Header requests made during an inbound journey must never disappear.
       // Queue them and travel as soon as the current 3D flight has landed.
       pendingTripRef.current=next
       return true
     }
-    // Forward-only project journeys must not reverse the POV mid-tunnel
-    // when visitors click a menu item. Finish the same physical return loop,
-    // pass through the original fork, THEN continue to the requested page.
-    const eye=window.__portfolioFlight
-    const rendering=eye?.currentRoute===pathname&&!eye.transiting&&
-      performance.now()-eye.updatedAt<1700
-    if(pathname.startsWith('/projets/') && rendering && eye.t<.96){
-      pendingTripRef.current=next==='/projets'?null:next
-      window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'})
-      return true
-    }
+    if(next===pathname)return false
+    // The scene's directed graph owns the whole remaining journey, including
+    // an early exit from a story. Never force scroll or reverse a spline.
     // Capture the physical eye coordinate BEFORE React can unmount/remount
     // the 3D scene or reset the page scroll during a route transition.
     const visibleEye=window.__portfolioFlight
@@ -709,24 +700,6 @@ function Shell() {
       // CSS-only fallback has no real camera to emit flight milestones.
       timers.current.push(window.setTimeout(()=>commitMidpoint(journey),TRANSIT_MIDPOINT))
       timers.current.push(window.setTimeout(()=>finishTrip(journey),TRANSIT_MS))
-    }else{
-      // Never let an arbitrary wall-clock timeout teleport a still-rendering
-      // 3D camera. Slow laptops / background tabs legitimately take longer.
-      // Only recover navigation if the WebGL scene has actually STOPPED
-      // rendering for more than 12 seconds.
-      const watchdog=()=>{
-        if(transitRef.current?.id!==journey.id)return
-        const flight=window.__portfolioFlight
-        const age=performance.now()-(flight?.updatedAt||0)
-        const alive=flight?.flightId===journey.id&&age<12000
-        if(!alive){
-          commitMidpoint(journey)
-          finishTrip(journey)
-          return
-        }
-        timers.current.push(window.setTimeout(watchdog,5000))
-      }
-      timers.current.push(window.setTimeout(watchdog,15000))
     }
     return true
   },[pathname,commitMidpoint,finishTrip])

@@ -110,10 +110,10 @@ test('No full-screen white portal survives and 3D construction is rendered',asyn
  const world=await fs.readFile(new URL('../src/components/World.jsx',import.meta.url),'utf8')
  assert.ok(app.includes('bridge-wayfinding'))
  assert.ok(!app.includes('className="transition-portal"'))
- assert.ok(world.includes('assembling-3d-tunnel'))
- assert.ok(world.includes('BuildingBranch'))
- assert.ok(world.includes('bridgeBuild(p)'))
- assert.ok(world.includes('meshStandardMaterial'))
+ assert.ok(world.includes('assembling-floor-plates'))
+ assert.ok(world.includes('instancedMesh'))
+ assert.ok(world.includes('setMatrixAt'))
+ assert.ok(world.includes('meshLambertMaterial'))
 })
 
 test('Returning from every finished project lands at the same open crossroads',()=>{
@@ -141,12 +141,11 @@ test('All project paths remain accessible when a project visit is complete',asyn
  assert.ok(app.includes('onJourneyFinished()'))
  assert.ok(!app.includes('PROJECTS.filter(project=>project.slug!==p.slug)'))
  assert.ok(app.includes('state={{fromJourney:true}}'))
- assert.ok(world.includes("fork.offsetTop"))
- assert.ok(!world.includes("projectFork.offsetTop+projectFork.offsetHeight*.35"))
- assert.ok(world.includes('PhysicalTunnelNetwork'), 'Every chamber portal needs its own permanent tunnel backing')
- assert.ok(world.includes('Never override the physical corridor heading'), 'No fixed look target may spin the POV away from the real path')
- assert.ok(world.includes('bridgeMaterial.current.opacity=visibility'))
- assert.ok(world.includes('arrival?'))
+ assert.ok(world.includes('permanent-watertight-network'),'All exits belong to one permanent closed surface')
+ assert.ok(world.includes('PROJECT_EDGES.map'),'All eight physical portals remain mounted')
+ assert.ok(world.includes('headingAt(pose.edge,pose.distance,direction)'),'Gaze follows the current forward tangent')
+ assert.ok(!world.includes('reverse:'))
+ assert.ok(!world.includes('roomWithReturn'),'A visit must not change junction openings')
 })
 
 test('All physical tunnel mouths face the same stable fork camera viewpoint',()=>{
@@ -257,12 +256,11 @@ test('No opaque side wall is rendered across either navigable junction',()=>{
 test('Destination tunnel stays rendered for the complete camera crossing',async()=>{
   const fs=await import('node:fs/promises')
   const world=await fs.readFile(new URL('../src/components/World.jsx',import.meta.url),'utf8')
-  assert.ok(world.includes('(arrival?(branch?p>=.52:p>=.96):p<.52)'),
-    'Do not render duplicate destination walls over a constructed tunnel')
-  assert.ok(world.includes('const visibility=1-smooth((p-.925)/.04)'),
-    'Assembled bridge must fade before final destination wall handoff')
-  assert.ok(world.includes('shellSpans(path)'),
-    'Physical crossing apertures missing')
+  assert.equal((world.match(/<PermanentNetwork /g)||[]).length,1,
+    'Render one permanent network for the entire session')
+  assert.ok(!world.includes('visible={false}'),'A wall cannot be hidden during a crossing')
+  assert.ok(!world.includes('material.opacity='),'A wall cannot fade during a handoff')
+  assert.ok(world.includes('partitionNetwork(geometry)'),'Render partitions of the same welded mesh')
 })
 
 test('Camera keeps moving during tunnel assembly instead of freezing near the fork',()=>{

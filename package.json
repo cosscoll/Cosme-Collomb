@@ -7,23 +7,28 @@
     "dev": "vite",
     "build": "vite build && node scripts/normalize-dist.mjs",
     "preview": "vite preview",
-    "test:geometry": "node --test tests/geometry.test.js tests/transit.test.js tests/navigation.test.js tests/cameraMotion.test.js tests/cameraSafety.test.js tests/junctionChambers.test.js",
-    "test:browser": "node tests/browser-smoke.mjs"
+    "test:geometry": "node --test tests/geometry.test.js tests/transit.test.js tests/navigation.test.js tests/cameraMotion.test.js tests/cameraSafety.test.js tests/junctionChambers.test.js tests/spatial-network.test.mjs",
+    "test:browser": "node tests/network-browser.mjs",
+    "build:network": "node scripts/build-network.mjs",
+    "prebuild": "npm run build:network",
+    "pretest:geometry": "npm run build:network",
+    "test:browser:quick": "AUDIT_QUICK=1 node tests/network-browser.mjs"
   },
   "dependencies": {
+    "@react-three/drei": "^9.109.2",
+    "@react-three/fiber": "^8.16.8",
+    "@react-three/postprocessing": "^2.16.2",
+    "framer-motion": "^11.3.19",
+    "gsap": "^3.12.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "three": "^0.166.1",
-    "@react-three/fiber": "^8.16.8",
-    "@react-three/drei": "^9.109.2",
-    "@react-three/postprocessing": "^2.16.2",
-    "gsap": "^3.12.5",
-    "framer-motion": "^11.3.19",
-    "react-router-dom": "^6.26.0"
+    "react-router-dom": "^6.26.0",
+    "three": "^0.166.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
-    "vite": "^5.4.0",
-    "playwright": "^1.56.1"
+    "playwright": "1.56.1",
+    "three-mesh-bvh": "0.7.8",
+    "vite": "^5.4.0"
   }
 }
