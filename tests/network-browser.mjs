@@ -15,7 +15,7 @@ const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms))
 const report={site,loops:[],viewports:[],errors:[],screenshots:[],validation:[]}
 await mkdir('test-output',{recursive:true})
 let browser,page
-const prefix=process.env.PUBLIC_SITE?'public':'network'
+const prefix=process.env.PUBLIC_SITE?'public':process.env.AUDIT_PAGES_ONLY?'pages':'network'
 async function capture(label,geometryOnly=false){
   let style
   if(geometryOnly)style=await page.addStyleTag({content:'#content,.topbar,.scroll-index,.site-footer,.bridge-wayfinding {visibility:hidden !important} .scene-shading{display:none} '})
@@ -31,7 +31,11 @@ async function landed(path,timeout=180000){
   // The physical landing precedes AnimatePresence mounting the next page.
   // Require the user's destination controls, not just the camera milestone.
   if(path==='/projets')await page.locator('.fork-choice').nth(7).waitFor({state:'visible',timeout:15000})
-  else await page.locator('main h1').waitFor({state:'visible',timeout:15000})
+  else {
+    const project=PROJECTS.find(p=>path==='/projets/'+p.slug)
+    const expected=project?.title||(path==='/contact'?/La suite/:path==='/parcours'?/Faire dialoguer/:/Donner forme/)
+    await page.locator('main h1').filter({hasText:expected}).waitFor({state:'visible',timeout:15000})
+  }
   console.log('LANDED',path)
 }
 async function startCapture(){await page.evaluate(()=>{window.__portfolioFrames=[];window.__portfolioCapture=true})}
@@ -94,7 +98,7 @@ try{
   assert.equal(await page.locator('.fork-choice').count(),8)
   const first=await page.evaluate(()=>window.__portfolioFlight)
   await capture('hub');await capture('hub-geometry',true)
-  const count=process.env.AUDIT_QUICK==='1'?1:8
+  const count=process.env.AUDIT_PAGES_ONLY?0:process.env.AUDIT_QUICK==='1'?1:8
   for(let i=0;i<count;i++){
     const path='/projets/'+PROJECTS[i].slug
     await page.evaluate(()=>window.scrollTo({top:document.querySelector('#project-crossroads').offsetTop,behavior:'instant'}))
@@ -131,7 +135,7 @@ try{
     await clickNav('Parcours')
     await clickNav('Contact') // Must be queued while the first flight is active.
     await landed('/contact')
-    assert.ok(await page.locator('#contact-message').isVisible())
+    await page.locator('#contact-message').waitFor({state:'visible',timeout:15000})
     await clickNav('Accueil');await landed('/')
     await clickNav('Projets');await landed('/projets')
     await endCapture('queued-pages-and-home')

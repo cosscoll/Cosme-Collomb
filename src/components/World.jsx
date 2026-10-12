@@ -13,6 +13,19 @@ const UP=new THREE.Vector3(0,1,0)
 const FORWARD=new THREE.Vector3(0,0,-1)
 const smooth=x=>{const t=clamp(x);return t*t*(3-2*t)}
 
+// Ribs belong to private tube walls, never across the navigable union of
+// two passages. Keep shared return junctions free of floating metal arcs.
+const DECORATION_SAMPLES=EDGES.map(edge=>({edge,points:Array.from({length:Math.ceil(edge.length/2)+1},(_,i)=>pointAt(edge,Math.min(edge.length,i*2)))}))
+function privateTube(edge,centre){
+  if(centre.distanceTo(ROOM.centre)<ROOM.radius+2)return false
+  for(const other of DECORATION_SAMPLES){
+    if(other.edge===edge)continue
+    const clearance=(edge.radius+other.edge.radius+1.4)**2
+    if(other.points.some(point=>point.distanceToSquared(centre)<clearance))return false
+  }
+  return true
+}
+
 function PermanentNetwork({onReady}) {
   const buffer=useLoader(THREE.FileLoader,meshUrl,loader=>loader.setResponseType('arraybuffer'))
   const geometry=useMemo(()=>{
@@ -41,7 +54,7 @@ function Architecture({hovered}) {
     const pieces=[]
     for(const edge of EDGES)for(let s=28;s<edge.length-30;s+=7){
       const f=frameAt(edge,s)
-      if(f.centre.distanceTo(ROOM.centre)<ROOM.radius+2)continue
+      if(!privateTube(edge,f.centre))continue
       const ring=new THREE.TorusGeometry(edge.radius-.17,.035,4,32)
       ring.applyQuaternion(new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,0,1),f.forward))
       ring.translate(...f.centre.toArray());pieces.push(ring)
@@ -52,12 +65,17 @@ function Architecture({hovered}) {
   const guides=useMemo(()=>{
     const pieces=[]
     for(const edge of EDGES)for(const side of [-1,1]){
-      const points=[]
+      let points=[]
+      const finish=()=>{
+        if(points.length>2)pieces.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points),Math.max(6,points.length),.022,3,false))
+        points=[]
+      }
       for(let s=26;s<edge.length-26;s+=.65){
         const f=frameAt(edge,s)
+        if(!privateTube(edge,f.centre)){finish();continue}
         points.push(f.centre.addScaledVector(f.right,side*edge.radius*.78).addScaledVector(f.up,-edge.radius*.49))
       }
-      pieces.push(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points),Math.ceil(edge.length*.7),.022,3,false))
+      finish()
     }
     const merged=mergeGeometries(pieces);pieces.forEach(g=>g.dispose());return merged
   },[])
