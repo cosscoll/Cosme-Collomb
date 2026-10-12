@@ -15,7 +15,7 @@ export function decodeNetwork(buffer) {
 
 // Partition triangles without moving any vertex. Frustum culling can then
 // discard distant galleries while all seams retain their exact coordinates.
-export function partitionNetwork(geometry,size=14) {
+export function partitionNetwork(geometry,size=24) {
   const positions=geometry.getAttribute('position'),buckets=new Map(),idx=geometry.index.array
   for(let i=0;i<idx.length;i+=3){
     const a=idx[i],b=idx[i+1],c=idx[i+2]

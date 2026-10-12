@@ -53,6 +53,13 @@ export function pointAt(edge, distance, target=new THREE.Vector3()) {
 export function headingAt(edge, distance, target=new THREE.Vector3()) {
   return edge.path.getTangentAt(clamp(distance/edge.length), target).normalize()
 }
+const orientationEye=new THREE.Vector3(),orientationAhead=new THREE.Vector3()
+const orientationUp=new THREE.Vector3(0,1,0),orientationMatrix=new THREE.Matrix4()
+export function orientationAt(edge,distance,target=new THREE.Quaternion()) {
+  pointAt(edge,distance,orientationEye)
+  headingAt(edge,distance,orientationAhead).add(orientationEye)
+  return target.setFromRotationMatrix(orientationMatrix.lookAt(orientationEye,orientationAhead,orientationUp))
+}
 export function curvatureAt(edge, distance) {
   const a=headingAt(edge,Math.max(0,distance-.3))
   const b=headingAt(edge,Math.min(edge.length,distance+.3))

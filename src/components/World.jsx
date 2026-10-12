@@ -3,7 +3,7 @@ import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import { HUB, ROOM, EDGES, PROJECT_EDGES, COLORS, NETWORK_VERSION,
-  pointAt, headingAt, frameAt, initialPose, destination, planJourney,
+  pointAt, headingAt, orientationAt, frameAt, initialPose, destination, planJourney,
   sampleJourney, scrollDistance, clamp } from '../scene/spatialNetwork.js'
 import { advanceMotion } from '../scene/networkMotion.js'
 import { decodeNetwork, partitionNetwork } from '../scene/networkMesh.js'
@@ -140,7 +140,6 @@ function Flight({pathname,transit}) {
   if(!state.current){const start=transit?.from||pathname;state.current={pose:initialPose(start),page:start,target:0,speed:0,trip:null,id:null,travelled:0}}
   const total=useRef(1)
   const position=useMemo(()=>new THREE.Vector3(),[]),direction=useMemo(()=>new THREE.Vector3(),[])
-  const ahead=useMemo(()=>new THREE.Vector3(),[]),matrix=useMemo(()=>new THREE.Matrix4(),[])
   const rayDirection=useMemo(()=>new THREE.Vector3(),[]),light=useRef()
   useEffect(()=>{
     const measure=()=>{total.current=Math.max(1,document.documentElement.scrollHeight-window.innerHeight)}
@@ -178,8 +177,9 @@ function Flight({pathname,transit}) {
     const pose=s.pose
     if(pose.edge){pointAt(pose.edge,pose.distance,position);headingAt(pose.edge,pose.distance,direction)}
     else {position.copy(HUB);direction.copy(FORWARD)}
-    camera.position.copy(position);ahead.copy(position).add(direction)
-    matrix.lookAt(position,ahead,UP);camera.quaternion.setFromRotationMatrix(matrix)
+    camera.position.copy(position)
+    if(pose.edge)orientationAt(pose.edge,pose.distance,camera.quaternion)
+    else camera.quaternion.identity()
     const fov=camera.aspect<.8?88:68
     if(camera.fov!==fov){camera.fov=fov;camera.updateProjectionMatrix()}
     light.current.position.copy(position).addScaledVector(direction,1)

@@ -1,9 +1,12 @@
-import { clamp, curvatureAt } from './spatialNetwork.js'
+import * as THREE from 'three'
+import { clamp, curvatureAt, orientationAt } from './spatialNetwork.js'
 
-export const MAX_SPEED=15
+export const MAX_SPEED=24
 export const MAX_STEP=.42
-export const MAX_TURN_RATE=.68
-export const ACCELERATION=12
+export const MAX_TURN_RATE=1.1
+export const ACCELERATION=24
+const MAX_ROTATION_STEP=.09
+const before=new THREE.Quaternion(),after=new THREE.Quaternion()
 
 export function advanceMotion(distance,target,speed,delta,edge=null,curveDistance=distance) {
   const dt=clamp(delta,0,.055)
@@ -15,6 +18,23 @@ export function advanceMotion(distance,target,speed,delta,edge=null,curveDistanc
   const cruise=Math.min(MAX_SPEED,MAX_TURN_RATE/Math.max(.001,curvature))
   const wanted=Math.min(cruise,Math.sqrt(2*ACCELERATION*remaining))
   const nextSpeed=speed+clamp(wanted-speed,-ACCELERATION*dt,ACCELERATION*dt)
-  const step=Math.min(remaining,MAX_STEP,nextSpeed*dt)
-  return {distance:distance+step,speed:step>=remaining?0:nextSpeed}
+  let step=Math.min(remaining,MAX_STEP,nextSpeed*dt)
+  // Bound the full rendered quaternion, including the roll on inclined
+  // galleries, rather than relying on heading curvature alone. Reduce the
+  // distance along the physical curve; never lag or rotate the eye in place.
+  if(edge&&step>0){
+    orientationAt(edge,curveDistance,before)
+    orientationAt(edge,curveDistance+step,after)
+    if(before.angleTo(after)>MAX_ROTATION_STEP){
+      let low=0,high=step
+      for(let i=0;i<9;i++){
+        const mid=(low+high)/2
+        orientationAt(edge,curveDistance+mid,after)
+        if(before.angleTo(after)>MAX_ROTATION_STEP)high=mid
+        else low=mid
+      }
+      step=low
+    }
+  }
+  return {distance:distance+step,speed:step>=remaining?0:Math.min(nextSpeed,dt>0?step/dt:nextSpeed)}
 }
