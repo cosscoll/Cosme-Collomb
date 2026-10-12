@@ -121,3 +121,25 @@ test('reverse scroll never reverses the physical camera, and motion slows before
     assert.ok(maxTurn/(1/60)<MAX_TURN_RATE*1.4)
   }
 })
+
+test('full camera orientation stays smooth on inclined loops at low frame rates',()=>{
+  const up=new THREE.Vector3(0,1,0),matrix=new THREE.Matrix4()
+  const orientation=(edge,s)=>{
+    const eye=pointAt(edge,s),ahead=eye.clone().add(headingAt(edge,s))
+    return new THREE.Quaternion().setFromRotationMatrix(matrix.lookAt(eye,ahead,up))
+  }
+  // Heading alone misses the extra roll produced by the fixed world-up
+  // vector on inclined galleries. Check the complete rendered orientation
+  // against the same absolute bound enforced by the browser regression.
+  for(const dt of [1/60,1/30,.055])for(const edge of EDGES){
+    let s=0,speed=0,previous=orientation(edge,0),frames=0
+    while(s<edge.length&&frames++<10000){
+      const next=advanceMotion(s,edge.length,speed,dt,edge)
+      const rotation=orientation(edge,next.distance)
+      assert.ok(previous.angleTo(rotation)<.12,
+        `${edge.id}: sudden camera rotation at ${s}m with ${dt}s frames`)
+      s=next.distance;speed=next.speed;previous=rotation
+    }
+    assert.ok(frames<10000,'Camera failed to finish its loop')
+  }
+})
