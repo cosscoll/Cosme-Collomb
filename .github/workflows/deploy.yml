@@ -8,7 +8,9 @@ permissions:
 concurrency:
   # Serialize writes for a branch; don't let a newer build cancel validation.
   group: portfolio-build-${{ github.ref }}
-  cancel-in-progress: true
+  # Publishing generated assets pushes a [skip ci] commit to the same branch.
+  # That run must not cancel its parent before the public verification steps.
+  cancel-in-progress: false
 jobs:
   verify-and-sync:
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
