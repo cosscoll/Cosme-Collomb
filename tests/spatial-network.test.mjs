@@ -143,3 +143,18 @@ test('full camera orientation stays smooth on inclined loops at low frame rates'
     assert.ok(frames<10000,'Camera failed to finish its loop')
   }
 })
+
+test('project returns remain responsive at 30 and 15 rendered frames per second',()=>{
+  // Product-level timing limits catch a small fixed per-image travel cap,
+  // even when the nominal cruise speed has been increased.
+  for(const edge of PROJECT_EDGES)for(const [fps,seconds] of [[30,12],[15,20]]){
+    let pose=initialPose('/projets/'+edge.project.slug)
+    const trip=planJourney(pose,'/projets')
+    let distance=0,speed=0,frames=0
+    while(distance<trip.length&&frames<fps*seconds){
+      const next=advanceMotion(distance,trip.length,speed,1/fps,pose.edge,pose.distance)
+      distance=next.distance;speed=next.speed;pose=sampleJourney(trip,distance);frames++
+    }
+    assert.equal(distance,trip.length,`${edge.id} takes more than ${seconds}s at ${fps}fps`)
+  }
+})

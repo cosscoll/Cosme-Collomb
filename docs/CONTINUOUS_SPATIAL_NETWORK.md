@@ -43,7 +43,8 @@ aucune paroi.
 
 La pose est obtenue directement sur la connexion parcourue, en mètres.
 La rotation suit sa tangente avant. La vitesse diminue avant une courbe et
-chaque déplacement est plafonné à 0,42 m par image rendue. Il n'y a ni
+chaque déplacement suit le temps d'image, avec un plafond de 0,9 m et un
+contrôle indépendant de la rotation complète de la caméra. Il n'y a ni
 filtre de position indépendant, ni correction de raccord par translation.
 Le champ de vision reste constant pendant une visite pour un même format
 d'écran. La densité de pixels s'adapte au temps de rendu.

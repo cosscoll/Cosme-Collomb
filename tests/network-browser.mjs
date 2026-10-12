@@ -7,6 +7,7 @@ import { MeshBVH, acceleratedRaycast } from 'three-mesh-bvh'
 import { PROJECTS_WITH_SLUGS as PROJECTS } from '../src/data/projects.js'
 import { HUB, EDGES, NETWORK_VERSION } from '../src/scene/spatialNetwork.js'
 import { decodeNetwork } from '../src/scene/networkMesh.js'
+import { MAX_SPEED, MAX_STEP } from '../src/scene/networkMotion.js'
 import { browserOptions } from './browser-options.mjs'
 
 const site=process.env.PUBLIC_SITE||'http://127.0.0.1:4185/Cosme-Collomb/'
@@ -50,7 +51,11 @@ async function endCapture(label){
     assert.equal(b.networkObjects,EDGES.length,'A physical branch disappeared')
     const step=new THREE.Vector3(...b.position).sub(new THREE.Vector3(...a.position))
     const distance=step.length();maxStep=Math.max(maxStep,distance)
-    assert.ok(distance<=.421,label+' teleported '+distance+'m between rendered frames')
+    // Faster travel intentionally advances farther per image. It must still
+    // obey physical speed * elapsed frame time, the finite step bound, and
+    // the unchanged orientation/forward/actual-wall checks below.
+    const allowed=Math.min(MAX_STEP,MAX_SPEED*Math.min(b.frameMs/1000,.055))
+    assert.ok(distance<=allowed+.002,label+' teleported '+distance+'m between rendered frames')
     const turn=new THREE.Quaternion(...a.quaternion).angleTo(new THREE.Quaternion(...b.quaternion))
     maxTurn=Math.max(maxTurn,turn)
     assert.ok(turn<.12,label+' snapped orientation by '+turn+' rad')
@@ -66,12 +71,16 @@ async function endCapture(label){
   g.boundsTree=new MeshBVH(g)
   const wall=new THREE.Mesh(g,new THREE.MeshBasicMaterial({side:THREE.DoubleSide}));wall.raycast=acceleratedRaycast;wall.updateMatrixWorld()
   const ray=new THREE.Raycaster();ray.firstHitOnly=true;let clearance=Infinity
-  for(let i=0;i<frames.length;i+=8){
-    const f=frames[i],origin=new THREE.Vector3(...f.position)
-    for(const dir of [new THREE.Vector3(1,0,0),new THREE.Vector3(-1,0,0),new THREE.Vector3(0,1,0),new THREE.Vector3(0,-1,0),new THREE.Vector3(0,0,1),new THREE.Vector3(0,0,-1)]){
-      ray.set(origin,dir);ray.far=200
-      const hit=ray.intersectObject(wall)[0];assert.ok(hit,label+' visible hole in actual wall')
-      clearance=Math.min(clearance,hit.distance);assert.ok(hit.distance>2.3,label+' eye crosses actual mesh')
+  for(let i=0;i<frames.length;i++){
+    const origin=new THREE.Vector3(...frames[i].position)
+    const origins=[origin]
+    if(i)origins.push(origin.clone().lerp(new THREE.Vector3(...frames[i-1].position),.5))
+    for(const origin of origins){
+      for(const dir of [new THREE.Vector3(1,0,0),new THREE.Vector3(-1,0,0),new THREE.Vector3(0,1,0),new THREE.Vector3(0,-1,0),new THREE.Vector3(0,0,1),new THREE.Vector3(0,0,-1)]){
+        ray.set(origin,dir);ray.far=200
+        const hit=ray.intersectObject(wall)[0];assert.ok(hit,label+' visible hole in actual wall')
+        clearance=Math.min(clearance,hit.distance);assert.ok(hit.distance>2.3,label+' eye crosses actual mesh')
+      }
     }
   }
   g.dispose();wall.material.dispose()
