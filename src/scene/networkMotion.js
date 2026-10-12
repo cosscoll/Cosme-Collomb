@@ -1,9 +1,9 @@
 import { clamp, curvatureAt } from './spatialNetwork.js'
 
-export const MAX_SPEED=12
+export const MAX_SPEED=15
 export const MAX_STEP=.42
-export const MAX_TURN_RATE=.68
-export const ACCELERATION=9
+export const MAX_TURN_RATE=.85
+export const ACCELERATION=12
 
 export function advanceMotion(distance,target,speed,delta,edge=null,curveDistance=distance) {
   const dt=clamp(delta,0,.055)
