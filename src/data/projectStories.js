@@ -15,8 +15,8 @@ export const PROJECT_STORIES = [
   {
     introduction: "Composer une recette et la voir prendre forme.",
     idea: "Transformer le processus de création d'une bière en une expérience de configuration visuelle et progressive.",
-    experience: "Parcourir neuf étapes de choix, notamment les malts, houblons, arômes et la fermentation, tandis que la représentation 3D évolue avec la recette.",
-    features: ["Configurateur en neuf étapes", "Prévisualisation en 3D", "Révélation du style de bière"]
+    experience: "Parcourir 14 étapes sensorielles pendant que le verre évolue, puis comparer le style principal et ses deux alternatives dans une encyclopédie de 121 profils.",
+    features: ["Questionnaire en 14 étapes", "Prévisualisation en 3D", "Comparaison de 121 styles"]
   },
   {
     introduction: "Derrière chaque pièce, une histoire à identifier.",

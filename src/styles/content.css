@@ -1,0 +1,29 @@
+/* Content additions use the restored identity without changing existing surfaces or 3D. */
+.project-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;margin:30px 0 0;max-width:880px;border-top:1px solid var(--stroke);border-bottom:1px solid var(--stroke)}
+.project-facts>div{min-width:0;padding:15px 20px 15px 0}
+.project-facts dt{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:7px}
+.project-facts dd{margin:0;font-size:15px;line-height:1.5;color:var(--ink);overflow-wrap:anywhere}
+.evidence-gallery{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin:30px 0;min-width:0}
+.evidence-figure{margin:0;min-width:0}
+.evidence-media{display:block;position:relative;aspect-ratio:16/10;overflow:hidden;border-radius:9px;border:1px solid rgba(230,220,246,.3);background:#f4f0ea}
+.evidence-media img{display:block;width:100%;height:100%;object-fit:contain}
+.evidence-media>span{position:absolute;right:10px;bottom:10px;display:grid;place-items:center;width:32px;height:32px;background:rgba(8,8,15,.88);color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:50%;font-size:18px}
+.evidence-media:hover,.evidence-media:focus-visible{border-color:var(--accent)}
+.evidence-figure figcaption{padding-top:11px;font-size:13px;line-height:1.55;color:var(--ink);overflow-wrap:anywhere}
+.project-resource-links{display:flex;gap:20px 30px;flex-wrap:wrap;margin:22px 0}
+.about-profile{max-width:850px;margin-bottom:60px}
+.about-profile>p{font-size:clamp(17px,1.55vw,22px);line-height:1.7;margin-top:22px;color:var(--ink)}
+.profile-tools{display:flex;flex-wrap:wrap;gap:10px;margin:30px 0 55px}
+.profile-tools>span{border:1px solid var(--stroke);border-radius:5px;padding:10px 13px;font-size:13px;line-height:1.5;background:rgba(15,14,28,.35);color:var(--ink);max-width:100%;overflow-wrap:anywhere}
+.profile-timeline{margin-top:75px}
+.profile-entry{display:grid;grid-template-columns:180px minmax(0,1fr);gap:30px;padding:30px 0;border-top:1px solid var(--stroke)}
+.profile-entry>span{padding-top:8px}
+.profile-entry h2{font-size:clamp(23px,2.6vw,36px);line-height:1.25;overflow-wrap:anywhere}
+.profile-entry p{font-size:16px;line-height:1.7;max-width:740px;margin-top:12px}
+.profile-entry .profile-organization{color:var(--accent);font-size:14px}
+.profile-case{margin-top:95px;padding-top:35px;border-top:1px solid var(--stroke);max-width:1050px}
+.profile-case h2{font-size:clamp(28px,3.8vw,50px);line-height:1.2;margin:20px 0;overflow-wrap:anywhere}
+.profile-case>p{font-size:18px;line-height:1.7;max-width:800px}
+.profile-case .profile-tools{margin-bottom:30px}
+@media(max-width:900px){.evidence-gallery{grid-template-columns:1fr}.profile-entry{grid-template-columns:140px minmax(0,1fr);gap:20px}}
+@media(max-width:680px){.project-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.project-facts>div:first-child{grid-column:1/-1}.project-facts>div{padding:13px 12px 13px 0}.project-facts dd{font-size:14px}.profile-entry{grid-template-columns:1fr;gap:13px}.profile-timeline{margin-top:45px}.profile-case{margin-top:60px}.about-profile{margin-bottom:40px}.project-resource-links{gap:14px}.evidence-gallery{gap:22px}.evidence-figure figcaption{font-size:13px}}
