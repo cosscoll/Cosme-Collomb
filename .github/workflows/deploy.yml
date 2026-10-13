@@ -29,6 +29,10 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
+      - name: Verify all pages on phones and tablets
+        env:
+          RESPONSIVE_CAPTURE: '1'
+        run: node tests/responsive-layout.mjs
       - run: node tests/prototype-3d-smoke.mjs
       # test:browser includes all eight production loops, queued navigation,
       # actual mesh raycasts, reverse scroll, history and mobile WebGL.
@@ -58,6 +62,13 @@ jobs:
           PUBLIC_SITE: https://cosscoll.github.io/Cosme-Collomb/
           AUDIT_QUICK: '1'
         run: node tests/network-browser.mjs
+      - name: Verify public responsive layout with WebGL and orientation changes
+        if: github.ref == 'refs/heads/main'
+        env:
+          PUBLIC_SITE: https://cosscoll.github.io/Cosme-Collomb/
+          RESPONSIVE_WEBGL_ONLY: '1'
+          RESPONSIVE_CAPTURE: '1'
+        run: node tests/responsive-layout.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

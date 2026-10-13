@@ -109,8 +109,20 @@ function Background({ pathname, hovered, transit }) {
 function Header({menuOpen,setMenuOpen}) {
   const {pathname}=useLocation()
   const context=navigationContext(pathname)
+  const headerRef=useRef(null)
   const toggleRef=useRef(null)
   const menuRef=useRef(null)
+
+  useLayoutEffect(()=>{
+    const header=headerRef.current
+    if(!header)return
+    const updateHeight=()=>document.documentElement.style.setProperty(
+      '--portfolio-header-height',header.getBoundingClientRect().height+'px')
+    updateHeight()
+    const observer=new ResizeObserver(updateHeight)
+    observer.observe(header)
+    return ()=>observer.disconnect()
+  },[])
 
   useEffect(()=>{
     if(!menuOpen)return
@@ -142,7 +154,7 @@ function Header({menuOpen,setMenuOpen}) {
   },[menuOpen])
 
   return <>
-    <header className={'topbar topbar-v2 '+(menuOpen?'topbar-v2-open':'')}>
+    <header ref={headerRef} className={'topbar topbar-v2 '+(menuOpen?'topbar-v2-open':'')}>
       <div className="topbar-main">
         <Link to="/" className="brand-mark" aria-label="Retour à l’accueil du portfolio">
           <span className="brand-monogram">CC<span>.</span></span>
@@ -193,9 +205,9 @@ function Header({menuOpen,setMenuOpen}) {
         <motion.nav id="portfolio-navigation-panel" ref={menuRef}
           role="dialog" aria-modal="true" aria-label="Menu de navigation"
           className="navigation-drawer"
-          initial={{opacity:0,y:-18,scale:.985}}
+          initial={{opacity:0,y:12,scale:.985}}
           animate={{opacity:1,y:0,scale:1}}
-          exit={{opacity:0,y:-12,scale:.99}}
+          exit={{opacity:0,y:8,scale:.99}}
           transition={{duration:.46,ease:[.16,1,.3,1]}}>
           <div className="navigation-drawer-heading">
             <div><span className="micro-label">LE PORTFOLIO / 2026</span>

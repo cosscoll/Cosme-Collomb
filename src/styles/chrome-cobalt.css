@@ -107,7 +107,24 @@ h1 em,h2 em{font-family:var(--heading);font-style:normal;font-weight:650;letter-
 .site-footer{background:var(--bg);border-top:1px solid var(--stroke);color:var(--muted)}
 .site-footer a{color:var(--accent)}
 a:focus-visible,button:focus-visible{outline-color:var(--accent)}
+/* Keep navigation usable with touch and below the measured, wrapping header. */
+.topbar-v2 .brand-mark,.header-home-link,.header-return,.header-menu-toggle,
+.navigation-close{min-width:44px;min-height:44px;touch-action:manipulation}
+.header-primary a{display:flex;align-items:center;min-height:44px}
+.header-crumb a{display:inline-flex;align-items:center;min-height:32px}
+.navigation-projects>a{min-height:44px}
+.navigation-drawer{
+  top:calc(var(--portfolio-header-height,100px) + 12px);
+  max-height:calc(100dvh - var(--portfolio-header-height,100px) - 26px);
+}
+.project-crossroads{padding-top:max(clamp(100px,14vh,210px),calc(var(--portfolio-header-height,90px) + 24px))}
+.portfolio-contact-form input:not([type=hidden]),.portfolio-contact-form textarea{font-size:16px}
+@media(max-width:380px){
+  .header-menu-toggle{gap:0}
+  .menu-button-label{display:none}
+}
 @media(max-width:680px){
+  .project-crossroads{padding-top:max(110px,calc(var(--portfolio-header-height,90px) + 24px))}
   .hero-editorial h1{font-size:clamp(3.2rem,11.8vw,5.2rem);letter-spacing:-.07em;line-height:1.02}
   .landing-lower{gap:20px}
   .landing-lower p{max-width:220px}
@@ -118,4 +135,12 @@ a:focus-visible,button:focus-visible{outline-color:var(--accent)}
   .journey-entrance h1{font-size:clamp(35px,9.8vw,56px);letter-spacing:-.06em;overflow-wrap:anywhere}
   .interior-intro h1{font-size:clamp(3.2rem,10.5vw,6rem)}
   .scene-shading{background:linear-gradient(90deg,rgba(244,242,237,.9),rgba(244,242,237,.67) 65%,rgba(244,242,237,.32))}
+}
+@media(min-width:681px) and (max-height:600px){
+  .landing{min-height:100svh;padding-top:110px;padding-bottom:48px}
+  .hero-editorial{margin-top:0}
+  .hero-editorial h1{font-size:clamp(3rem,7.1vw,5.3rem);margin:22px 0 28px}
+  .landing-lower{gap:24px}
+  .round-scroll{width:56px;height:56px;font-size:25px}
+  .hero-folio{bottom:20px}
 }
