@@ -24,13 +24,18 @@ try{
   for(const width of [320,390,768,1024,1440]){
     await page.setViewportSize({width,height:width<600?844:1024})
     for(const route of ['/', '/projets','/parcours',...PROJECTS.map(p=>'/projets/'+p.slug)]){
+      // A hash-only goto otherwise reuses the preceding animated journey.
+      // Start each layout assertion from a fresh document and intended route.
+      await page.goto('about:blank')
       await page.goto(site+'#'+route,{waitUntil:'domcontentloaded'})
-      await page.locator('main h1').waitFor({state:'visible'})
+      const project=PROJECTS.find(p=>route==='/projets/'+p.slug)
+      const heading=project?.title||(route==='/parcours'?/Faire dialoguer/:route==='/projets'?/Huit projets/:/Donner forme/)
+      await page.locator('main h1').filter({hasText:heading}).waitFor({state:'visible'})
       await page.waitForTimeout(1200)
       assert.equal(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--bg').trim()),'#08080f')
       assert.equal(await page.evaluate(()=>getComputedStyle(document.documentElement).getPropertyValue('--accent').trim()),'#e2c6b8')
-      const project=PROJECTS.find(p=>route==='/projets/'+p.slug)
       if(route==='/'||route==='/projets'){
+        await page.locator('.fork-choice').nth(7).waitFor({state:'attached'})
         assert.equal(await page.locator('.fork-choice').count(),8)
         await page.locator('.header-menu-toggle').click()
         await page.locator('.navigation-drawer').waitFor({state:'visible'})
