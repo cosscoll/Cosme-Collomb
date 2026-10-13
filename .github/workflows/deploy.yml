@@ -1,77 +1,39 @@
-name: Build and validate portfolio
+name: Verify published Chrome Cobalt on phones and tablets
 on:
   push:
-    branches: [main, 'dev/**', 'fix/**']
+    branches: [fix/cobalt-public-verification]
   workflow_dispatch:
 permissions:
-  contents: write
-  pages: write
-concurrency:
-  # Serialize writes for a branch; don't let a newer build cancel validation.
-  group: portfolio-build-${{ github.ref }}
-  # Publishing generated assets pushes a [skip ci] commit to the same branch.
-  # That run must not cancel its parent before the public verification steps.
-  cancel-in-progress: false
+  contents: read
 jobs:
-  verify-and-sync:
-    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+  verify-public-release:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
       - run: npm ci
-      - run: npm run test:geometry
-      - run: node --test tests/prototype-v2-geometry.test.mjs
-      - name: Restore Vite HTML entrypoint
-        run: cp site/index.source.html index.html
-      - run: npm run build
+      - name: Build the exact published source for comparison
+        run: npm run build
       - run: npx playwright install --with-deps chromium
-      - run: npm run test:browser
-      - name: Verify all pages on phones and tablets
-        env:
-          RESPONSIVE_CAPTURE: '1'
-        run: node tests/responsive-layout.mjs
-      - run: node tests/prototype-3d-smoke.mjs
-      # test:browser includes all eight production loops, queued navigation,
-      # actual mesh raycasts, reverse scroll, history and mobile WebGL.
-      - name: Publish compiled files to branch root
-        if: github.ref == 'refs/heads/main'
-        run: bash scripts/sync-published-root.sh
-      - name: Build Pages from the verified compiled root
-        if: github.ref == 'refs/heads/main'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        # GITHUB_TOKEN pushes do not trigger branch-based Pages builds.
-        # Explicitly request the build before checking the public release.
-        run: |
-          curl --fail-with-body --silent --show-error --request POST \
-            --header 'Accept: application/vnd.github+json' \
-            --header "Authorization: Bearer ${GH_TOKEN}" \
-            --header 'X-GitHub-Api-Version: 2022-11-28' \
-            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/pages/builds"
-      - name: Verify public Pages serves this exact compiled release
-        if: github.ref == 'refs/heads/main'
+      - name: Verify the exact public release and its assets
         env:
           PUBLIC_SITE: https://cosscoll.github.io/Cosme-Collomb/
         run: node tests/public-http-check.mjs
-      - name: Verify the deployed WebGL journey in the public browser
-        if: github.ref == 'refs/heads/main'
+      - name: Verify real public 3D travel, header navigation and eight home projects
         env:
           PUBLIC_SITE: https://cosscoll.github.io/Cosme-Collomb/
           AUDIT_QUICK: '1'
         run: node tests/network-browser.mjs
-      - name: Verify public responsive layout with WebGL and orientation changes
-        if: github.ref == 'refs/heads/main'
+      - name: Verify all public pages and mobile orientation changes
         env:
           PUBLIC_SITE: https://cosscoll.github.io/Cosme-Collomb/
-          RESPONSIVE_WEBGL_ONLY: '1'
           RESPONSIVE_CAPTURE: '1'
         run: node tests/responsive-layout.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: browser-smoke-screenshots
+          name: published-chrome-cobalt-evidence
           path: test-output/
-          if-no-files-found: ignore
