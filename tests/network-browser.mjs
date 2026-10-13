@@ -90,6 +90,15 @@ async function endCapture(label){
   return frames
 }
 async function clickNav(text){await page.locator('.header-primary a').filter({hasText:new RegExp('^'+text+'$')}).click()}
+async function homeProjects(){
+  const links=page.locator('#works .fork-choice')
+  assert.equal(await links.count(),PROJECTS.length,'Home must show all eight projects directly')
+  assert.deepEqual(await links.evaluateAll(elements=>elements.map(el=>el.getAttribute('href'))),
+    PROJECTS.map(p=>'#/projets/'+p.slug),'Home project accesses differ from the project crossroads')
+  assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),'Home horizontal overflow')
+  await links.last().scrollIntoViewIfNeeded()
+  await page.waitForTimeout(900)
+}
 
 try{
   if(server)for(let i=0;i<100;i++){try{if((await fetch(site)).ok)break}catch{}await wait(250)}
@@ -157,8 +166,12 @@ try{
     (window.__portfolioFlight.currentRoute==='/contact'&&!window.__portfolioFlight.transiting))
   await landed('/contact')
   await clickNav('Accueil');await landed('/')
+  await homeProjects()
+  await capture('home-eight-projects')
+  await page.locator('#works .fork-choice').last().click()
+  await landed('/projets/'+PROJECTS[7].slug)
   await clickNav('Projets');await landed('/projets')
-  await endCapture('header-return-to-current-page-and-home')
+  await endCapture('header-return-and-home-eighth-project')
   if(process.env.AUDIT_QUICK!=='1'){
     // Direct URL, refresh, then browser history: the scene remains continuous
     // for history navigation, and starts on the right route on a fresh load.
@@ -174,6 +187,9 @@ try{
       assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),'Horizontal overflow')
       assert.equal(await page.locator('.fork-choice').count(),8)
       await capture('viewport-'+width+'x'+height)
+      await page.goto(site+'#/',{waitUntil:'domcontentloaded'});await landed('/')
+      await homeProjects()
+      await capture('home-eight-projects-'+width+'x'+height)
       if(width===390){
         await startCapture();await page.locator('.fork-choice').last().click();await landed('/projets/'+PROJECTS[7].slug)
         await page.evaluate(()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'}));await landed('/projets')
@@ -185,6 +201,8 @@ try{
     await fallback.route(/fonts\.(googleapis|gstatic)\.com/,route=>route.abort())
     await fallback.addInitScript(()=>{const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(type,...args){return /webgl/.test(type)?null:original.call(this,type,...args)}})
     await fallback.goto(site,{waitUntil:'domcontentloaded'})
+    await fallback.locator('#works .fork-choice').last().waitFor({state:'attached'})
+    assert.equal(await fallback.locator('#works .fork-choice').count(),8,'Home loses projects without WebGL')
     await fallback.locator('.header-menu-toggle').click();await fallback.locator('.navigation-drawer').waitFor({state:'visible'})
     assert.equal(await fallback.locator('.navigation-projects a').count(),8);await fallback.close()
   }

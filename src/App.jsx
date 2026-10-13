@@ -304,27 +304,6 @@ function Junction({ setHovered }) {
   )
 }
 
-function WorkPreview() {
-  const selection = [PROJECTS[2], PROJECTS[4], PROJECTS[0]].filter(Boolean)
-  return (
-    <Chapter id="works" index="work" className="work-chapter" label="Projets sélectionnés">
-      <div className="section-topline"><span className="micro-label">02 / PROJETS SÉLECTIONNÉS</span><span>UNE IDÉE DEVIENT UNE EXPÉRIENCE</span></div>
-      <h2 className="oversized-statement">Le fond.<br/><em>Et la forme.</em></h2>
-      <div className="work-cases">
-        {selection.map((project,i)=>(
-          <Link key={project.slug} className="work-case" to={'/projets/'+project.slug}>
-            <span className="work-case-count">0{i+1} / SELECTED</span>
-            <strong>{project.title}</strong>
-            <span className="work-case-type">{project.tags?.slice(0,2).join(' · ')}</span>
-            <span className="work-case-arrow">↗</span>
-          </Link>
-        ))}
-      </div>
-      <Link to="/projets" className="underlined-link">Tous les projets <span>↗</span></Link>
-    </Chapter>
-  )
-}
-
 function Philosophy() {
   return (
     <Chapter index="manifesto" className="manifesto" label="Approche et compétences">
@@ -350,7 +329,7 @@ function Closing() {
 }
 
 function Home({ setHovered }) {
-  return <><Landing /><Junction setHovered={setHovered}/><WorkPreview /><Philosophy /><Closing /></>
+  return <><Landing /><Junction setHovered={setHovered}/><ProjectCrossroads setHovered={setHovered} home/><Philosophy /><Closing /></>
 }
 
 function PageIntro({ kicker, title, italic, text }) {
@@ -379,9 +358,14 @@ function ProjectIndex({ setHovered }) {
   return <>
     <PageIntro kicker={`LE CARREFOUR / ${PROJECTS.length} DIRECTIONS`} title="Huit projets." italic="Huit chemins."
       text="À chaque embranchement, un projet. Choisissez votre direction, avancez dans son univers puis revenez ici en poursuivant votre exploration." />
-    <section id="project-crossroads" className="project-crossroads" aria-label={`Carrefour des ${PROJECTS.length} projets`}>
+    <ProjectCrossroads setHovered={setHovered}/>
+  </>
+}
+
+function ProjectCrossroads({setHovered,home=false}) {
+  return <section id={home?'works':'project-crossroads'} className="project-crossroads" aria-label={`Carrefour des ${PROJECTS.length} projets`}>
       <div className="crossroads-top">
-        <span className="micro-label">CARREFOUR 02 / {String(PROJECTS.length).padStart(2,'0')} ACCÈS</span>
+        <span className="micro-label">{home?'02 / TOUS LES PROJETS':'CARREFOUR 02'} / {String(PROJECTS.length).padStart(2,'0')} ACCÈS</span>
         <p>Survolez un chemin pour le mettre en lumière. Cliquez pour entrer.</p>
       </div>
       <h2 className="crossroads-heading">Quelle direction<br/><em>prendre ?</em></h2>
@@ -399,10 +383,9 @@ function ProjectIndex({ setHovered }) {
           </motion.div>
         ))}
       </nav>
-      <p className="crossroads-footnote">Chaque chemin est une exploration au scroll. À la fin, vous reviendrez à cette intersection.</p>
-      <Link to="/" className="underlined-link">← Retour à l'accueil</Link>
+      <p className="crossroads-footnote">Chaque chemin est une exploration au scroll. À la fin, vous retrouverez ces huit accès au carrefour des projets.</p>
+      <Link to={home?'/projets':'/'} className="underlined-link">{home?'Le carrefour des projets ↗':"← Retour à l'accueil"}</Link>
     </section>
-  </>
 }
 
 function JourneyStation({number,kicker,title,children,align=''}) {
