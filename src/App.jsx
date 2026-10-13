@@ -3,8 +3,36 @@ import { HashRouter, Link, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import { PROJECTS_WITH_SLUGS as PROJECTS } from './data/projects.js'
 import { PROJECT_STORIES } from './data/projectStories.js'
+import { PROFILE } from './data/profile.js'
 import { NAV_ITEMS, navigationContext } from './navigation/siteNavigation.js'
 import './styles/rebuilt.css'
+import './styles/content.css'
+
+const PROJECT_IMAGES = import.meta.glob('./assets/projects/*', { eager: true, query: '?url', import: 'default' })
+
+function ProjectGallery({ images, label = 'Visuels du projet' }) {
+  if (!images?.length) return null
+  return <div className="evidence-gallery" aria-label={label}>
+    {images.map(image => {
+      const src = PROJECT_IMAGES['./assets/projects/' + image.file]
+      if (!src) return null
+      return <figure className="evidence-figure" key={image.file}>
+        <a className="evidence-media" href={src} target="_blank" rel="noopener noreferrer" aria-label={'Agrandir : ' + image.caption}>
+          <img src={src} alt={image.alt} width="1440" height="900" loading="lazy" decoding="async" />
+          <span aria-hidden="true">↗</span>
+        </a>
+        <figcaption>{image.caption}</figcaption>
+      </figure>
+    })}
+  </div>
+}
+
+function ProjectFacts({ project }) {
+  const facts = [{ label: 'État du projet', value: project.status }, { label: 'Version documentée', value: project.year }, ...(project.metrics || [])]
+  return <dl className="project-facts" aria-label="Repères du projet">
+    {facts.filter(fact => fact.value).map(fact => <div key={fact.label}><dt>{fact.label}</dt><dd>{fact.value}</dd></div>)}
+  </dl>
+}
 
 const World = lazy(() => import('./components/World.jsx'))
 
@@ -455,6 +483,7 @@ function ProjectDetail({slug,onJourneyFinished}) {
         <h1>{p.title}</h1>
         <p className="journey-intro">{story.introduction}</p>
         {p.role && <p className="journey-project-role"><strong>Mon rôle :</strong> {p.role}</p>}
+        <ProjectFacts project={p} />
         <div className="journey-instructions"><span className="journey-instructions-icon">↓</span>
           Faites défiler pour avancer dans ce tunnel et découvrir le projet.
         </div>
@@ -472,16 +501,18 @@ function ProjectDetail({slug,onJourneyFinished}) {
     </JourneyStation>
     <JourneyStation number="03" kicker="LES FONCTIONNALITÉS" title="Ce qui prend vie.">
       <div className="journey-features">
-        {story.features.map((feature,index)=><div key={feature}><span>{String(index+1).padStart(2,'0')}</span><strong>{feature}</strong></div>)}
+        {(p.deliverables || story.features).map((feature,index)=><div key={feature}><span>{String(index+1).padStart(2,'0')}</span><strong>{feature}</strong></div>)}
       </div>
     </JourneyStation>
     <JourneyStation number="04" kicker="VOIR LA RÉALISATION" title="Le projet, en vrai." align="journey-right">
       <p>{p.link ? 'Explorez cette réalisation en ligne pour voir les fonctionnalités décrites.' : 'Ce projet est en développement et aucune démonstration publique n’est encore confirmée.'}</p>
       {p.outcome && <p className="journey-secondary"><strong>État actuel :</strong> {p.outcome}</p>}
+      <ProjectGallery images={p.gallery} label={'Visuels de ' + p.title} />
       <div className="journey-actions">
         {p.link && <a className="detail-primary" href={p.link} target="_blank" rel="noopener noreferrer">Ouvrir le projet <span>↗</span></a>}
-        {p.repoLink && <a className="underlined-link" href={p.repoLink} target="_blank" rel="noopener noreferrer">Explorer le code ↗</a>}
+        {p.repoLink && <a className="underlined-link" href={p.repoLink} target="_blank" rel="noopener noreferrer">{p.repoLabel || 'Explorer le code ↗'}</a>}
       </div>
+      {p.resources?.length > 0 && <div className="project-resource-links" aria-label="Autres accès au projet">{p.resources.map(resource => <a className="underlined-link" key={resource.url} href={resource.url} target="_blank" rel="noopener noreferrer">{resource.label} ↗</a>)}</div>}
       <p className="journey-secondary">Continuez à descendre : le tunnel vous ramène maintenant à l'intersection.</p>
     </JourneyStation>
     <section className="journey-return" id="return-to-projects" aria-label="Retour au carrefour des projets">
@@ -505,9 +536,28 @@ function About() {
   return <>
     <PageIntro kicker="LE PARCOURS / MON APPROCHE" title="Faire dialoguer" italic="l'idée et le réel." text="Une approche à la croisée du marketing, de la communication et de la création digitale." />
     <section className="interior-body">
+      <div className="about-profile">
+        <span className="micro-label">COSME COLLOMB / MARKETING, COMMUNICATION & DIGITAL</span>
+        <p>{PROFILE.intro}</p>
+        <p>{PROFILE.method}</p>
+      </div>
       <div className="section-topline"><span>SAVOIR-FAIRE</span><span>DES IDÉES AUX INTERFACES</span></div>
       {expertise.map(e=><article className="expertise-line" key={e[0]}><span>{e[0]}</span><h2>{e[1]}</h2><p>{e[2]}</p></article>)}
-      <p className="about-tail">J'ai notamment conçu des sites vitrines, accompagné des projets digitaux et participé à la création d'identités, de contenus et d'outils interactifs.</p>
+      <div className="profile-tools" aria-label="Outils et compétences">{PROFILE.tools.map(tool => <span key={tool}>{tool}</span>)}</div>
+      <section className="profile-timeline" aria-label="Mon parcours">
+        <div className="section-topline"><span>LE PARCOURS</span><span>FORMATIONS & EXPÉRIENCES</span></div>
+        {PROFILE.timeline.map(entry => <article className="profile-entry" key={entry.period + entry.org}>
+          <span className="micro-label">{entry.period}</span>
+          <div><h2>{entry.title}</h2><p className="profile-organization">{entry.org}</p><p>{entry.text}</p></div>
+        </article>)}
+      </section>
+      <section className="profile-case" aria-label="Exemple de réalisation professionnelle">
+        <span className="micro-label">{PROFILE.stage.period} / COMMUNICATION & IDENTITÉ</span>
+        <h2>{PROFILE.stage.title}</h2>
+        <p>{PROFILE.stage.text}</p>
+        <div className="profile-tools" aria-label="Livrables du stage">{PROFILE.stage.deliverables.map(deliverable => <span key={deliverable}>{deliverable}</span>)}</div>
+        <ProjectGallery images={PROFILE.stage.gallery} label="Livrables du stage Virginie Quintana" />
+      </section>
       <Link to="/contact" className="underlined-link">Travaillons ensemble <span>↗</span></Link>
     </section>
   </>

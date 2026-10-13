@@ -28,6 +28,8 @@ jobs:
         run: cp site/index.source.html index.html
       - run: npm run build
       - run: npx playwright install --with-deps chromium
+      - name: Verify project content and responsive galleries
+        run: node tests/portfolio-content.mjs
       - run: npm run test:browser
       - run: node tests/prototype-3d-smoke.mjs
       # test:browser includes all eight production loops, queued navigation,
@@ -58,6 +60,11 @@ jobs:
           PUBLIC_SITE: https://cosscoll.github.io/Cosme-Collomb/
           AUDIT_QUICK: '1'
         run: node tests/network-browser.mjs
+      - name: Verify published project content and images
+        if: github.ref == 'refs/heads/main'
+        env:
+          PUBLIC_SITE: https://cosscoll.github.io/Cosme-Collomb/
+        run: node tests/portfolio-content.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

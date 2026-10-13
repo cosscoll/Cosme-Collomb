@@ -1,171 +1,450 @@
-// ============================================================================
-// TES PROJETS — remplace ces entrées par les tiens, ou ajoutes-en autant que tu veux.
-// Chaque projet a sa propre page (/projets/<slug>) avec une scène 3D interactive
-// dédiée, différente pour chaque projet.
-//
-// Champs obligatoires :
-//   title       — nom du projet (obligatoire)
-//   description — 1 à 3 phrases, résumé pour les listes (accueil, grille projets)
-//
-// Champs optionnels — la page s'adapte à ce que tu remplis, rien n'est obligatoire :
-//   slug        — identifiant dans l'URL, ex. 'mon-projet' → /projets/mon-projet
-//                 (généré automatiquement à partir du titre si absent)
-//   role        — ton rôle sur ce projet, ex. "Développeur full-stack solo"
-//   duration    — durée ou période, ex. "3 mois" ou "2024 — 2025"
-//   year        — année affichée dans les listes (ex. "2025")
-//   tags        — technos ou mots-clés (tableau de chaînes)
-//   challenge   — le problème ou l'objectif de départ (1 paragraphe)
-//   approach    — comment tu t'y es pris, les choix techniques (1 paragraphe)
-//   outcome     — le résultat, l'impact, ce que ça a changé (1 paragraphe)
-//   link        — URL de démo / site en ligne (optionnel)
-//   repoLink    — URL du dépôt de code, ex. GitHub (optionnel)
-//   image       — image de couverture pour les listes, ex. '/projects/mon-projet.jpg'
-//   gallery     — tableau d'images supplémentaires pour la page projet, ex.
-//                 ['/projects/mon-projet-1.jpg', '/projects/mon-projet-2.jpg']
-//                 (laisse vide tant que tu n'as pas d'images — des blocs "Image à
-//                 venir" s'affichent à la place)
-//   featured    — true pour apparaître dans la sélection mise en avant sur l'accueil
-//                 (limite-toi à 2 ou 3 projets "featured")
-//   visual      — visuel 3D de la page projet : 'rings' (tunnel d'anneaux à traverser),
-//                 'liquid' (métal liquide organique), 'constellation' (réseau de
-//                 nœuds lumineux), 'planets' (champ de planètes façon voyage spatial)
-//                 — optionnel, si absent un visuel différent est assigné automatiquement
-//
-// NOTE — projets ajoutés le 02/10 à partir de tes liens GitHub Pages :
-// - year, role, duration, challenge/approach/outcome sont laissés vides : je n'ai
-//   que ce que montrent les pages elles-mêmes, pas le contexte de leur création.
-//   Remplis-les quand tu veux, ou dis-moi et je rédige un brouillon à partir de ce
-//   que tu me racontes.
-// - repoLink est déduit du nom du dépôt GitHub Pages (cosscoll/<nom>) — à vérifier,
-//   corrige si le vrai dépôt a un nom différent ou est privé (auquel cas retire le lien).
-// ============================================================================
-
+// Contenu recoupé avec les dépôts publics, les dossiers de projet et les échanges de Cosme.
+// Les dates manquantes et les performances commerciales ne sont pas inventées.
 export const PROJECTS = [
   {
-    title: "Ouvertures d'échecs en 3D",
-    description:
-      "Un échiquier en 3D où l'on choisit une ouverture puis on scrolle pour voir la ligne théorique se jouer, coup après coup, sous ses yeux.",
-    tags: ['3D', 'Échecs', 'Scroll interactif'],
-    year: '',
-    role: "Conception et développement de l'expérience interactive",
-    duration: '',
-    challenge: "Rendre plus intuitif l'apprentissage des ouvertures d'échecs sans se limiter à la notation des coups.",
-    approach: "Associer un échiquier en trois dimensions à une navigation progressive qui fait avancer la séquence des coups.",
-    outcome: "Démonstration interactive publiée, avec plusieurs lignes d'ouvertures à parcourir.",
-    link: 'https://cosscoll.github.io/Chess-Openings/',
-    repoLink: 'https://github.com/cosscoll/Chess-Openings',
-    image: '',
-    gallery: [],
-    featured: false,
-    visual: 'constellation',
+    "title": "Ouvertures d'échecs en 3D",
+    "description": "Un catalogue d’ouvertures à explorer coup après coup sur un échiquier en trois dimensions. La vue du dessus, les pièces plates et les symboles classiques privilégient la compréhension du jeu.",
+    "tags": [
+      "3D",
+      "Échecs",
+      "Interaction"
+    ],
+    "role": "Conception de l’expérience et pilotage de sa réalisation",
+    "status": "Expérience publique",
+    "challenge": "Rendre les lignes théoriques plus faciles à comprendre que dans une simple liste de coups, tout en gardant les pièces immédiatement reconnaissables.",
+    "approach": "Organiser les ouvertures par nom et code ECO, synchroniser leurs coups avec le scroll et proposer des commandes pas à pas. La lisibilité du plateau vert foncé et noir a guidé les itérations sur les pièces.",
+    "outcome": "Une expérience accessible en ligne, avec recherche d’ouvertures, explications des coups et navigation progressive sur l’échiquier.",
+    "link": "https://cosscoll.github.io/Chess-Openings/",
+    "repoLink": "https://github.com/cosscoll/Chess-Openings",
+    "metrics": [
+      {
+        "label": "Lecture",
+        "value": "Coup après coup"
+      },
+      {
+        "label": "Navigation",
+        "value": "Scroll et commandes"
+      },
+      {
+        "label": "Repères",
+        "value": "Codes ECO"
+      }
+    ],
+    "deliverables": [
+      "Catalogue et recherche des ouvertures",
+      "Échiquier interactif et pièces lisibles",
+      "Explications synchronisées avec les coups"
+    ],
+    "gallery": [
+      {
+        "file": "chess-home.jpg",
+        "caption": "Catalogue des ouvertures — interface publique",
+        "alt": "Catalogue des ouvertures — interface publique"
+      },
+      {
+        "file": "chess-board.jpg",
+        "caption": "Ouverture italienne : plateau et explication du premier coup",
+        "alt": "Ouverture italienne : plateau et explication du premier coup"
+      }
+    ],
+    "visual": "constellation",
+    "year": "2026",
+    "duration": "",
+    "featured": false,
+    "resources": [],
+    "image": "chess-home.jpg"
   },
   {
-    title: "Probabilités Hold'em",
-    description:
-      "Un outil d'entraînement au Texas Hold'em : on compose sa main et le tableau commun, et l'équité, les outs et le classement de la main se calculent en direct, par simulation Monte-Carlo exécutée entièrement dans le navigateur.",
-    tags: ['Probabilités', 'Simulation Monte-Carlo', 'Poker'],
-    year: '',
-    role: "Conception de l'outil interactif et de son interface",
-    duration: '',
-    challenge: "Permettre de visualiser l'évolution des probabilités au poker selon les cartes connues.",
-    approach: "Faire calculer dans le navigateur l'équité, les outs et la force des combinaisons par simulation Monte-Carlo.",
-    outcome: "Calculateur pédagogique accessible en ligne ; les résultats restent des estimations issues de la simulation.",
-    link: 'https://cosscoll.github.io/PokerStats/',
-    repoLink: 'https://github.com/cosscoll/PokerStats',
-    image: '',
-    gallery: [],
-    featured: false,
-    visual: 'rings',
+    "title": "Probabilités Hold'em",
+    "description": "Une table d’entraînement au Texas Hold’em pour composer sa main, renseigner le tableau commun et explorer l’équité, les outs et la force des combinaisons. Les calculs restent dans le navigateur.",
+    "tags": [
+      "Probabilités",
+      "Poker",
+      "Simulation"
+    ],
+    "role": "Conception de l’outil, de ses scénarios et de son interface",
+    "status": "Outil public",
+    "challenge": "Transformer des probabilités abstraites en repères que l’on peut observer en manipulant une main et les cartes communes.",
+    "approach": "Associer une table visuelle, un sélecteur de cartes et une simulation Monte-Carlo. Le nombre d’adversaires et les cartes connues font évoluer les résultats sans imposer de compte utilisateur.",
+    "outcome": "Un calculateur pédagogique en ligne, avec équité, classement de la main et outs. Les valeurs sont des estimations de simulation, pas des garanties de gain.",
+    "link": "https://cosscoll.github.io/PokerStats/",
+    "repoLink": "https://github.com/cosscoll/PokerStats",
+    "metrics": [
+      {
+        "label": "Moteur",
+        "value": "Monte-Carlo"
+      },
+      {
+        "label": "Résultats",
+        "value": "Équité et outs"
+      },
+      {
+        "label": "Données",
+        "value": "Calcul local"
+      }
+    ],
+    "deliverables": [
+      "Table et sélection des cartes",
+      "Scénarios selon les adversaires",
+      "Lecture de l’équité et des combinaisons"
+    ],
+    "gallery": [
+      {
+        "file": "poker-table.jpg",
+        "caption": "Table de simulation avec une main As–Roi sélectionnée",
+        "alt": "Table de simulation avec une main As–Roi sélectionnée"
+      }
+    ],
+    "visual": "rings",
+    "year": "2026",
+    "duration": "",
+    "featured": false,
+    "resources": [],
+    "image": "poker-table.jpg"
   },
   {
-    title: 'Brasserie virtuelle',
-    description:
-      "Un configurateur pédagogique de recettes de bière en neuf étapes : malts, houblons, fermentation et arômes modifient en temps réel la représentation du verre en 3D CSS, avant la découverte du style obtenu.",
-    tags: ['3D temps réel', 'Configurateur'],
-    year: '',
-    role: "Conception du configurateur et de sa visualisation 3D CSS",
-    duration: '',
-    challenge: "Transformer une succession de choix de recette en expérience interactive compréhensible.",
-    approach: "Faire évoluer un verre animé en 3D CSS lors des neuf étapes de configuration, sans moteur WebGL.",
-    outcome: "Prototype de composition de bière accessible sur GitHub Pages.",
-    link: 'https://cosscoll.github.io/MyBeer/',
-    repoLink: 'https://github.com/cosscoll/MyBeer',
-    image: '',
-    gallery: [],
-    featured: true,
-    visual: 'liquid',
+    "title": "Brasserie virtuelle",
+    "description": "MyBeer transforme un profil de goûts en expérience de brassage visuelle : 14 étapes, un verre animé en CSS 3D, une proposition principale et deux alternatives parmi 121 profils de styles.",
+    "tags": [
+      "Configurateur",
+      "CSS 3D",
+      "Pédagogie"
+    ],
+    "role": "Conception du parcours sensoriel et de la visualisation interactive",
+    "status": "Studio public",
+    "challenge": "Aider à explorer les styles de bière sans réduire le choix à une couleur ou à un degré d’alcool.",
+    "approach": "Construire un questionnaire sensoriel en 14 étapes : fermentation, origine, malt, houblon, arômes, acidité, corps et autres caractéristiques. Le verre évolue avec les réponses, puis un score comparatif rapproche le profil des styles documentés.",
+    "outcome": "Un studio accessible sans compte, accompagné d’une encyclopédie de 121 styles. Le résultat est une proximité descriptive, pas une recette de brassage certifiée ni une probabilité.",
+    "link": "https://cosscoll.github.io/MyBeer/",
+    "repoLink": "https://github.com/cosscoll/MyBeer",
+    "metrics": [
+      {
+        "label": "Parcours",
+        "value": "14 étapes"
+      },
+      {
+        "label": "Catalogue",
+        "value": "121 styles"
+      },
+      {
+        "label": "Comparaison",
+        "value": "1 choix + 2 alternatives"
+      }
+    ],
+    "deliverables": [
+      "Questionnaire sensoriel progressif",
+      "Verre animé en CSS 3D",
+      "Encyclopédie et comparaison des styles"
+    ],
+    "gallery": [
+      {
+        "file": "beer-builder.jpg",
+        "caption": "Studio MyBeer : verre animé et première étape sur 14",
+        "alt": "Studio MyBeer : verre animé et première étape sur 14"
+      },
+      {
+        "file": "beer-catalogue.jpg",
+        "caption": "Encyclopédie consultable des 121 profils de styles",
+        "alt": "Encyclopédie consultable des 121 profils de styles"
+      }
+    ],
+    "featured": true,
+    "visual": "liquid",
+    "year": "2026",
+    "duration": "",
+    "resources": [],
+    "image": "beer-builder.jpg"
   },
   {
-    title: 'EuroRare',
-    description:
-      "Un guide numismatique pour identifier les pièces et billets en euros par pays, année et particularité, avec des repères de rareté et des estimations indicatives. Les valeurs affichées ne constituent pas une expertise individuelle.",
-    tags: ['Numismatique', 'Guide interactif'],
-    year: '',
-    role: "Conception de la recherche, des fiches et de l'interface",
-    duration: '',
-    challenge: "Faciliter l'identification de pièces et billets en euros sans confondre rareté et valeur garantie.",
-    approach: "Organiser le catalogue par pays et émissions, relier les fiches aux sources et présenter des estimations prudentes.",
-    outcome: "Guide consultable en ligne ; raretés et estimations sont des repères indicatifs, non des expertises certifiées.",
-    link: 'https://cosscoll.github.io/Is-my-coin-rare-/',
-    repoLink: 'https://github.com/cosscoll/Is-my-coin-rare-',
-    image: '',
-    gallery: [],
-    featured: false,
-    visual: 'planets',
+    "title": "EuroRare",
+    "description": "Un guide pour identifier les pièces et billets en euros, comprendre leurs particularités et consulter des estimations prudentes. Le catalogue réunit 388 fiches de pièces et 24 fiches de billets.",
+    "tags": [
+      "Catalogue",
+      "Numismatique",
+      "Recherche"
+    ],
+    "role": "Conception du parcours d’identification, des fiches et de l’interface",
+    "status": "Guide public",
+    "challenge": "Faire distinguer l’identification, le tirage, la rareté et la valeur de revente, sans présenter un prix d’annonce comme une vente réelle.",
+    "approach": "Structurer le catalogue par pays, année et caractéristiques ; associer des photographies sourcées aux fiches ; expliquer les critères de rareté et proposer des repères de valeur selon l’état. Les pages éditoriales et les fiches disposent d’un maillage dédié.",
+    "outcome": "388 fiches de pièces et 24 de billets consultables, avec recherche et aides à l’identification. Les estimations sont indicatives et ne remplacent pas une expertise individuelle.",
+    "link": "https://cosscoll.github.io/Is-my-coin-rare-/",
+    "repoLink": "https://github.com/cosscoll/Is-my-coin-rare-",
+    "metrics": [
+      {
+        "label": "Pièces",
+        "value": "388 fiches"
+      },
+      {
+        "label": "Billets",
+        "value": "24 fiches"
+      },
+      {
+        "label": "Méthode",
+        "value": "Sources et état"
+      }
+    ],
+    "deliverables": [
+      "Catalogues et assistants d’identification",
+      "Fiches avec visuels et sources",
+      "Pages pays, années et guides éditoriaux"
+    ],
+    "gallery": [
+      {
+        "file": "eurorare-home.jpg",
+        "caption": "Accueil EuroRare et accès aux pièces et billets",
+        "alt": "Accueil EuroRare et accès aux pièces et billets"
+      },
+      {
+        "file": "eurorare-catalogue.jpg",
+        "caption": "Catalogue des pièces : recherche et fiches numismatiques",
+        "alt": "Catalogue des pièces : recherche et fiches numismatiques"
+      }
+    ],
+    "resources": [
+      {
+        "label": "Consulter la méthode",
+        "url": "https://cosscoll.github.io/Is-my-coin-rare-/methodologie.html"
+      }
+    ],
+    "visual": "planets",
+    "year": "2026",
+    "duration": "",
+    "featured": false,
+    "image": "eurorare-home.jpg"
   },
   {
-    title: 'Plateforme IFSI — Bérénice',
-    description:
-      "Une plateforme de révision infirmière en version bêta : 22 cours introductifs, quiz corrigés, 15 situations cliniques fictives, révision espacée, anatomie, cartes mentales, exercices ECOS et suivi de progression. Le contenu reste pédagogique et ne remplace ni la formation ni les protocoles de soin.",
-    tags: ['Plateforme éducative', 'Révision espacée', 'Simulation clinique'],
-    year: '2026',
-    role: 'Conception de la plateforme et des parcours de révision',
-    duration: '',
-    challenge: 'Rassembler des ressources pédagogiques et des exercices d\u2019entraînement dans un espace clair.',
-    approach: 'Organiser cours introductifs, quiz, cas fictifs et suivi de progression local dans une interface accessible sur plusieurs formats.',
-    outcome: 'Version bêta publiée avec progression enregistrée dans le navigateur ; contenus et usages cliniques non validés pour des décisions de soin.',
-    link: 'https://cosscoll.github.io/Berenice.ifsy/',
-    repoLink: 'https://github.com/cosscoll/Berenice.ifsy',
-    image: '',
-    gallery: [],
-    featured: true,
+    "title": "Plateforme IFSI — Bérénice",
+    "description": "Un espace de révision infirmière en bêta réunissant 22 cours introductifs, 72 questions corrigées et 15 situations fictives, avec planning, révision espacée et suivi personnel.",
+    "tags": [
+      "Pédagogie",
+      "Révision espacée",
+      "Interface"
+    ],
+    "role": "Conception des parcours de révision et de la plateforme",
+    "status": "Bêta pédagogique",
+    "challenge": "Réunir les cours et les exercices dans un parcours de travail clair, plutôt que multiplier des ressources isolées.",
+    "approach": "Organiser les cours, quiz et situations en niveaux de progression, ajouter un planning et des outils de révision espacée, puis conserver les notes et les résultats localement. L’assistant recherche dans les ressources disponibles et signale les questions hors de son périmètre.",
+    "outcome": "Une plateforme publique avec sauvegarde et restauration de la progression et une PWA installable sur les appareils compatibles. Le contenu demande une validation pédagogique et ne doit pas guider des décisions de soin.",
+    "link": "https://cosscoll.github.io/Berenice.ifsy/",
+    "repoLink": "https://github.com/cosscoll/Berenice.ifsy",
+    "metrics": [
+      {
+        "label": "Cours",
+        "value": "22 introductions"
+      },
+      {
+        "label": "Quiz",
+        "value": "72 questions"
+      },
+      {
+        "label": "Entraînement",
+        "value": "15 situations fictives"
+      }
+    ],
+    "deliverables": [
+      "Cours, quiz et cas pédagogiques",
+      "Planning et progression locale",
+      "Révision espacée et sauvegardes"
+    ],
+    "gallery": [
+      {
+        "file": "ifsi-home.jpg",
+        "caption": "Accueil de la plateforme de révision IFSI",
+        "alt": "Accueil de la plateforme de révision IFSI"
+      },
+      {
+        "file": "ifsi-courses.jpg",
+        "caption": "Organisation des cours par domaine et chapitre",
+        "alt": "Organisation des cours par domaine et chapitre"
+      }
+    ],
+    "featured": true,
+    "year": "2026",
+    "duration": "",
+    "resources": [],
+    "image": "ifsi-home.jpg"
   },
   {
-    title: 'IAgile — Formations à l’IA',
-    description: "Une plateforme présentant quatre parcours pratiques pour apprendre l’intelligence artificielle : sites web 3D, agents personnalisés, automatisation et IA au quotidien. La vitrine publique ne dévoile pas les leçons des apprenants.",
-    tags: ['Intelligence artificielle', 'Formation', 'Web immersif'],
-    year: '2026', role: 'Conception et pilotage du projet', duration: '',
-    challenge: 'Rendre les usages de l’IA accessibles à travers des formations concrètes.',
-    approach: 'Présenter quatre parcours dans une expérience immersive avec des aperçus limités pour préserver les contenus de formation.',
-    outcome: 'Site vitrine en pré-lancement, les espaces privés de formation restent à connecter.',
-    link: 'https://cosscoll.github.io/IAgile/',
-    repoLink: 'https://github.com/cosscoll/IAgile',
-    image: '', gallery: [], featured: false, visual: 'constellation',
+    "title": "IAgile — Formations à l’IA",
+    "description": "Un projet de formation qui aide à apprendre en construisant : sites web 3D, agents personnalisés, automatisation et IA au quotidien. La vitrine publique oriente vers les quatre parcours et présente leurs projets de réalisation.",
+    "tags": [
+      "Intelligence artificielle",
+      "Formation",
+      "Web immersif"
+    ],
+    "role": "Conception, positionnement et pilotage du projet",
+    "status": "Vitrine publique · pré-lancement",
+    "challenge": "Passer de la découverte des possibilités de l’IA à des compétences concrètes, testables et réutilisables.",
+    "approach": "Définir quatre parcours autour d’un Build final, compléter l’apprentissage par un Lab d’expérimentation, et concevoir une vitrine immersive avec orientation et comparaison. Les ressources détaillées et les espaces apprenants sont développés séparément de la présentation publique.",
+    "outcome": "Une vitrine consultable, des aperçus publics et une architecture pédagogique en développement. L’ouverture commerciale et la livraison complète des formations restent à finaliser.",
+    "link": "https://cosscoll.github.io/IAgile/",
+    "repoLink": "https://github.com/cosscoll/IAgile",
+    "metrics": [
+      {
+        "label": "Orientation",
+        "value": "4 parcours"
+      },
+      {
+        "label": "Méthode",
+        "value": "Build et Lab"
+      },
+      {
+        "label": "État",
+        "value": "Pré-lancement"
+      }
+    ],
+    "deliverables": [
+      "Positionnement et architecture des messages",
+      "Vitrine immersive et comparaison des parcours",
+      "Programme, exercices et outils réutilisables en préparation"
+    ],
+    "gallery": [
+      {
+        "file": "iagile-home.jpg",
+        "caption": "Vitrine publique IAgile : expérience immersive",
+        "alt": "Vitrine publique IAgile : expérience immersive"
+      },
+      {
+        "file": "iagile-course.jpg",
+        "caption": "Aperçu public du parcours Sites web 3D",
+        "alt": "Aperçu public du parcours Sites web 3D"
+      }
+    ],
+    "resources": [
+      {
+        "label": "Comparer les parcours",
+        "url": "https://cosscoll.github.io/IAgile/parcours.html"
+      }
+    ],
+    "visual": "constellation",
+    "year": "2026",
+    "duration": "",
+    "featured": false,
+    "image": "iagile-home.jpg"
   },
   {
-    title: 'TCG Deseur — Jeu de collection',
-    slug: 'budget-illimite-tcg-thomas-deseur',
-    description: "Jeu de collection numérique non officiel inspiré de Thomas Deseur : boosters de cinq cartes, cinq raretés et classeur de collection. L'application active est hébergée sur Floot ; la version GitHub Pages reste un prototype historique indépendant des comptes joueurs.",
-    tags: ['Jeu de collection', 'Boosters', 'Application web'],
-    year: '2026', role: 'Conception et pilotage du projet', duration: '',
-    challenge: 'Faire découvrir un univers de collection numérique sans recourir à des mécaniques de combat ou de monétisation.',
-    approach: 'Structurer un catalogue historique de 49 cartes, cinq raretés, des boosters et un suivi des cartes possédées et des doublons.',
-    outcome: 'Application Floot publiée avec comptes et collection serveur ; les parcours joueurs connectés ne sont pas encore entièrement vérifiés. Prototype GitHub Pages conservé comme archive.',
-    link: 'https://budget-illimite-tcg.floot.app/',
-    repoLink: 'https://github.com/cosscoll/TCG-Thomas-Deseur',
-    image: '', gallery: [], featured: false, visual: 'rings',
+    "title": "TCG Deseur — Jeu de collection",
+    "slug": "budget-illimite-tcg-thomas-deseur",
+    "description": "Un jeu de collection numérique non officiel inspiré de Thomas Deseur. L’édition Origine comprend 67 personnages connus et une Carte mystère, avec boosters de cinq cartes et classeur de collection.",
+    "tags": [
+      "Jeu de collection",
+      "Direction créative",
+      "Application"
+    ],
+    "role": "Conception du jeu, direction créative et pilotage du projet",
+    "status": "Édition Origine publiée · bêta",
+    "challenge": "Créer un univers de collection cohérent : personnages, illustrations, raretés, révélation des cartes et progression du classeur.",
+    "approach": "Sélectionner les personnages et leurs visuels, organiser cinq niveaux de rareté et les règles des cinq positions du booster, puis préparer les interfaces de catalogue, de révélation et de suivi des doublons. Le jeu connecté est hébergé sur Floot ; GitHub rassemble le catalogue et les prototypes publics.",
+    "outcome": "Une édition de 68 emplacements sur Floot, dont 67 personnages détaillés et une Carte mystère. Le catalogue public comprend également 38 illustrations alternatives. La recette des ouvertures authentifiées et les ajustements de bêta restent en cours.",
+    "link": "https://budget-illimite-tcg.floot.app/",
+    "repoLink": "https://github.com/cosscoll/TCG-Thomas-Deseur",
+    "repoLabel": "Catalogue et prototypes ↗",
+    "metrics": [
+      {
+        "label": "Édition",
+        "value": "67 personnages + 1 mystère"
+      },
+      {
+        "label": "Booster",
+        "value": "5 cartes"
+      },
+      {
+        "label": "Visuels",
+        "value": "38 alternatives"
+      }
+    ],
+    "deliverables": [
+      "Catalogue et sélection des illustrations",
+      "Raretés et règles des boosters",
+      "Prototypes de révélation et classeur de collection"
+    ],
+    "gallery": [
+      {
+        "file": "tcg-collection.jpg",
+        "caption": "Catalogue public de l’édition Origine et des raretés",
+        "alt": "Catalogue public de l’édition Origine et des raretés"
+      },
+      {
+        "file": "tcg-prototype.jpg",
+        "caption": "Prototype public de révélation : simulation sans compte joueur",
+        "alt": "Prototype public de révélation : simulation sans compte joueur"
+      }
+    ],
+    "resources": [
+      {
+        "label": "Voir la collection",
+        "url": "https://cosscoll.github.io/TCG-Thomas-Deseur/collection-validee/"
+      },
+      {
+        "label": "Explorer le prototype",
+        "url": "https://cosscoll.github.io/TCG-Thomas-Deseur/prototype-booster/"
+      }
+    ],
+    "visual": "rings",
+    "year": "2026",
+    "duration": "",
+    "featured": false,
+    "image": "tcg-collection.jpg"
   },
   {
-    title: 'UnCoupDePouce',
-    description: "Une plateforme de mise en relation entre particuliers et professionnels du BTP : demandes sérieuses, informations transparentes, visibilité des professionnels et liberté d’échanger sans commission.",
-    tags: ['Plateforme BTP', 'Mise en relation', 'Sans commission'],
-    year: '', role: 'Conception et pilotage du projet', duration: '',
-    challenge: 'Simplifier les recherches de professionnels et limiter les demandes non qualifiées.',
-    approach: 'Imaginer des demandes structurées pour les particuliers et un espace de présentation et réponse pour les professionnels, sans commission.',
-    outcome: 'Projet en développement, sans URL publique ou dépôt GitHub confirmé.',
-    link: '', repoLink: '',
-    image: '', gallery: [], featured: false, visual: 'planets',
-  },
+    "title": "UnCoupDePouce",
+    "description": "Un projet de plateforme de mise en relation entre particuliers et professionnels du BTP. Le travail associe parcours utilisateurs, cadrage produit, identité visuelle et préparation de la communication, sans commission sur les travaux.",
+    "tags": [
+      "Produit digital",
+      "BTP",
+      "Mise en relation"
+    ],
+    "role": "Conception et pilotage du produit avec les associés",
+    "status": "Préparation du lancement",
+    "challenge": "Créer des échanges utiles : demandes mieux structurées pour les particuliers, visibilité des professionnels et informations lisibles des deux côtés.",
+    "approach": "Formaliser les parcours demandeur et professionnel, les besoins de qualification et de matching, puis préparer le cahier fonctionnel, les supports de marque et la communication. La charte officielle Ydays 2025–2026 réunit une identité orange et bleu-violet.",
+    "outcome": "Des livrables de cadrage produit, d’identité et de communication sont préparés. La passation de l’application et sa mise en ligne restent à organiser ; aucune démonstration publique n’est confirmée.",
+    "link": "",
+    "repoLink": "",
+    "metrics": [
+      {
+        "label": "Publics",
+        "value": "Particuliers et professionnels"
+      },
+      {
+        "label": "Positionnement",
+        "value": "Sans commission"
+      },
+      {
+        "label": "Identité",
+        "value": "Ydays 2025–2026"
+      }
+    ],
+    "deliverables": [
+      "Parcours utilisateurs et cahier fonctionnel",
+      "Qualification des demandes et matching",
+      "Identité visuelle et supports de communication"
+    ],
+    "gallery": [
+      {
+        "file": "ucp-charter-cover.jpg",
+        "caption": "Charte officielle du projet UCP — Ydays 2025–2026",
+        "alt": "Charte officielle du projet UCP — Ydays 2025–2026"
+      },
+      {
+        "file": "ucp-logo.jpg",
+        "caption": "Logo et applications de l’identité visuelle UCP",
+        "alt": "Logo et applications de l’identité visuelle UCP"
+      },
+      {
+        "file": "ucp-mockups.jpg",
+        "caption": "Mises en situation graphiques issues de la charte du projet",
+        "alt": "Mises en situation graphiques issues de la charte du projet"
+      }
+    ],
+    "visual": "planets",
+    "year": "2026",
+    "duration": "",
+    "featured": false,
+    "resources": [],
+    "image": "ucp-charter-cover.jpg"
+  }
 ]
 
 // Transforme un titre en identifiant d'URL propre : "Mon Super Projet !" → "mon-super-projet"
