@@ -113,7 +113,8 @@ test('No full-screen white portal survives and 3D construction is rendered',asyn
  assert.ok(world.includes('assembling-floor-plates'))
  assert.ok(world.includes('instancedMesh'))
  assert.ok(world.includes('setMatrixAt'))
- assert.ok(world.includes('meshLambertMaterial'))
+  // The Chrome Cobalt floor keeps lit geometry and cubemap reflections.
+  assert.ok(world.includes('meshPhongMaterial'))
 })
 
 test('Returning from every finished project lands at the same open crossroads',()=>{
