@@ -1,20 +1,37 @@
-name: Portfolio production content and link audit
+name: Portfolio public project link audit
 on:
-  push:
+  workflow_run:
+    workflows: [Build and validate portfolio]
+    types: [completed]
     branches: [main]
-    paths: ['.github/workflows/portfolio-audit.yml', 'src/data/projects.js', 'src/data/projectStories.js', 'tests/portfolio-audit-live.mjs']
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  portfolio-content:
+  project-links:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
-      - name: Verify eight project pages and public links
-        run: node tests/portfolio-audit-live.mjs
+      # The publishing workflow verifies every internal project page and image.
+      # Check public project destinations only after that release is live.
+      - name: Verify project sites, repositories and additional resources
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict'
+          import { PROJECTS_WITH_SLUGS as projects } from './src/data/projects.js'
+          const urls=[...new Set(projects.flatMap(p=>[p.link,p.repoLink,...p.resources.map(r=>r.url)]).filter(Boolean))]
+          const results=await Promise.all(urls.map(async url=>{
+            const response=await fetch(url,{redirect:'follow',signal:AbortSignal.timeout(25000)})
+            const body=await response.text()
+            const ok=response.ok&&body.length>180&&!/There isn't a GitHub Pages site here|404: Not Found/i.test(body.slice(0,3000))
+            console.log('PUBLIC_LINK',JSON.stringify({url,status:response.status,ok}))
+            return ok
+          }))
+          assert.ok(results.every(Boolean),'A public project destination is unavailable')
+          console.log('PUBLIC PROJECT LINKS VERIFIED',urls.length)
+          JS
