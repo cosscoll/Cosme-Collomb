@@ -1,7 +1,7 @@
 name: Project content preview
 on:
   push:
-    branches: [review/portfolio-content-20261013]
+    branches: ['review/portfolio-content-*']
 permissions:
   contents: read
 jobs:
