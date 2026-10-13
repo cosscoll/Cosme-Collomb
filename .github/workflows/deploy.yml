@@ -29,6 +29,8 @@ jobs:
       - run: npm run build
       - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
+        env:
+          AUDIT_QUICK: '1'
       - run: node tests/prototype-3d-smoke.mjs
       # test:browser includes all eight production loops, queued navigation,
       # actual mesh raycasts, reverse scroll, history and mobile WebGL.

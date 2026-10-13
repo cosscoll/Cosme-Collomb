@@ -5,6 +5,7 @@ import { PROJECTS_WITH_SLUGS as PROJECTS } from './data/projects.js'
 import { PROJECT_STORIES } from './data/projectStories.js'
 import { NAV_ITEMS, navigationContext } from './navigation/siteNavigation.js'
 import './styles/rebuilt.css'
+import './styles/chrome-cobalt.css'
 
 const World = lazy(() => import('./components/World.jsx'))
 
@@ -144,7 +145,7 @@ function Header({menuOpen,setMenuOpen}) {
     <header className={'topbar topbar-v2 '+(menuOpen?'topbar-v2-open':'')}>
       <div className="topbar-main">
         <Link to="/" className="brand-mark" aria-label="Retour à l’accueil du portfolio">
-          <span className="brand-monogram">C<span>.</span></span>
+          <span className="brand-monogram">CC<span>.</span></span>
           <span className="brand-sub">COSME<br/>COLLOMB</span>
         </Link>
         <nav className="header-primary" aria-label="Navigation rapide">
@@ -268,6 +269,7 @@ function Landing() {
         </motion.h1>
         <motion.div className="landing-lower" initial={{opacity:0}} animate={{opacity:1}} transition={{duration:.9,delay:1.05}}>
           <p>Je conçois des expériences digitales<br/>qui ont quelque chose à raconter.</p>
+          <Link to="/projets" className="hero-projects-link">Explorer les 8 projets <span aria-hidden="true">↗</span></Link>
           <button className="round-scroll" type="button" onClick={() => document.getElementById('junction')?.scrollIntoView({behavior:'smooth'})} aria-label="Découvrir les chemins">
             <span>↓</span>
           </button>
