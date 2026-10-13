@@ -7,7 +7,7 @@ import { MeshBVH, acceleratedRaycast } from 'three-mesh-bvh'
 import { PROJECTS_WITH_SLUGS as PROJECTS } from '../src/data/projects.js'
 import { EDGES, PROJECT_EDGES, HUB, NETWORK_SIGNATURE, pointAt, headingAt,
   destination, initialPose, planJourney, sampleJourney, scrollDistance } from '../src/scene/spatialNetwork.js'
-import { advanceMotion,MAX_STEP,MAX_TURN_RATE } from '../src/scene/networkMotion.js'
+import { advanceMotion,advanceJourneyMotion,MAX_STEP,MAX_TURN_RATE,PAGE_MOTION } from '../src/scene/networkMotion.js'
 import { decodeNetwork } from '../src/scene/networkMesh.js'
 
 const bytes=await readFile(new URL('../src/scene/compiled/network.bin',import.meta.url))
@@ -98,7 +98,11 @@ test('all page transfers follow forward graph edges and preserve join position a
       previous=sample
     }
     const end=sampleJourney(trip,trip.length),expected=initialPose(path)
-    assert.equal(end.edge,expected.edge);assert.equal(end.distance,expected.distance);count++
+    assert.equal(end.edge,expected.edge)
+    if(end.edge?.id==='gallery'){
+      assert.ok(end.distance>=expected.distance&&end.distance<=destination(path).end)
+    }else assert.equal(end.distance,expected.distance)
+    count++
   }
   assert.ok(count>=500)
 })
@@ -156,5 +160,41 @@ test('project returns remain responsive at 30 and 15 rendered frames per second'
       distance=next.distance;speed=next.speed;pose=sampleJourney(trip,distance);frames++
     }
     assert.equal(distance,trip.length,`${edge.id} takes more than ${seconds}s at ${fps}fps`)
+  }
+})
+
+test('header trips stay fast and physically continuous between every page and project',()=>{
+  for(const [fps,limit] of [[60,9],[30,10],[15,16]])for(const from of paths)for(const to of paths){
+    let pose=initialPose(from),trip=planJourney(pose,to),distance=0,speed=0,frames=0
+    while(distance<trip.length&&frames<fps*limit){
+      const previous=pose
+      const next=advanceJourneyMotion(trip,distance,speed,1/fps)
+      distance=next.distance;speed=next.speed;pose=sampleJourney(trip,distance);frames++
+      const a=previous.edge?pointAt(previous.edge,previous.distance):HUB
+      const b=pose.edge?pointAt(pose.edge,pose.distance):HUB
+      const rotation=p=>p.edge?new THREE.Quaternion().setFromRotationMatrix(
+        new THREE.Matrix4().lookAt(pointAt(p.edge,p.distance),pointAt(p.edge,p.distance).add(headingAt(p.edge,p.distance)),new THREE.Vector3(0,1,0))
+      ):new THREE.Quaternion()
+      assert.ok(rotation(previous).angleTo(rotation(pose))<.12,'Header snaps camera orientation')
+      const step=b.clone().sub(a)
+      if(step.length()>1e-8){
+        assert.ok(step.length()<=PAGE_MOTION.step+.002,'Header skips physical positions')
+        const gaze=pose.edge?headingAt(pose.edge,pose.distance):new THREE.Vector3(0,0,-1)
+        assert.ok(step.clone().normalize().dot(gaze)>.97,'Header moves against its gaze')
+        ray.set(a,step.clone().normalize());ray.far=step.length()
+        assert.equal(ray.intersectObject(mesh).length,0,'Header crosses an actual wall')
+      }
+    }
+    assert.equal(distance,trip.length,`${from} -> ${to} exceeds ${limit}s at ${fps}fps`)
+  }
+})
+
+test('header destinations already in the current gallery section do not require an extra lap',()=>{
+  for(const path of ['/','/parcours','/contact']){
+    const d=destination(path),pose={edge:d.edge,distance:(d.start+d.end)/2}
+    const trip=planJourney(pose,path)
+    assert.equal(trip.length,0)
+    const end=sampleJourney(trip,0)
+    assert.equal(end.edge,pose.edge);assert.equal(end.distance,pose.distance)
   }
 })

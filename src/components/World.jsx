@@ -5,7 +5,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { HUB, ROOM, EDGES, PROJECT_EDGES, COLORS, NETWORK_VERSION,
   pointAt, headingAt, orientationAt, frameAt, initialPose, destination, planJourney,
   sampleJourney, scrollDistance, clamp } from '../scene/spatialNetwork.js'
-import { advanceMotion } from '../scene/networkMotion.js'
+import { advanceMotion, advanceJourneyMotion } from '../scene/networkMotion.js'
 import { decodeNetwork, partitionNetwork } from '../scene/networkMesh.js'
 import meshUrl from '../scene/compiled/network.bin?url'
 
@@ -120,7 +120,7 @@ function Assembly({transit}) {
     for(let i=0;i<ages.current.length;i++)if(ages.current[i]>=0)ages.current[i]=Math.min(2,ages.current[i]+Math.min(delta,.055))
     let rows=0
     pieces.forEach((piece,k)=>{
-      const age=ages.current[piece.edge.index],built=age<0?0:smooth((age-piece.i*.045)/.48)
+      const age=ages.current[piece.edge.index],built=age<0?0:smooth((age-piece.i*.024)/.28)
       object.position.copy(piece.centre).addScaledVector(piece.up,-3.5+built*1.4)
       matrix.lookAt(piece.centre,piece.centre.clone().add(piece.forward),UP)
       object.quaternion.setFromRotationMatrix(matrix);object.updateMatrix();mesh.current.setMatrixAt(k,object.matrix)
@@ -157,7 +157,7 @@ function Flight({pathname,transit}) {
     }
     let progress=null
     if(s.trip){
-      const motion=advanceMotion(s.travelled,s.trip.length,s.speed,delta,s.pose.edge,s.pose.distance)
+      const motion=advanceJourneyMotion(s.trip,s.travelled,s.speed,delta)
       s.travelled=motion.distance;s.speed=motion.speed;s.pose=sampleJourney(s.trip,s.travelled)
       progress=s.trip.length?s.travelled/s.trip.length:1
       if(transit)transit.progress=progress
@@ -189,7 +189,7 @@ function Flight({pathname,transit}) {
       currentRoute:transit?.from||s.page,mode:d.mode,index:d.index,t,sampleT:t,
       edge:pose.edge?.id??'hub',distance:pose.distance,speed:s.speed,
       forkTarget:1,transiting:Boolean(transit||s.trip),progress,flightId:transit?.id??null,
-      from:transit?.from,to:transit?.to,updatedAt:performance.now(),frameMs:delta*1000,
+      from:transit?.from,to:transit?.to,motionProfile:progress!==null?'page':'reading',updatedAt:performance.now(),frameMs:delta*1000,
       aspect:camera.aspect,fov:camera.fov,centreDeviation:0,drawCalls:gl.info.render.calls,triangles:gl.info.render.triangles,
       networkObjects:EDGES.length,wallGeometry:window.__portfolioNetworkGeometry?.uuid}
     // Record actual rendered frames and actual quaternions, not target poses.

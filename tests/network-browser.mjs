@@ -7,7 +7,7 @@ import { MeshBVH, acceleratedRaycast } from 'three-mesh-bvh'
 import { PROJECTS_WITH_SLUGS as PROJECTS } from '../src/data/projects.js'
 import { HUB, EDGES, NETWORK_VERSION } from '../src/scene/spatialNetwork.js'
 import { decodeNetwork } from '../src/scene/networkMesh.js'
-import { MAX_SPEED, MAX_STEP } from '../src/scene/networkMotion.js'
+import { MAX_SPEED, MAX_STEP, PAGE_MOTION } from '../src/scene/networkMotion.js'
 import { browserOptions } from './browser-options.mjs'
 
 const site=process.env.PUBLIC_SITE||'http://127.0.0.1:4185/Cosme-Collomb/'
@@ -54,7 +54,8 @@ async function endCapture(label){
     // Faster travel intentionally advances farther per image. It must still
     // obey physical speed * elapsed frame time, the finite step bound, and
     // the unchanged orientation/forward/actual-wall checks below.
-    const allowed=Math.min(MAX_STEP,MAX_SPEED*Math.min(b.frameMs/1000,.055))
+    const profile=b.motionProfile==='page'?PAGE_MOTION:{step:MAX_STEP,speed:MAX_SPEED,frameTime:.055}
+    const allowed=Math.min(profile.step,profile.speed*Math.min(b.frameMs/1000,profile.frameTime))
     assert.ok(distance<=allowed+.002,label+' teleported '+distance+'m between rendered frames')
     const turn=new THREE.Quaternion(...a.quaternion).angleTo(new THREE.Quaternion(...b.quaternion))
     maxTurn=Math.max(maxTurn,turn)
@@ -139,15 +140,26 @@ try{
     console.log('COMPLETE LOOP',i+1,PROJECTS[i].title)
   }
   await capture('restored-hub')
+  await startCapture()
+  await clickNav('Parcours')
+  await page.waitForFunction(()=>window.__portfolioFlight.to==='/parcours')
+  await clickNav('Contact')
+  await page.waitForFunction(()=>window.__portfolioFlight.to==='/contact'&&window.__portfolioFlight.currentRoute==='/projets')
+  await landed('/contact')
+  await page.locator('#contact-message').waitFor({state:'visible',timeout:15000})
+  const redirected=await endCapture('header-retarget-to-contact')
+  assert.ok(!redirected.some(f=>f.currentRoute==='/parcours'),'Header stopped at an obsolete destination')
+  await startCapture()
+  await clickNav('Accueil')
+  await page.waitForFunction(()=>window.__portfolioFlight.to==='/')
+  await clickNav('Contact') // Returning to the displayed page must also retarget.
+  await page.waitForFunction(()=>window.__portfolioFlight.to==='/contact'||
+    (window.__portfolioFlight.currentRoute==='/contact'&&!window.__portfolioFlight.transiting))
+  await landed('/contact')
+  await clickNav('Accueil');await landed('/')
+  await clickNav('Projets');await landed('/projets')
+  await endCapture('header-return-to-current-page-and-home')
   if(process.env.AUDIT_QUICK!=='1'){
-    await startCapture()
-    await clickNav('Parcours')
-    await clickNav('Contact') // Must be queued while the first flight is active.
-    await landed('/contact')
-    await page.locator('#contact-message').waitFor({state:'visible',timeout:15000})
-    await clickNav('Accueil');await landed('/')
-    await clickNav('Projets');await landed('/projets')
-    await endCapture('queued-pages-and-home')
     // Direct URL, refresh, then browser history: the scene remains continuous
     // for history navigation, and starts on the right route on a fresh load.
     await page.goto(site+'#/projets/'+PROJECTS[7].slug,{waitUntil:'domcontentloaded'})

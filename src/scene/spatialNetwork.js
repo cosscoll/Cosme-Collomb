@@ -90,6 +90,12 @@ export function initialPose(pathname) {
 // exactly HUB with exactly (0,0,-1), including the final frame of a trip.
 export function planJourney(pose, pathname) {
   const d=destination(pathname), legs=[]
+  // A gallery page occupies a section, not a single entrance coordinate.
+  // If the eye is already in that section, there is no reason to make a
+  // complete extra circuit just to return to its entrance.
+  if(pose.edge===GALLERY&&d.edge===GALLERY&&pose.distance>=d.start&&pose.distance<=d.end){
+    return {legs,length:0,destination:{...d,start:pose.distance}}
+  }
   const add=(edge,start,end)=>{if(end-start>1e-7)legs.push({edge,start,end,length:end-start})}
   if(pose.edge===d.edge && d.edge && d.start>=pose.distance) {
     add(d.edge,pose.distance,d.start)

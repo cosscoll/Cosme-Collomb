@@ -645,7 +645,6 @@ function Shell() {
   const [menuOpen,setMenuOpen]=useState(false)
   const [transit,setTransit]=useState(null)
   const transitRef=useRef(null)
-  const pendingTripRef=useRef(null)
   const timers=useRef([])
   const nextId=useRef(0)
 
@@ -666,13 +665,11 @@ function Shell() {
     setTransit(null)
   },[commitMidpoint])
   const beginTrip=useCallback((next)=>{
-    if(transitRef.current){
-      // Header requests made during an inbound journey must never disappear.
-      // Queue them and travel as soon as the current 3D flight has landed.
-      pendingTripRef.current=next
-      return true
-    }
-    if(next===pathname)return false
+    if(next===pathname&&!transitRef.current)return false
+    // Replace the destination immediately. Flight replans from its actual
+    // current pose, without landing at an obsolete page or reversing.
+    timers.current.forEach(window.clearTimeout)
+    timers.current=[]
     // The scene's directed graph owns the whole remaining journey, including
     // an early exit from a story. Never force scroll or reverse a spline.
     // Capture the physical eye coordinate BEFORE React can unmount/remount
@@ -716,13 +713,6 @@ function Shell() {
   },[commitMidpoint,finishTrip])
 
   useEffect(()=>{
-    if(transit || !pendingTripRef.current)return
-    const next=pendingTripRef.current
-    pendingTripRef.current=null
-    if(next!==pathname)beginTrip(next)
-  },[transit,pathname,beginTrip])
-
-  useEffect(()=>{
     const capture=(event)=>{
       if(event.defaultPrevented || event.button!==0 || event.metaKey ||
         event.ctrlKey || event.shiftKey || event.altKey) return
@@ -735,7 +725,7 @@ function Shell() {
         destination.pathname!==window.location.pathname ||
         !destination.hash.startsWith('#/'))return
       const next=decodeURI(destination.hash.slice(1)).split('?')[0]
-      if(next===pathname)return
+      if(next===pathname&&!transitRef.current)return
       event.preventDefault()
       event.stopPropagation()
       beginTrip(next)

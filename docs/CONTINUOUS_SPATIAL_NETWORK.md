@@ -18,10 +18,13 @@ la destination par des connexions orientées. Il ne réduit jamais la distance
 parcourue à l'intérieur d'une connexion. Un tour supplémentaire de galerie
 permet d'atteindre un arrêt déjà dépassé. Les visites précédentes ne changent
 ni les huit accès, ni les parois, ni la position du carrefour.
+Si la caméra se trouve déjà dans la section de la page demandée, elle y
+reste : revenir à l'entrée par un tour complet serait inutile.
 
 Le scroll contrôle un maximum de progression conservé pour la visite.
 Remonter le texte ne fait pas reculer l'œil. Un clic pendant une transition
-est conservé puis exécuté après l'arrivée physique. Le changement de page
+remplace immédiatement la destination depuis la pose physique courante.
+La page devenue inutile n'est pas visitée. Le changement de page
 attend ce jalon ; aucun délai arbitraire ne replace la caméra.
 
 ## Surface fermée
@@ -48,6 +51,11 @@ contrôle indépendant de la rotation complète de la caméra. Il n'y a ni
 filtre de position indépendant, ni correction de raccord par translation.
 Le champ de vision reste constant pendant une visite pour un même format
 d'écran. La densité de pixels s'adapte au temps de rendu.
+
+Les changements de page utilisent `PAGE_MOTION` : accélération et vitesse
+doublées, plafond de 1,8 m par image. Le plafond de rotation complète reste
+de 0,09 radian et les positions restent sur les mêmes courbes physiques.
+La lecture au scroll conserve son rythme distinct.
 
 ## Vérifications
 
