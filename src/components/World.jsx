@@ -44,7 +44,7 @@ function PermanentNetwork({onReady}) {
   const geometry=useMemo(()=>{
     const g=decodeNetwork(buffer),p=g.getAttribute('position')
     const colors=new Float32Array(p.count*3)
-    const color=new THREE.Color(),a=new THREE.Color('#a8b2bc'),b=new THREE.Color('#f0f2f6')
+    const color=new THREE.Color(),a=new THREE.Color('#6c747f'),b=new THREE.Color('#c7d0dc')
     for(let i=0;i<p.count;i++){
       const blend=.4+.23*Math.sin(p.getZ(i)*.07)+.18*Math.cos(p.getX(i)*.09+p.getY(i)*.08)
       color.copy(a).lerp(b,blend);colors.set([color.r,color.g,color.b],i*3)
@@ -53,7 +53,7 @@ function PermanentNetwork({onReady}) {
   },[buffer])
   const parts=useMemo(()=>partitionNetwork(geometry),[geometry])
   const material=useMemo(()=>new THREE.MeshPhongMaterial({vertexColors:true,side:THREE.DoubleSide,
-    shininess:90,specular:'#ffffff',reflectivity:.86,combine:THREE.MixOperation}),[])
+    shininess:90,specular:'#ffffff',reflectivity:.72,combine:THREE.MixOperation}),[])
   useEffect(()=>{material.envMap=environment;material.needsUpdate=true},[material,environment])
   useEffect(()=>{onReady?.()},[onReady])
   // The collider is the exact same geometry that renders the wall.
@@ -111,15 +111,18 @@ function Portal({edge,active}) {
   const texture=useMemo(()=>{
     const canvas=document.createElement('canvas');canvas.width=256;canvas.height=160
     const ctx=canvas.getContext('2d')
-    ctx.fillStyle=COLORS[edge.index];ctx.font='600 82px sans-serif';ctx.textAlign='center';ctx.fillText(String(edge.index+1).padStart(2,'0'),128,106)
-    return new THREE.CanvasTexture(canvas)
+    ctx.fillStyle='#2358ff';ctx.fillRect(16,12,224,136)
+    ctx.strokeStyle='#ffffff';ctx.lineWidth=6;ctx.strokeRect(19,15,218,130)
+    ctx.fillStyle='#ffffff';ctx.font='600 82px sans-serif';ctx.textAlign='center';ctx.fillText(String(edge.index+1).padStart(2,'0'),128,106)
+    const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace
+    return texture
   },[edge.index])
   return <group>
     <mesh position={f.centre} quaternion={rotation}>
       <torusGeometry args={[2.64,active?.10:.065,8,64]}/><meshBasicMaterial color={active?'#ffffff':COLORS[edge.index]}/>
     </mesh>
     <sprite position={f.centre.clone().addScaledVector(f.up,1.7)} scale={[1.2,.75,1]}>
-      <spriteMaterial map={texture} transparent depthWrite={false}/>
+      <spriteMaterial map={texture} transparent depthWrite={false} toneMapped={false}/>
     </sprite>
   </group>
 }
@@ -212,7 +215,7 @@ function Flight({pathname,transit}) {
     // Record actual rendered frames and actual quaternions, not target poses.
     if(window.__portfolioCapture){const frames=window.__portfolioFrames||(window.__portfolioFrames=[]);if(frames.length<40000)frames.push({...window.__portfolioFlight})}
   })
-  return <pointLight ref={light} color="#ffffff" intensity={35} distance={32} decay={2}/>
+  return <pointLight ref={light} color="#ffffff" intensity={18} distance={32} decay={2}/>
 }
 
 function AdaptiveQuality(){
@@ -229,8 +232,8 @@ function AdaptiveQuality(){
 export default function World({pathname='/',hovered='',transit=null,onReady}) {
   return <Canvas camera={{position:HUB.toArray(),fov:68,near:.06,far:160}} dpr={1}
     gl={{alpha:false,antialias:true,powerPreference:'high-performance'}} style={{position:'absolute',inset:0}}>
-    <color attach="background" args={['#f4f2ed']}/><fog attach="fog" args={['#dce2eb',45,140]}/>
-    <ambientLight intensity={.75}/><hemisphereLight color="#ffffff" groundColor="#6c747f" intensity={1.2}/>
+    <color attach="background" args={['#a8b2bc']}/><fog attach="fog" args={['#a8b2bc',60,155]}/>
+    <ambientLight intensity={.35}/><hemisphereLight color="#ffffff" groundColor="#141414" intensity={.7}/>
     <ChromeEnvironment>
     <PermanentNetwork onReady={onReady}/><Architecture hovered={hovered}/>
     <Flight pathname={pathname} transit={transit}/><Assembly transit={transit}/><AdaptiveQuality/>

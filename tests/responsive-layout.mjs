@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { PROJECTS_WITH_SLUGS as PROJECTS } from '../src/data/projects.js'
 import { browserOptions } from './browser-options.mjs'
+import { auditContrast } from './contrast-audit.mjs'
 
 const site=process.env.PUBLIC_SITE||'http://127.0.0.1:4186/Cosme-Collomb/'
 const server=process.env.PUBLIC_SITE?null:spawn(process.execPath,['node_modules/vite/bin/vite.js','preview','--host','127.0.0.1','--port','4186','--strictPort'],{stdio:'inherit'})
@@ -15,7 +16,8 @@ const viewports=[
   {name:'tablet',width:768,height:1024},
   {name:'tablet-large',width:820,height:1180},
   {name:'tablet-landscape',width:1024,height:768},
-  {name:'tablet-large-landscape',width:1180,height:820}
+  {name:'tablet-large-landscape',width:1180,height:820},
+  {name:'desktop',width:1440,height:900}
 ]
 const paths=['/','/projets','/parcours','/contact',...PROJECTS.map(p=>'/projets/'+p.slug)]
 const report={site,viewports:[],failures:[],webgl:[]}
@@ -108,6 +110,7 @@ async function menu(page){
   const opened=await layout(page)
   const headerProblems=opened.problems.filter(p=>['header-clipped','header-overlap','small-touch-target'].includes(p.kind))
   assert.deepEqual(headerProblems,[],'open menu header is unusable: '+JSON.stringify(headerProblems))
+  await auditContrast(page)
   const last=drawer.locator('.navigation-projects a').last()
   await last.scrollIntoViewIfNeeded()
   const target=await last.boundingBox()
@@ -133,7 +136,7 @@ try{
   // Check every editorial section independently of GPU rendering. The actual
   // WebGL composition is then checked separately on both device orientations.
   for(const viewport of process.env.RESPONSIVE_WEBGL_ONLY?[]:viewports){
-    const page=await browser.newPage({viewport:{width:viewport.width,height:viewport.height},hasTouch:true,isMobile:true})
+    const page=await browser.newPage({viewport:{width:viewport.width,height:viewport.height},hasTouch:viewport.name!=='desktop',isMobile:viewport.name!=='desktop'})
     page.setDefaultTimeout(25000)
     const errors=[]
     page.on('pageerror',e=>errors.push(e.message))
@@ -149,6 +152,7 @@ try{
         try{
           await visit(page,path)
           const result=await layout(page)
+          const contrast=await auditContrast(page)
           if(path==='/'||path==='/projets'){
             assert.equal(await page.locator('.fork-choice').count(),8,'eight project cards missing')
             const cards=await page.locator('.fork-choice').evaluateAll(elements=>elements.map(el=>{
@@ -157,7 +161,7 @@ try{
             }))
             for(const c of cards)assert.ok(c.titleLeft>=c.left&&c.titleRight<=c.right,'card title escapes its card')
           }
-          entry.pages.push({path,...result})
+          entry.pages.push({path,...result,contrast})
           if(result.problems.length)report.failures.push({viewport:viewport.name,path,problems:result.problems})
           if(path==='/projets'){
             entry.menu=await menu(page)
@@ -178,14 +182,15 @@ try{
     }finally{report.viewports.push(entry);await page.close()}
   }
 
-  for(const name of ['phone','phone-landscape','tablet','tablet-landscape']){
+  for(const name of ['phone','phone-landscape','tablet','tablet-landscape','desktop']){
     const viewport=viewports.find(v=>v.name===name)
-    const page=await browser.newPage({viewport:{width:viewport.width,height:viewport.height},hasTouch:true,isMobile:true})
+    const page=await browser.newPage({viewport:{width:viewport.width,height:viewport.height},hasTouch:viewport.name!=='desktop',isMobile:viewport.name!=='desktop'})
     const errors=[];page.on('pageerror',e=>errors.push(e.message))
     try{
       await visit(page,'/')
       await page.waitForFunction(()=>window.__portfolioFlight?.version==='continuous-network-1',null,{timeout:45000})
       const result=await layout(page)
+      await auditContrast(page)
       if(process.env.RESPONSIVE_CAPTURE)await proof(page,name+'-hero')
       assert.deepEqual(result.problems,[],'real WebGL home layout: '+JSON.stringify(result.problems))
       await menu(page)
@@ -211,6 +216,17 @@ try{
       assert.ok(flight.drawCalls>0&&flight.wallGeometry,'live WebGL scene did not render')
       report.webgl.push({viewport:name,rotated,wallGeometry:flight.wallGeometry})
       console.log('RESPONSIVE_WEBGL_PASS',name)
+      if(name==='desktop'&&process.env.RESPONSIVE_CAPTURE){
+        await page.setViewportSize({width:viewport.width,height:viewport.height})
+        for(const [path,label]of [['/projets','desktop-projects'],['/projets/uncoupdepouce','desktop-project-detail'],['/contact','desktop-contact']]){
+          await visit(page,path)
+          await page.waitForFunction(()=>window.__portfolioFlight?.version==='continuous-network-1',null,{timeout:45000})
+          if(path==='/projets')await page.locator('#project-crossroads').evaluate(el=>window.scrollTo({top:el.offsetTop,behavior:'instant'}))
+          if(path==='/contact')await page.locator('.portfolio-contact-form').scrollIntoViewIfNeeded()
+          await auditContrast(page)
+          await proof(page,label)
+        }
+      }
     }catch(error){
       report.failures.push({viewport:name,mode:'webgl',error:error.message})
       console.error('RESPONSIVE_WEBGL_FAIL',name,error.message)
