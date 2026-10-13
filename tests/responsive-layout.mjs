@@ -30,7 +30,9 @@ async function visit(page,path){
     await Promise.all([document.fonts.load('600 20px Sora'),document.fonts.load('400 20px Manrope')])
     await document.fonts.ready
   })
-  await page.waitForTimeout(1650)
+  // Font loading determines horizontal layout; the entrance animations only
+  // change opacity and vertical position. Screenshots wait for those below.
+  await page.waitForTimeout(350)
 }
 
 async function layout(page){
@@ -43,9 +45,14 @@ async function layout(page){
       if(!text||!el||el.closest('script,style,.scene-backdrop,.scroll-index,.contact-honey,.crumb-current,[aria-hidden="true"]'))continue
       if(!el.getClientRects().length||getComputedStyle(el).visibility==='hidden')continue
       const range=document.createRange();range.selectNodeContents(node)
+      const card=el.closest('.fork-choice')?.getBoundingClientRect()
       for(const rect of range.getClientRects()){
         if(rect.width>0&&(rect.left<-.5||rect.right>viewport+.5)){
           problems.push({kind:'text-overflow',text:text.slice(0,90),left:+rect.left.toFixed(1),right:+rect.right.toFixed(1)})
+          break
+        }
+        if(card&&rect.width>0&&(rect.left<card.left||rect.right>card.right)){
+          problems.push({kind:'card-text-overflow',text:text.slice(0,90),left:+rect.left.toFixed(1),right:+rect.right.toFixed(1),cardRight:+card.right.toFixed(1)})
           break
         }
       }
@@ -67,6 +74,7 @@ async function layout(page){
         problems.push({kind:'header-overlap',a:a.label,b:b.label})
     }
     for(const el of document.querySelectorAll('.portfolio-contact-form input:not([type=hidden]),.portfolio-contact-form textarea')){
+      if(el.closest('.contact-honey,[aria-hidden="true"]'))continue
       if(parseFloat(getComputedStyle(el).fontSize)<16)problems.push({kind:'input-zoom',id:el.id,fontSize:getComputedStyle(el).fontSize})
       const r=el.getBoundingClientRect()
       if(r.left<0||r.right>viewport+1)problems.push({kind:'input-clipped',id:el.id,left:r.left,right:r.right})
@@ -90,6 +98,11 @@ async function menu(page){
   assert.ok(bounds.left>=0&&bounds.right<=bounds.viewportWidth+1,'drawer exceeds screen width '+JSON.stringify(bounds))
   assert.ok(bounds.top>=0&&bounds.bottom<=bounds.viewportHeight+1,'drawer exceeds screen height '+JSON.stringify(bounds))
   assert.ok(bounds.scrollWidth<=bounds.clientWidth+1,'drawer content horizontally clipped '+JSON.stringify(bounds))
+  const headerBottom=await page.locator('.topbar-v2').evaluate(el=>el.getBoundingClientRect().bottom)
+  assert.ok(bounds.top>=headerBottom+8,'drawer overlaps the fixed header')
+  const opened=await layout(page)
+  const headerProblems=opened.problems.filter(p=>['header-clipped','header-overlap','small-touch-target'].includes(p.kind))
+  assert.deepEqual(headerProblems,[],'open menu header is unusable: '+JSON.stringify(headerProblems))
   const last=drawer.locator('.navigation-projects a').last()
   await last.scrollIntoViewIfNeeded()
   const target=await last.boundingBox()
@@ -102,6 +115,7 @@ async function menu(page){
 }
 
 async function proof(page,label){
+  await page.waitForTimeout(1300)
   const bytes=await page.screenshot({path:'test-output/responsive-'+label+'.jpg',type:'jpeg',quality:60,timeout:30000})
   console.log('RESPONSIVE_PROOF_'+label.replaceAll('-','_').toUpperCase()+'='+bytes.toString('base64'))
 }
@@ -113,7 +127,7 @@ try{
   browser=await chromium.launch(options)
   // Check every editorial section independently of GPU rendering. The actual
   // WebGL composition is then checked separately on both device orientations.
-  for(const viewport of viewports){
+  for(const viewport of process.env.RESPONSIVE_WEBGL_ONLY?[]:viewports){
     const page=await browser.newPage({viewport:{width:viewport.width,height:viewport.height},hasTouch:true})
     page.setDefaultTimeout(25000)
     const errors=[]
@@ -161,8 +175,8 @@ try{
       await visit(page,'/')
       await page.waitForFunction(()=>window.__portfolioFlight?.version==='continuous-network-1',null,{timeout:45000})
       const result=await layout(page)
-      assert.deepEqual(result.problems,[],'real WebGL home layout: '+JSON.stringify(result.problems))
       if(process.env.RESPONSIVE_CAPTURE)await proof(page,name+'-hero')
+      assert.deepEqual(result.problems,[],'real WebGL home layout: '+JSON.stringify(result.problems))
       await menu(page)
       await page.locator('.header-menu-toggle').click()
       await page.waitForTimeout(650)
@@ -184,5 +198,5 @@ try{
   await writeFile('test-output/responsive-layout.json',JSON.stringify(report,null,2))
   await browser?.close();server?.kill('SIGTERM')
 }
-console.log('RESPONSIVE_LAYOUT_RESULT',JSON.stringify({viewports:report.viewports.length,pages:report.viewports.reduce((n,v)=>n+v.pages.length,0),webgl:report.webgl.length,failures:report.failures}))
+console.log('RESPONSIVE_LAYOUT_RESULT',JSON.stringify({viewports:report.viewports.length,pages:report.viewports.reduce((n,v)=>n+v.pages.length,0),webgl:report.webgl.length,failures:report.failures.length}))
 assert.equal(report.failures.length,0,'responsive layout audit failed; see responsive-layout.json')

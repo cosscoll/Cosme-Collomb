@@ -109,8 +109,20 @@ function Background({ pathname, hovered, transit }) {
 function Header({menuOpen,setMenuOpen}) {
   const {pathname}=useLocation()
   const context=navigationContext(pathname)
+  const headerRef=useRef(null)
   const toggleRef=useRef(null)
   const menuRef=useRef(null)
+
+  useLayoutEffect(()=>{
+    const header=headerRef.current
+    if(!header)return
+    const updateHeight=()=>document.documentElement.style.setProperty(
+      '--portfolio-header-height',header.getBoundingClientRect().height+'px')
+    updateHeight()
+    const observer=new ResizeObserver(updateHeight)
+    observer.observe(header)
+    return ()=>observer.disconnect()
+  },[])
 
   useEffect(()=>{
     if(!menuOpen)return
@@ -142,7 +154,7 @@ function Header({menuOpen,setMenuOpen}) {
   },[menuOpen])
 
   return <>
-    <header className={'topbar topbar-v2 '+(menuOpen?'topbar-v2-open':'')}>
+    <header ref={headerRef} className={'topbar topbar-v2 '+(menuOpen?'topbar-v2-open':'')}>
       <div className="topbar-main">
         <Link to="/" className="brand-mark" aria-label="Retour à l’accueil du portfolio">
           <span className="brand-monogram">CC<span>.</span></span>
