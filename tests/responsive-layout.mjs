@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { PROJECTS_WITH_SLUGS as PROJECTS } from '../src/data/projects.js'
 import { browserOptions } from './browser-options.mjs'
+import { auditContrast } from './contrast-audit.mjs'
 
 const site=process.env.PUBLIC_SITE||'http://127.0.0.1:4186/Cosme-Collomb/'
 const server=process.env.PUBLIC_SITE?null:spawn(process.execPath,['node_modules/vite/bin/vite.js','preview','--host','127.0.0.1','--port','4186','--strictPort'],{stdio:'inherit'})
@@ -108,6 +109,7 @@ async function menu(page){
   const opened=await layout(page)
   const headerProblems=opened.problems.filter(p=>['header-clipped','header-overlap','small-touch-target'].includes(p.kind))
   assert.deepEqual(headerProblems,[],'open menu header is unusable: '+JSON.stringify(headerProblems))
+  await auditContrast(page)
   const last=drawer.locator('.navigation-projects a').last()
   await last.scrollIntoViewIfNeeded()
   const target=await last.boundingBox()
@@ -149,6 +151,7 @@ try{
         try{
           await visit(page,path)
           const result=await layout(page)
+          const contrast=await auditContrast(page)
           if(path==='/'||path==='/projets'){
             assert.equal(await page.locator('.fork-choice').count(),8,'eight project cards missing')
             const cards=await page.locator('.fork-choice').evaluateAll(elements=>elements.map(el=>{
@@ -157,7 +160,7 @@ try{
             }))
             for(const c of cards)assert.ok(c.titleLeft>=c.left&&c.titleRight<=c.right,'card title escapes its card')
           }
-          entry.pages.push({path,...result})
+          entry.pages.push({path,...result,contrast})
           if(result.problems.length)report.failures.push({viewport:viewport.name,path,problems:result.problems})
           if(path==='/projets'){
             entry.menu=await menu(page)
@@ -186,6 +189,7 @@ try{
       await visit(page,'/')
       await page.waitForFunction(()=>window.__portfolioFlight?.version==='continuous-network-1',null,{timeout:45000})
       const result=await layout(page)
+      await auditContrast(page)
       if(process.env.RESPONSIVE_CAPTURE)await proof(page,name+'-hero')
       assert.deepEqual(result.problems,[],'real WebGL home layout: '+JSON.stringify(result.problems))
       await menu(page)
