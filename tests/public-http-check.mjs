@@ -10,7 +10,10 @@ const expected=compiled.match(/<script[^>]*src="([^"]+)"/)?.[1]
 if(!expected?.endsWith('.js'))throw Error('The verified production build has no JavaScript entrypoint')
 
 let last
-for(let attempt=1;attempt<=24;attempt++){
+// Pages deployment and CDN propagation can take several minutes after the
+// build reports success. Preserve the exact-release check while waiting.
+const attempts=90
+for(let attempt=1;attempt<=attempts;attempt++){
   try{
     // Static GitHub Pages hosting must serve both index.html and the actual
     // versioned JS bundle. An Actions success by itself is not sufficient.
@@ -33,7 +36,7 @@ for(let attempt=1;attempt<=24;attempt++){
     process.exit(0)
   }catch(err){
     last=err
-    console.log('Public site not yet ready',attempt+'/24:',err.message)
+    console.log('Public site not yet ready',attempt+'/'+attempts+':',err.message)
     await wait(3500)
   }
 }

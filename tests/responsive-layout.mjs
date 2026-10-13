@@ -133,7 +133,7 @@ try{
   // Check every editorial section independently of GPU rendering. The actual
   // WebGL composition is then checked separately on both device orientations.
   for(const viewport of process.env.RESPONSIVE_WEBGL_ONLY?[]:viewports){
-    const page=await browser.newPage({viewport:{width:viewport.width,height:viewport.height},hasTouch:true})
+    const page=await browser.newPage({viewport:{width:viewport.width,height:viewport.height},hasTouch:true,isMobile:true})
     page.setDefaultTimeout(25000)
     const errors=[]
     page.on('pageerror',e=>errors.push(e.message))
@@ -180,7 +180,7 @@ try{
 
   for(const name of ['phone','phone-landscape','tablet','tablet-landscape']){
     const viewport=viewports.find(v=>v.name===name)
-    const page=await browser.newPage({viewport:{width:viewport.width,height:viewport.height},hasTouch:true})
+    const page=await browser.newPage({viewport:{width:viewport.width,height:viewport.height},hasTouch:true,isMobile:true})
     const errors=[];page.on('pageerror',e=>errors.push(e.message))
     try{
       await visit(page,'/')
