@@ -205,9 +205,9 @@ function Header({menuOpen,setMenuOpen}) {
         <motion.nav id="portfolio-navigation-panel" ref={menuRef}
           role="dialog" aria-modal="true" aria-label="Menu de navigation"
           className="navigation-drawer"
-          initial={{opacity:0,y:-18,scale:.985}}
+          initial={{opacity:0,y:12,scale:.985}}
           animate={{opacity:1,y:0,scale:1}}
-          exit={{opacity:0,y:-12,scale:.99}}
+          exit={{opacity:0,y:8,scale:.99}}
           transition={{duration:.46,ease:[.16,1,.3,1]}}>
           <div className="navigation-drawer-heading">
             <div><span className="micro-label">LE PORTFOLIO / 2026</span>

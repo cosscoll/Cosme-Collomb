@@ -88,7 +88,12 @@ async function menu(page){
   await toggle.click()
   const drawer=page.locator('.navigation-drawer')
   await drawer.waitFor({state:'visible'})
-  await page.waitForTimeout(550)
+  await page.waitForFunction(()=>{
+    const el=document.querySelector('.navigation-drawer')
+    if(!el)return false
+    const style=getComputedStyle(el),matrix=new DOMMatrixReadOnly(style.transform)
+    return Math.abs(matrix.m42)<.2&&Math.abs(matrix.a-1)<.0003&&Number(style.opacity)>.99
+  },null,{timeout:20000})
   assert.equal(await drawer.locator('.navigation-main-links a').count(),4)
   assert.equal(await drawer.locator('.navigation-projects a').count(),8)
   const bounds=await drawer.evaluate(el=>{
@@ -154,7 +159,13 @@ try{
           }
           entry.pages.push({path,...result})
           if(result.problems.length)report.failures.push({viewport:viewport.name,path,problems:result.problems})
-          if(path==='/projets')entry.menu=await menu(page)
+          if(path==='/projets'){
+            entry.menu=await menu(page)
+            await page.locator('#project-crossroads').evaluate(el=>window.scrollTo({top:el.offsetTop,behavior:'instant'}))
+            const labelTop=await page.locator('.crossroads-top .micro-label').evaluate(el=>el.getBoundingClientRect().top)
+            const headerBottom=await page.locator('.topbar-v2').evaluate(el=>el.getBoundingClientRect().bottom)
+            assert.ok(labelTop>=headerBottom+12,'project crossroads label is covered by the fixed header')
+          }
           if(process.env.RESPONSIVE_CAPTURE&&viewport.name==='phone-small'&&path==='/projets/iagile-formations-a-l-ia')await proof(page,'small-project')
           if(process.env.RESPONSIVE_CAPTURE&&viewport.name==='phone'&&path==='/contact'){
             await page.locator('.portfolio-contact-form').scrollIntoViewIfNeeded()
@@ -186,12 +197,24 @@ try{
       await page.locator('#works .fork-choice').first().scrollIntoViewIfNeeded()
       await page.waitForTimeout(700)
       if(process.env.RESPONSIVE_CAPTURE&&['phone','tablet-landscape'].includes(name))await proof(page,name+'-cards')
+      const rotated={width:viewport.height,height:viewport.width}
+      await page.setViewportSize(rotated)
+      await page.waitForTimeout(550)
+      await menu(page)
+      assert.deepEqual((await layout(page)).problems,[],'layout fails after changing orientation')
       assert.deepEqual(errors,[],'WebGL JavaScript errors')
       const flight=await page.evaluate(()=>window.__portfolioFlight)
-      assert.ok(flight.minimumWallClearance>2.3,'real camera touches the wall')
-      report.webgl.push({viewport:name,clearance:flight.minimumWallClearance})
+      // network-browser independently raycasts the compiled walls along every
+      // real flight. This layout audit verifies that the scene is rendering.
+      assert.ok(flight.position.every(Number.isFinite),'camera has an invalid position')
+      assert.equal(flight.networkObjects,9,'a physical network branch disappeared')
+      assert.ok(flight.drawCalls>0&&flight.wallGeometry,'live WebGL scene did not render')
+      report.webgl.push({viewport:name,rotated,wallGeometry:flight.wallGeometry})
       console.log('RESPONSIVE_WEBGL_PASS',name)
-    }catch(error){report.failures.push({viewport:name,mode:'webgl',error:error.message})}
+    }catch(error){
+      report.failures.push({viewport:name,mode:'webgl',error:error.message})
+      console.error('RESPONSIVE_WEBGL_FAIL',name,error.message)
+    }
     finally{await page.close()}
   }
 }finally{
