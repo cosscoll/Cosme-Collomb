@@ -18,7 +18,7 @@ export function createChromeEnvironment(renderer){
   // Phong reflections use a small cubemap directly, rather than the many
   // texture lookups of a PBR roughness convolution on low-powered devices.
   const target=new THREE.WebGLCubeRenderTarget(64)
-  target.fromEquirectangular(renderer,texture)
+  target.fromEquirectangularTexture(renderer,texture)
   texture.dispose()
   return target
 }

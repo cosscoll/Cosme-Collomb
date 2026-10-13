@@ -129,6 +129,7 @@ try{
   // with its declared local fallbacks; no application resource is mocked.
   await page.route(/fonts\.(googleapis|gstatic)\.com/,route=>route.abort())
   page.on('pageerror',e=>report.errors.push(e.message))
+  page.on('console',message=>{if(message.type()==='error')console.error('NETWORK CONSOLE ERROR:',message.text())})
   await page.goto(site+'#/projets',{waitUntil:'domcontentloaded'})
   await landed('/projets')
   await checkChromeBrand()
@@ -234,6 +235,7 @@ try{
   console.log('NETWORK BROWSER PASSED',JSON.stringify({loops:report.loops.length,viewports:report.viewports.length,version:NETWORK_VERSION}))
 }catch(error){
   report.failure=String(error);console.error(error)
+  console.error('PAGE ERRORS',JSON.stringify(report.errors))
   try{console.error('STATE',await page.evaluate(()=>({hash:location.hash,flight:window.__portfolioFlight})));await capture('failure')}catch{}
   process.exitCode=1
 }finally{
