@@ -7,7 +7,7 @@ export const NETWORK_VERSION = 'continuous-network-1'
 export const HUB = new THREE.Vector3(0, 0, 6)
 export const ROOM = { centre: new THREE.Vector3(0, 0, -4), radius: 14 }
 export const TUBE_RADIUS = 2.8
-export const COLORS = ['#2358ff','#3b69ff','#4973ef','#3157d2','#527ce8','#244bc6','#6687e6','#3e64df']
+export const COLORS = ['#c8b5ff','#98e1df','#edbe98','#e0cf9c','#a8d7b9','#c4b5f1','#e8aac6','#abc9f3']
 const v = a => new THREE.Vector3(...a)
 export const clamp = (x, a=0, b=1) => Math.max(a, Math.min(b, x))
 

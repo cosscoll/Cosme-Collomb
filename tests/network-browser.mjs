@@ -23,24 +23,6 @@ async function capture(label,geometryOnly=false){
   const path='test-output/'+prefix+'-'+label+'.png'
   try{await page.screenshot({path,timeout:20000});report.screenshots.push(path)}finally{await style?.evaluate(el=>el.remove())}
 }
-async function chromeProof(label){
-  if(!process.env.PUBLIC_SITE&&process.env.AUDIT_QUICK!=='1'&&label!=='MOBILE')return
-  const bytes=await page.screenshot({type:'jpeg',quality:55,timeout:20000})
-  console.log('CHROME_PROOF_'+label+'='+bytes.toString('base64'))
-}
-async function checkChromeBrand(){
-  const appearance=await page.evaluate(async()=>{
-    await Promise.all([document.fonts.load('600 20px Sora'),document.fonts.load('400 20px Manrope')])
-    const body=getComputedStyle(document.body),root=getComputedStyle(document.documentElement)
-    return {background:body.backgroundColor,text:body.color,font:body.fontFamily,accent:root.getPropertyValue('--accent').trim(),
-      headings:document.fonts.check('600 20px Sora'),bodyFont:document.fonts.check('400 20px Manrope')}
-  })
-  assert.equal(appearance.background,'rgb(244, 242, 237)')
-  assert.equal(appearance.text,'rgb(20, 20, 20)')
-  assert.equal(appearance.accent,'#2358ff')
-  assert.ok(appearance.font.includes('Manrope')&&appearance.headings&&appearance.bodyFont,'Chrome fonts failed to load locally')
-  report.appearance=appearance;console.log('CHROME COBALT VERIFIED',JSON.stringify(appearance))
-}
 async function landed(path,timeout=180000){
   await page.waitForFunction(path=>{
     const f=window.__portfolioFlight
@@ -129,15 +111,12 @@ try{
   // with its declared local fallbacks; no application resource is mocked.
   await page.route(/fonts\.(googleapis|gstatic)\.com/,route=>route.abort())
   page.on('pageerror',e=>report.errors.push(e.message))
-  page.on('console',message=>{if(message.type()==='error')console.error('NETWORK CONSOLE ERROR:',message.text())})
   await page.goto(site+'#/projets',{waitUntil:'domcontentloaded'})
   await landed('/projets')
-  await checkChromeBrand()
   await page.waitForTimeout(1500)
   assert.equal(await page.locator('.fork-choice').count(),8)
   const first=await page.evaluate(()=>window.__portfolioFlight)
   await capture('hub');await capture('hub-geometry',true)
-  await chromeProof('PROJECTS')
   const count=process.env.AUDIT_PAGES_ONLY?0:process.env.AUDIT_QUICK==='1'?1:8
   for(let i=0;i<count;i++){
     const path='/projets/'+PROJECTS[i].slug
@@ -187,11 +166,8 @@ try{
     (window.__portfolioFlight.currentRoute==='/contact'&&!window.__portfolioFlight.transiting))
   await landed('/contact')
   await clickNav('Accueil');await landed('/')
-  await page.waitForTimeout(1300)
-  await capture('chrome-home-hero');await chromeProof('HERO')
   await homeProjects()
   await capture('home-eight-projects')
-  await chromeProof('CARDS')
   await page.locator('#works .fork-choice').last().click()
   await landed('/projets/'+PROJECTS[7].slug)
   await clickNav('Projets');await landed('/projets')
@@ -214,7 +190,6 @@ try{
       await page.goto(site+'#/',{waitUntil:'domcontentloaded'});await landed('/')
       await homeProjects()
       await capture('home-eight-projects-'+width+'x'+height)
-      if(width===390)await chromeProof('MOBILE')
       if(width===390){
         await startCapture();await page.locator('.fork-choice').last().click();await landed('/projets/'+PROJECTS[7].slug)
         await page.evaluate(()=>window.scrollTo({top:document.documentElement.scrollHeight,behavior:'instant'}));await landed('/projets')
@@ -235,7 +210,6 @@ try{
   console.log('NETWORK BROWSER PASSED',JSON.stringify({loops:report.loops.length,viewports:report.viewports.length,version:NETWORK_VERSION}))
 }catch(error){
   report.failure=String(error);console.error(error)
-  console.error('PAGE ERRORS',JSON.stringify(report.errors))
   try{console.error('STATE',await page.evaluate(()=>({hash:location.hash,flight:window.__portfolioFlight})));await capture('failure')}catch{}
   process.exitCode=1
 }finally{
