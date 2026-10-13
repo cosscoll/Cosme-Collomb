@@ -15,8 +15,10 @@ export function createChromeEnvironment(renderer){
   ctx.fillStyle=shade;ctx.fillRect(0,160,512,96)
   const texture=new THREE.CanvasTexture(canvas);texture.colorSpace=THREE.SRGBColorSpace
   texture.mapping=THREE.EquirectangularReflectionMapping
-  const generator=new THREE.PMREMGenerator(renderer)
-  const target=generator.fromEquirectangular(texture)
-  generator.dispose();texture.dispose()
+  // Phong reflections use a small cubemap directly, rather than the many
+  // texture lookups of a PBR roughness convolution on low-powered devices.
+  const target=new THREE.WebGLCubeRenderTarget(64)
+  target.fromEquirectangular(renderer,texture)
+  texture.dispose()
   return target
 }

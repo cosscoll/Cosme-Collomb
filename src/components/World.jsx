@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react'
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Canvas, useFrame, useLoader, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
@@ -14,14 +14,15 @@ const UP=new THREE.Vector3(0,1,0)
 const FORWARD=new THREE.Vector3(0,0,-1)
 const smooth=x=>{const t=clamp(x);return t*t*(3-2*t)}
 
-function ChromeEnvironment(){
-  const {scene,gl}=useThree()
+const ChromeContext=createContext(null)
+function ChromeEnvironment({children}){
+  const {gl}=useThree(),[environment,setEnvironment]=useState(null)
   useEffect(()=>{
-    const previous=scene.environment,target=createChromeEnvironment(gl)
-    scene.environment=target.texture
-    return ()=>{scene.environment=previous;target.dispose()}
-  },[scene,gl])
-  return null
+    const target=createChromeEnvironment(gl)
+    setEnvironment(target.texture)
+    return ()=>target.dispose()
+  },[gl])
+  return <ChromeContext.Provider value={environment}>{children}</ChromeContext.Provider>
 }
 
 // Ribs belong to private tube walls, never across the navigable union of
@@ -38,6 +39,7 @@ function privateTube(edge,centre){
 }
 
 function PermanentNetwork({onReady}) {
+  const environment=useContext(ChromeContext)
   const buffer=useLoader(THREE.FileLoader,meshUrl,loader=>loader.setResponseType('arraybuffer'))
   const geometry=useMemo(()=>{
     const g=decodeNetwork(buffer),p=g.getAttribute('position')
@@ -50,8 +52,9 @@ function PermanentNetwork({onReady}) {
     g.setAttribute('color',new THREE.BufferAttribute(colors,3));return g
   },[buffer])
   const parts=useMemo(()=>partitionNetwork(geometry),[geometry])
-  const material=useMemo(()=>new THREE.MeshStandardMaterial({vertexColors:true,side:THREE.DoubleSide,
-    metalness:.88,roughness:.24,envMapIntensity:1.25}),[])
+  const material=useMemo(()=>new THREE.MeshPhongMaterial({vertexColors:true,side:THREE.DoubleSide,
+    shininess:90,specular:'#ffffff',reflectivity:.86,combine:THREE.MixOperation}),[])
+  useEffect(()=>{material.envMap=environment;material.needsUpdate=true},[material,environment])
   useEffect(()=>{onReady?.()},[onReady])
   // The collider is the exact same geometry that renders the wall.
   useEffect(()=>{window.__portfolioNetworkGeometry=geometry;return ()=>{delete window.__portfolioNetworkGeometry}},[geometry])
@@ -61,6 +64,7 @@ function PermanentNetwork({onReady}) {
 }
 
 function Architecture({hovered}) {
+  const environment=useContext(ChromeContext)
   const ribs=useMemo(()=>{
     const pieces=[]
     for(const edge of EDGES)for(let s=28;s<edge.length-30;s+=7){
@@ -91,7 +95,8 @@ function Architecture({hovered}) {
     const merged=mergeGeometries(pieces);pieces.forEach(g=>g.dispose());return merged
   },[])
   const guideParts=useMemo(()=>partitionNetwork(guides),[guides])
-  const ribMaterial=useMemo(()=>new THREE.MeshStandardMaterial({color:'#f4f2ed',metalness:.8,roughness:.19}),[])
+  const ribMaterial=useMemo(()=>new THREE.MeshPhongMaterial({color:'#f4f2ed',shininess:110,specular:'#ffffff',reflectivity:.9,combine:THREE.MixOperation}),[])
+  useEffect(()=>{ribMaterial.envMap=environment;ribMaterial.needsUpdate=true},[ribMaterial,environment])
   const guideMaterial=useMemo(()=>new THREE.MeshBasicMaterial({color:'#2358ff'}),[])
   return <group name="permanent-architecture" dispose={null}>
     {ribParts.map((g,i)=><mesh key={'rib-'+i} geometry={g} material={ribMaterial}/>)}
@@ -122,6 +127,7 @@ function Portal({edge,active}) {
 // Solid floor plates assemble inside an already sealed tube. The permanent
 // wall is never hidden, faded or swapped when their animation ends.
 function Assembly({transit}) {
+  const environment=useContext(ChromeContext)
   const mesh=useRef(),ages=useRef(PROJECT_EDGES.map(()=>-1)),seen=useRef(null)
   const pieces=useMemo(()=>PROJECT_EDGES.flatMap(edge=>Array.from({length:16},(_,i)=>({edge,i,...frameAt(edge,32+i*2.6)}))),[])
   const matrix=useMemo(()=>new THREE.Matrix4(),[]),object=useMemo(()=>new THREE.Object3D(),[])
@@ -141,7 +147,7 @@ function Assembly({transit}) {
     if(transit)window.__portfolioBridgeMesh={id:transit.id,progress:transit.progress??0,rows,totalRows:16,triangles:rows*12,opacity:1,mouthGap:0,permanentShell:true}
   })
   return <instancedMesh name="assembling-floor-plates" ref={mesh} args={[null,null,pieces.length]} frustumCulled={false}>
-    <boxGeometry args={[3.25,.13,2.45]}/><meshStandardMaterial color="#a8b2bc" metalness={.8} roughness={.3}/>
+    <boxGeometry args={[3.25,.13,2.45]}/><meshPhongMaterial color="#a8b2bc" envMap={environment} shininess={80} reflectivity={.8} combine={THREE.MixOperation}/>
   </instancedMesh>
 }
 
@@ -224,9 +230,10 @@ export default function World({pathname='/',hovered='',transit=null,onReady}) {
   return <Canvas camera={{position:HUB.toArray(),fov:68,near:.06,far:160}} dpr={1}
     gl={{alpha:false,antialias:true,powerPreference:'high-performance'}} style={{position:'absolute',inset:0}}>
     <color attach="background" args={['#f4f2ed']}/><fog attach="fog" args={['#dce2eb',45,140]}/>
-    <ChromeEnvironment/>
     <ambientLight intensity={.75}/><hemisphereLight color="#ffffff" groundColor="#6c747f" intensity={1.2}/>
+    <ChromeEnvironment>
     <PermanentNetwork onReady={onReady}/><Architecture hovered={hovered}/>
     <Flight pathname={pathname} transit={transit}/><Assembly transit={transit}/><AdaptiveQuality/>
+    </ChromeEnvironment>
   </Canvas>
 }
