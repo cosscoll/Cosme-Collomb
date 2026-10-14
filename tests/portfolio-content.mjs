@@ -45,6 +45,16 @@ try{
       if(project){
         assert.equal(await page.locator('.project-facts').count(),1)
         assert.equal(await page.locator('.evidence-media img').count(),project.gallery.length)
+        assert.equal(await page.locator('.project-demo video').count(),project.demo?1:0)
+        if(project.demo){
+          assert.equal(await page.locator('.project-demo source').getAttribute('src'),'/Cosme-Collomb/media/project-demos/'+project.demo.video)
+          if(width===390){
+            const video=await page.request.get(site+'media/project-demos/'+project.demo.video)
+            const poster=await page.request.get(site+'media/project-demos/'+project.demo.poster)
+            assert.equal(video.status(),200,'Video unavailable for '+project.slug)
+            assert.equal(poster.status(),200,'Poster unavailable for '+project.slug)
+          }
+        }
         for(const url of [project.link,project.repoLink,...project.resources.map(r=>r.url)].filter(Boolean))assert.ok(await page.locator('main a').evaluateAll((links,url)=>links.some(a=>a.href===url),url),'Missing project link '+url)
       }
       if(route==='/parcours'){

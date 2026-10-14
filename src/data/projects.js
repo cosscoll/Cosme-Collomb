@@ -52,6 +52,7 @@ export const PROJECTS = [
     "duration": "",
     "featured": false,
     "resources": [],
+    "demo": {"video":"chess-demo.mp4","poster":"chess-demo.jpg","caption":"Ouverture italienne : progression réelle des coups sur l’échiquier."},
     "image": "chess-home.jpg"
   },
   {
@@ -100,6 +101,7 @@ export const PROJECTS = [
     "duration": "",
     "featured": false,
     "resources": [],
+    "demo": {"video":"poker-demo.mp4","poster":"poker-demo.jpg","caption":"Composition d’une main et observation des probabilités."},
     "image": "poker-table.jpg"
   },
   {
@@ -153,6 +155,7 @@ export const PROJECTS = [
     "year": "2026",
     "duration": "",
     "resources": [],
+    "demo": {"video":"beer-demo.mp4","poster":"beer-demo.jpg","caption":"Parcours sensoriel et exploration du catalogue des styles."},
     "image": "beer-builder.jpg"
   },
   {
@@ -211,6 +214,7 @@ export const PROJECTS = [
     "year": "2026",
     "duration": "",
     "featured": false,
+    "demo": {"video":"eurorare-demo.mp4","poster":"eurorare-demo.jpg","caption":"Navigation réelle dans le catalogue des pièces."},
     "image": "eurorare-home.jpg"
   },
   {
@@ -263,6 +267,7 @@ export const PROJECTS = [
     "year": "2026",
     "duration": "",
     "resources": [],
+    "demo": {"video":"ifsi-demo.mp4","poster":"ifsi-demo.jpg","caption":"Session de quiz et correction affichée dans la plateforme."},
     "image": "ifsi-home.jpg"
   },
   {
@@ -321,6 +326,7 @@ export const PROJECTS = [
     "year": "2026",
     "duration": "",
     "featured": false,
+    "demo": {"video":"iagile-demo.mp4","poster":"iagile-demo.jpg","caption":"Visite de la vitrine publique d’une formation."},
     "image": "iagile-home.jpg"
   },
   {
@@ -385,6 +391,7 @@ export const PROJECTS = [
     "year": "2026",
     "duration": "",
     "featured": false,
+    "demo": {"video":"tcg-demo.mp4","poster":"tcg-demo.jpg","caption":"Ouverture d’un booster dans le prototype public."},
     "image": "tcg-collection.jpg"
   },
   {
