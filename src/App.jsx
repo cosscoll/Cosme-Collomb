@@ -8,7 +8,7 @@ import { NAV_ITEMS, navigationContext } from './navigation/siteNavigation.js'
 import './styles/rebuilt.css'
 import './styles/content.css'
 
-const PROJECT_IMAGES = import.meta.glob('./assets/projects/*', { eager: true, query: '?url', import: 'default' })
+const PROJECT_IMAGES = import.meta.glob(['./assets/projects/*', '!./assets/projects/stage-*'], { eager: true, query: '?url', import: 'default' })
 
 function ProjectGallery({ images, label = 'Visuels du projet' }) {
   if (!images?.length) return null

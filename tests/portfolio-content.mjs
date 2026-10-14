@@ -68,7 +68,7 @@ try{
       assert.ok(overflow.page<=1,'Page overflow '+width+' '+route+' '+overflow.page)
       assert.deepEqual(overflow.bad,[],'Content exceeds viewport '+width+' '+route)
       if([390,768,1440].includes(width)&&(route==='/parcours'||project===PROJECTS[0]||project===PROJECTS[7])){
-        await page.locator('.evidence-gallery').first().scrollIntoViewIfNeeded()
+        await page.locator(route==='/parcours'?'.creative-case':'.evidence-gallery').first().scrollIntoViewIfNeeded()
         await page.waitForTimeout(1100)
         const path='test-output/'+prefix+'-'+width+'-'+(project?.slug||'parcours')+'.png'
         await page.screenshot({path});report.screenshots.push(path)
