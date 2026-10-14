@@ -1,0 +1,33 @@
+name: Capture actual portfolio demos and historical versions
+on:
+  push:
+    branches: ['review/portfolio-media-*']
+permissions:
+  contents: read
+jobs:
+  real-media:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Prepare historical source snapshots
+        run: |
+          git clone https://github.com/cosscoll/Chess-Openings.git /tmp/chess-before
+          git -C /tmp/chess-before checkout 087e38e
+          git clone https://github.com/cosscoll/MyBeer.git /tmp/beer-before
+          git -C /tmp/beer-before checkout 8e69d1f
+          ffmpeg -version
+      - run: node tests/portfolio-media/capture.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: real-portfolio-media
+          path: |
+            test-output/portfolio-media/*.mp4
+            test-output/portfolio-media/*.jpg
+            test-output/portfolio-media/report.json
