@@ -31,7 +31,8 @@ for attempt in 1 2 3 4 5 6; do
   cp -a dist/. ./
   touch .nojekyll
   test -s cv.html
-  git add -f cv.html index.html prototype-3d/index.html \
+  test -s dist/media/project-demos/chess-demo.mp4
+  git add -f media/ cv.html index.html prototype-3d/index.html \
     prototype-3d/v2/index.html prototype-3d/v3/index.html assets/ .nojekyll
 
   if git diff --cached --quiet; then

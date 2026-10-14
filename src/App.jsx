@@ -508,6 +508,13 @@ function ProjectDetail({slug,onJourneyFinished}) {
       <p>{p.link ? 'Explorez cette réalisation en ligne pour voir les fonctionnalités décrites.' : 'Ce projet est en développement et aucune démonstration publique n’est encore confirmée.'}</p>
       {p.outcome && <p className="journey-secondary"><strong>État actuel :</strong> {p.outcome}</p>}
       <ProjectGallery images={p.gallery} label={'Visuels de ' + p.title} />
+      {p.demo && <figure className="project-demo" aria-label={'Démonstration vidéo de '+p.title}>
+        <video controls playsInline preload="none" poster={'/Cosme-Collomb/media/project-demos/'+p.demo.poster} aria-label={'Vidéo de démonstration : '+p.title}>
+          <source src={'/Cosme-Collomb/media/project-demos/'+p.demo.video} type="video/mp4"/>
+          Votre navigateur ne prend pas en charge la lecture vidéo.
+        </video>
+        <figcaption><strong>Démo enregistrée sur le site public</strong> — {p.demo.caption}</figcaption>
+      </figure>}
       <div className="journey-actions">
         {p.link && <a className="detail-primary" href={p.link} target="_blank" rel="noopener noreferrer">Ouvrir le projet <span>↗</span></a>}
         {p.repoLink && <a className="underlined-link" href={p.repoLink} target="_blank" rel="noopener noreferrer">{p.repoLabel || 'Explorer le code ↗'}</a>}

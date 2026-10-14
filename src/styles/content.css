@@ -65,3 +65,9 @@
 .creative-detail-content p{font-size:14px;line-height:1.7}
 .creative-case-footnote{margin-top:20px;font-size:13px;line-height:1.7;color:var(--muted)}
 @media(max-width:760px){.creative-case-columns{grid-template-columns:1fr;gap:22px}.creative-case-deliverables{grid-template-columns:1fr}.profile-cv-entry{align-items:flex-start;flex-direction:column}.creative-palette{grid-template-columns:repeat(2,minmax(0,1fr))}.creative-proof{padding:17px}}
+
+/* Captures vidéo issues de navigations réelles, chargées seulement sur demande. */
+.project-demo{margin:29px 0 32px;max-width:880px;min-width:0}
+.project-demo video{display:block;width:100%;height:auto;aspect-ratio:16/10;object-fit:contain;border:1px solid rgba(230,220,246,.3);border-radius:9px;background:#08080f}
+.project-demo figcaption{padding-top:12px;font-size:13px;line-height:1.6;color:var(--ink)}
+.project-demo figcaption strong{font-weight:600}
