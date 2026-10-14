@@ -1,0 +1,32 @@
+name: Import verified real portfolio media
+on:
+  push:
+    branches: ['review/portfolio-media-*']
+permissions:
+  contents: write
+  actions: read
+jobs:
+  import-media:
+    if: "contains(github.event.head_commit.message, 'Import verified media from successful capture')"
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download successful capture artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 38531100580 --repo "${GITHUB_REPOSITORY}" --name real-portfolio-media --dir /tmp/verified-media
+      - name: Verify and copy actual project recordings
+        run: |
+          mkdir -p public/media/project-demos
+          cp /tmp/verified-media/*.mp4 public/media/project-demos/
+          cp /tmp/verified-media/*.jpg public/media/project-demos/
+          test "$(find public/media/project-demos -maxdepth 1 -name '*-demo.mp4' | wc -l)" -eq 7
+          test "$(find public/media/project-demos -maxdepth 1 -name '*.jpg' | wc -l)" -eq 9
+      - name: Commit media to review branch
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f public/media/project-demos/
+          git commit -m 'chore(media): store verified public project recordings [skip ci]'
+          git push origin HEAD:${GITHUB_REF_NAME}
