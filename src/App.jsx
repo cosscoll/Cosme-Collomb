@@ -551,12 +551,53 @@ function About() {
           <div><h2>{entry.title}</h2><p className="profile-organization">{entry.org}</p><p>{entry.text}</p></div>
         </article>)}
       </section>
-      <section className="profile-case" aria-label="Exemple de réalisation professionnelle">
-        <span className="micro-label">{PROFILE.stage.period} / COMMUNICATION & IDENTITÉ</span>
-        <h2>{PROFILE.stage.title}</h2>
-        <p>{PROFILE.stage.text}</p>
-        <div className="profile-tools" aria-label="Livrables du stage">{PROFILE.stage.deliverables.map(deliverable => <span key={deliverable}>{deliverable}</span>)}</div>
-        <ProjectGallery images={PROFILE.stage.gallery} label="Livrables du stage Virginie Quintana" />
+
+      <section className="profile-cv-entry" aria-label="CV professionnel">
+        <div>
+          <span className="micro-label">MON PROFIL / EN BREF</span>
+          <h2>Le parcours, <em>en une page.</em></h2>
+          <p>Études, expériences, compétences et réalisations réunies dans un CV lisible et imprimable.</p>
+        </div>
+        <a className="underlined-link" href="/Cosme-Collomb/cv.html" target="_blank" rel="noopener noreferrer">Consulter mon CV ↗</a>
+      </section>
+      <section className="creative-cases" aria-label="Études de cas en communication" id="etudes-de-cas">
+        <div className="section-topline"><span>ÉTUDES DE CAS</span><span>STRATÉGIE, IDENTITÉ & STORYTELLING</span></div>
+        <div className="creative-cases-intro">
+          <h2>Des idées <em>qui se construisent.</em></h2>
+          <p>Deux travaux de conception documentés. Les exemples présentés sont issus des supports de travail ; ils ne sont pas des campagnes publiées ni des résultats commerciaux.</p>
+        </div>
+        {PROFILE.caseStudies.map((study,index)=><article className="creative-case" key={study.id}>
+          <header className="creative-case-head">
+            <span className="micro-label">CAS {String(index+1).padStart(2,'0')} / {study.kicker}</span>
+            <h3>{study.title}</h3>
+            <p className="creative-case-status">{study.status}</p>
+            <p className="creative-case-lead">{study.lead}</p>
+          </header>
+          <div className="creative-case-columns">
+            <div><span className="micro-label">LE DÉFI</span><p>{study.challenge}</p></div>
+            <div><span className="micro-label">MA DÉMARCHE</span><p>{study.approach}</p></div>
+          </div>
+          <p className="creative-case-role"><strong>Mon rôle :</strong> {study.role}</p>
+          <div className="creative-case-deliverables" aria-label={'Livrables de '+study.title}>
+            {study.deliverables.map((item,i)=><span key={item}><b>{String(i+1).padStart(2,'0')}</b>{item}</span>)}
+          </div>
+          <div className="creative-proof">
+            <div className="creative-proof-head"><span className="micro-label">{study.proofLabel}</span><span>DOCUMENT DE CONCEPTION</span></div>
+            {study.palette&&<div className="creative-palette" aria-label="Palette de la charte graphique">
+              {study.palette.map(color=><div className="creative-swatch" key={color.hex}>
+                <span className="creative-swatch-color" style={{background:color.hex}} aria-hidden="true"/>
+                <strong>{color.name}</strong><code>{color.hex}</code>
+              </div>)}
+            </div>}
+            <details className="creative-details">
+              <summary>Explorer les éléments de conception <span aria-hidden="true">↗</span></summary>
+              <div className="creative-detail-content">
+                {study.chapters.map(chapter=><div key={chapter.title}><h4>{chapter.title}</h4><p>{chapter.text}</p></div>)}
+              </div>
+            </details>
+          </div>
+          <p className="creative-case-footnote">{study.target}</p>
+        </article>)}
       </section>
       <Link to="/contact" className="underlined-link">Travaillons ensemble <span>↗</span></Link>
     </section>

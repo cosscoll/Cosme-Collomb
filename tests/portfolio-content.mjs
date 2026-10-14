@@ -48,10 +48,16 @@ try{
         for(const url of [project.link,project.repoLink,...project.resources.map(r=>r.url)].filter(Boolean))assert.ok(await page.locator('main a').evaluateAll((links,url)=>links.some(a=>a.href===url),url),'Missing project link '+url)
       }
       if(route==='/parcours'){
-        assert.equal(await page.locator('.profile-entry').count(),6)
+        assert.equal(await page.locator('.profile-entry').count(),5)
         assert.match(await page.locator('.profile-timeline').innerText(),/INSEEC MSc Toulouse/)
         assert.match(await page.locator('.profile-timeline').innerText(),/MédiAge Formations/)
-        assert.equal(await page.locator('.evidence-media img').count(),2)
+        assert.equal(await page.locator('.creative-case').count(),2)
+        assert.equal(await page.locator('.creative-details summary').count(),2)
+        assert.equal(await page.locator('.creative-palette .creative-swatch').count(),4)
+        assert.equal(await page.locator('.evidence-media img').count(),0)
+        assert.equal(await page.getByRole('link',{name:/Consulter mon CV/}).count(),1)
+        assert.ok(!(await page.locator('main').innerText()).includes('Virginie Quintana'))
+        if(width===390){const cv=await page.request.get(site+'cv.html');assert.equal(cv.status(),200);assert.match(await cv.text(),/Cosme Collomb/)}
       }
       for(const img of await page.locator('.evidence-media img').all()){
         await img.scrollIntoViewIfNeeded()

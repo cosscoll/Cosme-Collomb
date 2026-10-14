@@ -27,3 +27,41 @@
 .profile-case .profile-tools{margin-bottom:30px}
 @media(max-width:900px){.evidence-gallery{grid-template-columns:1fr}.profile-entry{grid-template-columns:140px minmax(0,1fr);gap:20px}}
 @media(max-width:680px){.project-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.project-facts>div:first-child{grid-column:1/-1}.project-facts>div{padding:13px 12px 13px 0}.project-facts dd{font-size:14px}.profile-entry{grid-template-columns:1fr;gap:13px}.profile-timeline{margin-top:45px}.profile-case{margin-top:60px}.about-profile{margin-bottom:40px}.project-resource-links{gap:14px}.evidence-gallery{gap:22px}.evidence-figure figcaption{font-size:13px}}
+
+/* Études de cas de communication : extraits réels des documents de conception, sans captures fictives. */
+.profile-cv-entry{margin:65px 0 72px;padding:30px 0;border-top:1px solid var(--stroke);border-bottom:1px solid var(--stroke);display:flex;gap:28px;justify-content:space-between;align-items:center}
+.profile-cv-entry h2{margin:12px 0;font-size:clamp(27px,3.3vw,43px);line-height:1.15}
+.profile-cv-entry p{max-width:590px;line-height:1.65;font-size:15px}
+.profile-cv-entry>a{flex-shrink:0}
+.creative-cases{padding:25px 0 70px;max-width:1150px}
+.creative-cases-intro{margin:34px 0 48px;max-width:780px}
+.creative-cases-intro h2{font-size:clamp(30px,4vw,57px);line-height:1.15;overflow-wrap:anywhere}
+.creative-cases-intro p{margin-top:20px;line-height:1.75;font-size:16px}
+.creative-case{padding:43px 0 60px;border-top:1px solid var(--stroke)}
+.creative-case-head{max-width:850px}
+.creative-case-head h3{font-size:clamp(28px,4vw,52px);line-height:1.2;margin:12px 0 14px;overflow-wrap:anywhere}
+.creative-case-status{font-size:12px;letter-spacing:.07em;color:var(--accent);margin-bottom:20px}
+.creative-case-lead{font-size:clamp(17px,1.75vw,21px);line-height:1.6;color:var(--ink)}
+.creative-case-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:35px;margin:34px 0 20px}
+.creative-case-columns p{font-size:15px;line-height:1.8;margin-top:10px}
+.creative-case-role{font-size:14px;line-height:1.7}
+.creative-case-deliverables{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:30px 0}
+.creative-case-deliverables span{min-width:0;display:flex;gap:12px;align-items:flex-start;border:1px solid var(--stroke);padding:17px;font-size:13px;line-height:1.55}
+.creative-case-deliverables b{font-weight:500;color:var(--accent);flex-shrink:0}
+.creative-proof{border:1px solid var(--stroke);background:rgba(14,13,23,.6);border-radius:9px;padding:24px;margin-top:22px}
+.creative-proof-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.creative-proof-head>span:last-child{font-size:10px;letter-spacing:.13em;color:var(--muted)}
+.creative-palette{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:20px 0 22px}
+.creative-swatch{display:flex;flex-direction:column;gap:6px;min-width:0}
+.creative-swatch-color{display:block;height:85px;border-radius:5px;border:1px solid rgba(255,255,255,.18)}
+.creative-swatch strong{font-size:12px}
+.creative-swatch code{font-size:11px;color:var(--muted)}
+.creative-details{margin-top:18px}
+.creative-details summary{cursor:pointer;display:flex;gap:16px;align-items:center;justify-content:space-between;padding:16px 0;border-top:1px solid var(--stroke);font-size:14px;line-height:1.5;list-style:none}
+.creative-details summary::-webkit-details-marker{display:none}
+.creative-details summary:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+.creative-detail-content{padding:2px 0 10px;display:grid;gap:20px}
+.creative-detail-content h4{font-size:15px;color:var(--ink);margin-bottom:6px}
+.creative-detail-content p{font-size:14px;line-height:1.7}
+.creative-case-footnote{margin-top:20px;font-size:13px;line-height:1.7;color:var(--muted)}
+@media(max-width:760px){.creative-case-columns{grid-template-columns:1fr;gap:22px}.creative-case-deliverables{grid-template-columns:1fr}.profile-cv-entry{align-items:flex-start;flex-direction:column}.creative-palette{grid-template-columns:repeat(2,minmax(0,1fr))}.creative-proof{padding:17px}}

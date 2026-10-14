@@ -19,7 +19,7 @@ git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
 for attempt in 1 2 3 4 5 6; do
   git fetch origin main
   if ! git diff --quiet "${GITHUB_SHA:-HEAD}" origin/main -- \
-    src/ site/ vite.config.js package.json package-lock.json \
+    src/ site/ public/ vite.config.js package.json package-lock.json \
     tests/ index.source.html prototype-3d/index.source.html \
     prototype-3d/v2/index.source.html prototype-3d/v3/index.source.html; then
     echo "A newer source version was committed while the build ran; skip stale publication."
@@ -30,7 +30,8 @@ for attempt in 1 2 3 4 5 6; do
   mkdir -p assets
   cp -a dist/. ./
   touch .nojekyll
-  git add -f index.html prototype-3d/index.html \
+  test -s cv.html
+  git add -f cv.html index.html prototype-3d/index.html \
     prototype-3d/v2/index.html prototype-3d/v3/index.html assets/ .nojekyll
 
   if git diff --cached --quiet; then
